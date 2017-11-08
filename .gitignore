@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+
+build/
+develop-eggs/
+dist/
+eggs/
+
+pip-log.txt
+pip-delete-this-directory.txt
