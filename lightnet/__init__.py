@@ -4,3 +4,4 @@
 #
 
 from .weights import *
+from .network import *
