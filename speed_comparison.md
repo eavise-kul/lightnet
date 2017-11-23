@@ -21,7 +21,7 @@ To measurements were performed 25 times for each network.
 |                | Maximum   | 0.5856533050537109     | 0.5749838352203369        |
 |                |           |                        |                           |
 |                | Minimum   | 0.0027985572814941406  | 0.0016674995422363281     |
-| Compute bbox   | Average   | 0.004696712493896484   | __0.004429044723510742__  |
+| Region box     | Average   | 0.004696712493896484   | __0.004429044723510742__  |
 |                | Maximum   | 0.005053997039794922   | 0.004963874816894531      |
 |                |           |                        |                           |
 |                | Minimum   | 3.3855438232421875e-05 | 3.3855438232421875e-05    |
@@ -34,10 +34,10 @@ To measurements were performed 25 times for each network.
 
 ## Yolo-VOC test
 We compared running the Yolo-VOC network for inference against each other for 1000 images from the VOC2007 test data.
-[weight file](https://pjreddie.com/media/files/yolo-voc.weights)
-[dataset](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar)
-__NOTE 1:__ The inference was tested one image at a time. This can be sped up quite a bit in lightnet by using a dataloader and setting the batch size higher.
-__NOTE 2:__ Darknet & Lightnet letterbox the image to the input dimension of the network (416,416), whilst Pytorch-Yolo2 resizes the image. This does not impact runtimes.
+Inference was timed as run network + region box + non-maxima suppresion. Loading of the images, preprocessing and postprocessing were not included.  
+__NOTE 1:__ The inference was tested one image at a time. This can be sped up quite a bit in lightnet by using a dataloader and setting the batch size higher.  
+__NOTE 2:__ Darknet & Lightnet letterbox the image to the input dimension of the network (416,416), whilst Pytorch-Yolo2 resizes the image. This does not impact runtimes.  
+[weight file](https://pjreddie.com/media/files/yolo-voc.weights) - [dataset](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar)
 
 | Measurement    | Statistic | Pytorch-Yolo2 | Lightnet         | Darknet          | Lightnet CPU |
 |:--------------:|:---------:|:-------------:|:----------------:|:----------------:|:------------:|
