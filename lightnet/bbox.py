@@ -117,6 +117,51 @@ class BBoxConverter:
         return boxes
 
 
+def BBoxToBrambox(boxes, net_size, img_size=None, class_label_map=None):
+    """ Convert bounding box array to brambox detection object
+        
+        boxes               Array of detection boxes (eg. output of 1 batch of a network)
+        net_size            (width, height) sequence of the input size of the network
+        [img_size]          (width, height) sequence of the final image
+        [class_label_map]   array of class labels
+    """
+    net_w, net_h = net_size[:2]
+    if img_size is not None:
+        im_w, im_h = img_size
+
+        if im_w == net_w and im_h == net_h:
+            scale = 1
+        elif im_w / net_w >= im_h / net_h:
+            scale = net_w/im_w
+        else:
+            scale = net_h/im_h
+
+        pad = int((net_w-im_w*scale)/2), int((net_h-im_h*scale)/2)
+    else:
+        scale = 1
+        pad = (0,0)
+
+    dets = []
+    for box in boxes:
+        det = Detection()
+        det.x_top_left = (box[0] - box[2]/2) * net_w
+        det.y_top_left = (box[1] - box[3]/2) * net_h
+        det.width = box[2] * net_w
+        det.height = box[3] * net_h
+        det.confidence = box[4]*100
+        if class_label_map is not None:
+            det.class_label = class_label_map[box[5]]
+        else:
+            det.class_label = int(box[5])
+
+        det.x_top_left -= pad[0]
+        det.y_top_left -= pad[1]
+        det.rescale(1/scale)
+
+        dets.append(det)
+
+    return dets
+
 
 def bbox_iou(box1, box2):
     """ Compute IOU between 2 bounding boxes
