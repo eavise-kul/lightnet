@@ -5,12 +5,11 @@
 
 import os
 from collections import OrderedDict
-
 import torch
 import torch.nn as nn
 
 import lightnet as ln
-import lightnet.layers as lnl
+from .. import layers as lnl
 
 
 class YoloVoc(ln.Darknet):
@@ -20,7 +19,7 @@ class YoloVoc(ln.Darknet):
 
         # Parameters
         self.input_dim = (416, 416, 3)
-        self.classes = num_classes
+        self.num_classes = num_classes
         self.anchors = [1.3221, 1.73145,    3.19275, 4.00944,   5.05587, 8.09892,   9.47112, 4.84053,   11.2364, 10.0071]
         self.num_anchors = 5
 
@@ -68,7 +67,7 @@ class YoloVoc(ln.Darknet):
             # Sequence 3 : input = sequence2 + sequence1
             OrderedDict([
                 ('28_convbatch',    lnl.Conv2dBatchLeaky((4*64)+1024, 1024, 3, 1, 1)),
-                ('29_conv',         nn.Conv2d(1024, self.num_anchors*(5+self.classes), 1, 1, 0)),
+                ('29_conv',         nn.Conv2d(1024, self.num_anchors*(5+self.num_classes), 1, 1, 0)),
             ])
         ]
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
@@ -81,13 +80,13 @@ class YoloVoc(ln.Darknet):
                 self.load_darknet_weights(weights_file)
 
         # Loss
-        self.loss = ln.RegionLoss(self.classes, self.anchors, self.num_anchors) 
+        self.loss = ln.RegionLoss(self.num_classes, self.anchors, self.num_anchors) 
         self.loss.seen = self.seen
 
         # Postprocessing
         conf_thresh = 0.25
         nms_thresh = 0.4
-        self.postprocess = ln.BBoxConverter(conf_thresh, nms_thresh, self.anchors, self.classes)
+        self.postprocess = ln.BBoxConverter(self, conf_thresh, nms_thresh)
 
     def _forward(self, x):
         outputs = []
