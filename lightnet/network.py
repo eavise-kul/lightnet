@@ -22,6 +22,10 @@ class Darknet(nn.Module):
         self.postprocess = None
         self.header = [0,2,0]
         self.seen = 0
+        self.input_dim = (0,0,0)
+        self.num_classes = 0
+        self.anchors = []
+        self.num_anchors = 0
 
     def _forward(self, x):
         log(Loglvl.DEBUG, 'Running default forward functions')
@@ -63,11 +67,11 @@ class Darknet(nn.Module):
         for module in self.modules_recurse():
             try:
                 weights.load_layer(module)
-                log(Loglvl.DEBUG, f'Layer Loaded: {module}')
+                log(Loglvl.VERBOSE, f'Layer Loaded: {module}')
                 if weights.start >= weights.size:
                     log(Loglvl.DEBUG, f'Finished loading weights [{weights.start}/{weights.size} weights]')
             except NotImplementedError:
-                log(Loglvl.DEBUG, f'Layer skipped: {module.__class__.__name__}')
+                log(Loglvl.VERBOSE, f'Layer skipped: {module.__class__.__name__}')
 
     def save_darknet_weights(self, weights_file):
         weights = WeightSaver(self.header, self.seen)
@@ -75,9 +79,9 @@ class Darknet(nn.Module):
         for module in self.modules_recurse():
             try:
                 weights.save_layer(module)
-                log(Loglvl.DEBUG, f'Layer Saved: {module}')
+                log(Loglvl.VERBOSE, f'Layer Saved: {module}')
             except NotImplementedError:
-                log(Loglvl.DEBUG, f'Layer skipped: {module.__class__.__name__}')
+                log(Loglvl.VERBOSE, f'Layer skipped: {module.__class__.__name__}')
 
         weights.write_file(weights_file)
 

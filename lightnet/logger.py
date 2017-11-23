@@ -14,8 +14,9 @@ class Loglvl(IntEnum):
     NONE        = 999
 
     DEBUG       = 0
-    WARN        = 1
-    ERROR       = 2
+    VERBOSE     = 1
+    WARN        = 2
+    ERROR       = 3
 
 
 class ColorCode(Enum):
@@ -28,6 +29,7 @@ class ColorCode(Enum):
     YELLOW = '\033[33m'
     BLUE = '\033[34m'
     WHITE = '\033[37m'
+    GRAY = '\033[1;30m'
 
 
 def colorize(msg, color):
@@ -39,8 +41,8 @@ class Logger:
     def __init__(self):
         self.level = Loglvl.WARN
         self.color = True
-        self.lvl_msg = ['[DEBUG]', '[WARN] ', '[ERROR]']
-        self.lvl_col = [ColorCode.WHITE, ColorCode.YELLOW, ColorCode.RED]
+        self.lvl_msg = ['[DEBUG]   ', '[VERBOSE] ', '[WARN]    ', '[ERROR]   ']
+        self.lvl_col = [ColorCode.GRAY, ColorCode.WHITE, ColorCode.YELLOW, ColorCode.RED]
 
     def __call__(self, lvl, msg, error=None):
         """ Print out log message if lvl is higher than the set Loglvl """
