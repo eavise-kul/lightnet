@@ -1,5 +1,5 @@
 #
-#   Darknet specific layers implemented in pytorch
+#   Darknet specific layers
 #   Copyright EAVISE
 #
 

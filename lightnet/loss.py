@@ -22,6 +22,7 @@ class RegionLoss:
         self.anchors = anchors
         self.num_anchors = num_anchors
         self.anchor_step = len(anchors) // num_anchors
+
         self.coord_scale = 1
         self.noobject_scale = 1
         self.object_scale = 5

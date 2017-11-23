@@ -1,10 +1,12 @@
-from setuptools import setup
+import setuptools as setup
 
-setup(name='lightnet',
-      version='0.0.1',
-      description='Building blocks for recreating darknet networks in pytorch',
-      author='EAVISE',
-      packages=['lightnet',
-                'lightnet.models',
-               ],
+def find_packages():
+    return ['lightnet'] + ['lightnet.'+p for p in setup.find_packages('lightnet')]
+
+setup.setup(name='lightnet',
+            version='0.0.1',
+            author='EAVISE',
+            description='Building blocks for recreating darknet networks in pytorch',
+            long_description=open('README.md').read(),
+            packages=find_packages(),
 )
