@@ -14,7 +14,8 @@ from .. import layers as lnl
 
 class YoloVoc(ln.Darknet):
     """ yolo-voc.cfg implementation with pytorch """
-    def __init__(self, num_classes=20, weights_file=None, weights_pickle=False):
+    def __init__(self, num_classes=20, weights_file=None):
+        """ Network initialisation """
         super(YoloVoc, self).__init__()
 
         # Parameters
@@ -73,11 +74,7 @@ class YoloVoc(ln.Darknet):
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
 
         # Weights
-        if weights_file is not None:
-            if weights_pickle:
-                self.load_pickle_weights(weights_pickle)
-            else:
-                self.load_darknet_weights(weights_file)
+        self.load_weights(weights_file)
 
         # Loss
         self.loss = ln.RegionLoss(self.num_classes, self.anchors, self.num_anchors) 

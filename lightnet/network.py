@@ -3,6 +3,7 @@
 #   Copyright EAVISE
 #
 
+import os
 import collections
 
 import numpy as np
@@ -17,6 +18,7 @@ class Darknet(nn.Module):
     def __init__(self):
         super(Darknet, self).__init__()
 
+        # Parameters
         self.layers = None
         self.loss = None
         self.postprocess = None
@@ -59,7 +61,25 @@ class Darknet(nn.Module):
             else:
                 yield module
 
-    def load_darknet_weights(self, weights_file):
+    def load_weights(self, weights_file):
+        if weights_file is not None:
+            if os.path.splitext(weights_file)[1] == '.pt':
+                log(Loglvl.VERBOSE, 'Loading weights from pytorch file')
+                self._load_pickle_weights(weights_file)
+            else:
+                log(Loglvl.VERBOSE, 'Loading weights from darknet file')
+                self._load_darknet_weights(weights_file)
+
+    def save_weights(self, weights_file):
+        if weights_file is not None:
+            if os.path.splitext(weights_file)[1] == '.pt':
+                log(Loglvl.VERBOSE, 'Saving weights to pytorch file')
+                self._save_pickle_weights(weights_file)
+            else:
+                log(Loglvl.VERBOSE, 'Saving weights to darknet file')
+                self._save_darknet_weights(weights_file)
+
+    def _load_darknet_weights(self, weights_file):
         weights = WeightLoader(weights_file)
         self.header = weights.header
         self.seen = weights.seen
@@ -67,34 +87,33 @@ class Darknet(nn.Module):
         for module in self.modules_recurse():
             try:
                 weights.load_layer(module)
-                log(Loglvl.VERBOSE, f'Layer Loaded: {module}')
+                log(Loglvl.VERBOSE, f'Layer loaded: {module}')
                 if weights.start >= weights.size:
                     log(Loglvl.DEBUG, f'Finished loading weights [{weights.start}/{weights.size} weights]')
             except NotImplementedError:
                 log(Loglvl.VERBOSE, f'Layer skipped: {module.__class__.__name__}')
 
-    def save_darknet_weights(self, weights_file):
+    def _save_darknet_weights(self, weights_file):
         weights = WeightSaver(self.header, self.seen)
 
         for module in self.modules_recurse():
             try:
                 weights.save_layer(module)
-                log(Loglvl.VERBOSE, f'Layer Saved: {module}')
+                log(Loglvl.VERBOSE, f'Layer saved: {module}')
             except NotImplementedError:
                 log(Loglvl.VERBOSE, f'Layer skipped: {module.__class__.__name__}')
 
         weights.write_file(weights_file)
 
-    def load_pickle_weights(self, weights_file):
-        log(Loglvl.ERROR, 'This is not yet implemented, please use darknet format', NotImplementedError)
-        state = torch.load(weights_file)
+    def _load_pickle_weights(self, weights_file):
+        state = torch.load(weights_file, lambda storage, loc: storage)
         self.seen = state['seen']
         self.load_state_dict(state['weights'])
 
-    def save_pickle_weights(self, weights_file):
-        log(Loglvl.ERROR, 'This is not yet implemented, please use darknet format', NotImplementedError)
+    def _save_pickle_weights(self, weights_file):
         state = {
             'seen': self.seen,
-            'weights': self.state_dict(),
+            'weights': self.state_dict()
         }
         torch.save(state, weights_file)
+        log(Loglvl.VERBOSE, f'Weight file saved as {weights_file}')

@@ -10,6 +10,8 @@ import torch.nn as nn
 import lightnet.layers as lnl
 from .logger import *
 
+__all__ = ['WeightLoader', 'WeightSaver']
+
 
 class WeightLoader:
     """ Load darknet weight files into pytorch layers """
@@ -43,7 +45,7 @@ class WeightLoader:
         elif type(layer) == nn.Linear:
             self._load_fc(layer)
         else:
-            raise NotImplementedError(f'The layer you are trying to load is not supported [{type(layer)}]')
+            log(Loglvl.ERROR, f'The layer you are trying to load is not supported [{type(layer)}]', NotImplementedError)
 
     def _load_conv(self, model):
         num_b = model.bias.numel()
@@ -110,7 +112,7 @@ class WeightSaver:
             self.seen.tofile(fp)
             for np_arr in self.weights:
                 np_arr.tofile(fp)
-        log(Loglvl.DEBUG, f'Weight file saved as {filename}')
+        log(Loglvl.VERBOSE, f'Weight file saved as {filename}')
 
     def save_layer(self, layer):
         """ save weights for a layer """
@@ -121,7 +123,7 @@ class WeightSaver:
         elif type(layer) == nn.Linear:
             self._save_fc(layer)
         else:
-            raise NotImplementedError(f'The layer you are trying to save is not supported [{type(layer)}]')
+            log(Loglvl.ERROR, f'The layer you are trying to save is not supported [{type(layer)}]', NotImplementedError)
 
     def _save_conv(self, model):
         self.weights.append(model.bias.cpu().data.numpy())
