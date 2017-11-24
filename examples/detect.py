@@ -40,7 +40,7 @@ def create_network():
     else:
         names = None
     
-    net = YoloVoc(CLASSES, args.weight, brambox=True, class_label_map=names)
+    net = YoloVoc(CLASSES, args.weight)
     net.input_dim = NETWORK_SIZE
 
     if args.cuda:
