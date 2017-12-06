@@ -77,8 +77,7 @@ class YoloVoc(ln.Darknet):
         self.load_weights(weights_file)
 
         # Loss
-        self.loss = ln.RegionLoss(self.num_classes, self.anchors, self.num_anchors) 
-        self.loss.seen = self.seen
+        self.loss = ln.RegionLoss(self) 
 
         # Postprocessing
         conf_thresh = 0.25
