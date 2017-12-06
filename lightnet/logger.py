@@ -53,10 +53,11 @@ class Logger:
                     pre_msg = colorize(pre_msg, self.lvl_col[lvl])
             else:
                 pre_msg = '       '
-            print(f'{pre_msg} {msg}')
+            if error is None:
+                print(f'{pre_msg} {msg}')
 
         if error is not None:
-            raise error
+            raise error(f'\n{pre_msg} {msg}')
 
 
 # Create Logger object
