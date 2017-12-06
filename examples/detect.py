@@ -19,9 +19,9 @@ import lightnet.transforms as lnt
 from lightnet.models import *
 ln.log.level = ln.Loglvl.VERBOSE
 
-# Globals
+# Parameters
 CLASSES = 1
-NETWORK_SIZE = (416, 416, 3)
+NETWORK_SIZE = [416, 416, 3]
 
 TIMER = False
 TIMES_NETWORK = []
@@ -30,18 +30,7 @@ TIMES_NETWORK = []
 # Functions
 def create_network():
     """ Create the lightnet network """
-    global args
-    global NETWORK_SIZE
-    global CLASSES
-
-    if args.names is not None:
-        with open(args.names, 'r') as f:
-            names = f.read().splitlines()
-    else:
-        names = None
-    
-    net = YoloVoc(CLASSES, args.weight)
-    net.input_dim = NETWORK_SIZE
+    net = YoloVoc(CLASSES, args.weight, NETWORK_SIZE)
 
     if args.cuda:
         net.cuda()
@@ -51,9 +40,6 @@ def create_network():
 
 def detect(net, img_path):
     """ Perform a detection """
-    global args
-    global TIMER
-
     # Load image
     img = cv2.imread(img_path)
     preprocess = transforms.Compose([
@@ -79,17 +65,15 @@ def detect(net, img_path):
 
 def draw_boxes(img, det, net_dim):
     """ Draw detections and annotations on the image """
-    global names
-
-    det = ln.BBoxToBrambox(det, net_dim, (img.shape[1], img.shape[0]), names)
+    det = ln.bbox_to_brambox(det, net_dim, (img.shape[1], img.shape[0]), names)
     bbb.draw_box(img, det, show_labels=True, inline=True)
     return img
 
 # Main
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run a single image through a lightnet network')
-    parser.add_argument('weight', metavar='W', help='Path to weight file')
-    parser.add_argument('image', metavar='I', help='Path to image file', nargs='?')
+    parser.add_argument('weight', help='Path to weight file')
+    parser.add_argument('image', help='Path to image file', nargs='?')
     parser.add_argument('-n', '--names', help='path to names file', default=None)
     parser.add_argument('-s', '--save', action='store_true', help='Save image in stead of displaying it')
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
