@@ -14,6 +14,8 @@ import torch.nn as nn
 from .logger import *
 from .weights import *
 
+__all__ = ['Darknet']
+
 class Darknet(nn.Module):
     """ Base network class to create darknet CNNs """
     def __init__(self):

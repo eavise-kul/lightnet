@@ -13,17 +13,20 @@ import brambox.boxes as bbb
 from .transforms import *
 from .logger import *
 
+__all__ = ['BramboxData', 'DarknetData', 'bbb_collate']
+
 
 class BramboxData(Dataset):
     """ Dataset for any brambox parsable annotation format
         
-        anno_format:    annotation format from brambox.boxes.format
-        anno_filename:  annotation filename, list of filenames or expandable sequence
-        identify:       lambda/function to get image based of annotation filename or image id
-                        DEFAULT: replace/add .png extension to filename/id
-        img_transform:  transforms to perform on the images
-        anno_transform: transforms to perform on the annotations
-        kwargs:         keyword arguments that are passed to the brambox parser
+        anno_format         Annotation format from brambox.boxes.format
+        anno_filename       Annotation filename, list of filenames or expandable sequence
+        identify            Lambda/function to get image based of annotation filename or image id
+                            DEFAULT: replace/add .png extension to filename/id
+        img_transform       Transforms to perform on the images
+        anno_transform      Transforms to perform on the annotations
+        train               Boolean value indicating whether to return the annotation or not
+        kwargs              Keyword arguments that are passed to the brambox parser
     """
     def __init__(self, anno_format, anno_filename, identify=None, img_transform=None, anno_transform=None, **kwargs):
         super(BramboxData, self).__init__()
@@ -63,15 +66,15 @@ class BramboxData(Dataset):
 class DarknetData(BramboxData):
     """ Dataset that works with darknet files and performs the same data augmentations
         
-        data_file:  file containing path to annotation files (relative from where command is run)
-        network:    network that will be used with dataset (needed for network input dimension)
-        max_anno:   Maximum number of annotations per image
-        augment:    Boolean indicating whether you want data augmentation
-        jitter:     Determines random crop sizes
-        flip:       Determines whether image will be flipped
-        hue:        Determines hue shift
-        saturation: Determines saturation shift
-        value:      Determines value (exposure) shift
+        data_file       File containing path to image files (relative from where command is run)
+        network         Network that will be used with dataset (needed for network input dimension)
+        train           Boolean indicating whether to return the annotation
+        augment         Boolean indicating whether you want data augmentation
+        jitter          Determines random crop sizes
+        flip            Determines whether image will be flipped
+        hue             Determines hue shift
+        saturation      Determines saturation shift
+        value           Determines value (exposure) shift
     """
     def __init__(self, data_file, network, train=True, augment=True, jitter=.2, flip=.5, hue=.1, saturation=1.5, value=1.5, class_label_map=None):
         with open(data_file, 'r') as f:

@@ -16,9 +16,13 @@ import brambox.boxes as bbb
 
 from .logger import *
 
+__all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'AnnoToTensor']
+
 class Letterbox:
     """ Transform images and annotations to the right network dimensions
         Usage: Create 1 Letterbox object and use it for both image and annotation transforms
+
+        network                 Lightnet network that will process the data
     """
     def __init__(self, network):
         self.net = network
@@ -111,6 +115,10 @@ class Letterbox:
 class RandomCrop:
     """ Take random crop from the image
         Usage: Create 1 RandomCrop object and use it for both image and annotation transforms
+
+        jitter                  [0-1] Number indicating how much of the image we can crop
+        crop_anno               Boolean indicates whether we crop the annotations inside the image crop
+        intersection_threshold  [0-1] Number indicating the minimal percentage an annotation still has to be in the cropped image
     """
     def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001):
         self.jitter = jitter
@@ -197,6 +205,8 @@ class RandomCrop:
 class RandomFlip:
     """ Randomly flip image
         Usage: Create 1 RandomFlip object and use it for both image and annotation transforms
+
+        flip_threshold          [0-1] Number indicating chance of flipping image
     """
     def __init__(self, flip_threshold):
         self.thresh = flip_threshold
@@ -243,7 +253,12 @@ class RandomFlip:
 
 
 class HSVShift:
-    """ Perform random HSV shift on the RGB data """
+    """ Perform random HSV shift on the RGB data
+
+        hue                     Number defining hue shift (Random number between -hue,hue is taken for the shift)
+        saturation              Number defining saturation shift (Random number between 1,saturation is taken -> 50% chance to get 1/dSaturation in stead of dSaturation)
+        value                   Number defining value shift (Random number between 1,value is taken -> 50% chance to get 1/dValue in stead of dValue)
+    """
     def __init__(self, hue, saturation, value):
         self.hue = hue
         self.sat = saturation
@@ -312,7 +327,14 @@ class HSVShift:
 
 
 class AnnoToTensor:
-    """ Converts a brambox annotation object to a tensor """
+    """ Converts a list of brambox annotation objects to a tensor
+
+        network                 lightnet network that will process the data
+        max_anno                Maximum number of annotations in the list
+        class_label_map         class label map to convert class names to an index
+
+        OUTPUT                  tensor of dimension [max_anno, 5] containing [cls,cx,cy,w,h] for every detection
+    """
     def __init__(self, network, max_anno=50, class_label_map=None):
         self.net = network
         self.max = max_anno

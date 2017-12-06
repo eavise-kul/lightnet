@@ -11,6 +11,8 @@ import torch.nn as nn
 import lightnet as ln
 from .. import layers as lnl
 
+__all__ = ['YoloVoc']
+
 
 class YoloVoc(ln.Darknet):
     """ yolo-voc.cfg implementation with pytorch """
