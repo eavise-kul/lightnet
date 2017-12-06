@@ -5,7 +5,6 @@
 #   Copyright EAVISE
 #
 
-import numbers
 import random
 import collections
 
@@ -325,9 +324,14 @@ class AnnoToTensor:
             if anno_len > self.max:
                 log(Loglvl.ERROR, f'More annotations than maximum allowed [{anno_len}/{self.max}]', ValueError)
 
-            anno_np = np.array([self._tf_anno(anno) for anno in data])
-            z_np = np.zeros((self.max-anno_len, 5))
-            return torch.from_numpy(np.concatenate((anno_np, z_np)))
+            z_np = np.zeros((self.max-anno_len, 5), dtype=np.float32)
+            z_np[:,0] = -1
+
+            if anno_len > 0:
+                anno_np = np.array([self._tf_anno(anno) for anno in data], dtype=np.float32)
+                return torch.from_numpy(np.concatenate((anno_np, z_np)))
+            else:
+                return torch.from_numpy(z_np)
         else:
             log(Loglvl.ERROR, f'AnnoToTensor only works with <brambox annotation lists> [{type(data)}]', TypeError)
 
@@ -340,13 +344,16 @@ class AnnoToTensor:
 
         if self.class_map is not None:
             cls = self.class_map.index(anno.class_label)
-        elif isinstance(anno.class_label, numbers.Number):
-            cls = int(anno.class_label)
+        elif isinstance(anno.class_label, str):
+            try:
+                cls = int(anno.class_label)
+            except:
+                cls = 0
         else:
             cls = 0
 
-        cx = ((anno.x_top_left + anno.width) / 2) / net_w
-        cy = ((anno.y_top_left + anno.height) / 2) / net_h
+        cx = (anno.x_top_left + (anno.width / 2)) / net_w
+        cy = (anno.y_top_left + (anno.height / 2)) / net_h
         w = anno.width / net_w
         h = anno.height / net_h
         return [cls, cx, cy, w, h]
