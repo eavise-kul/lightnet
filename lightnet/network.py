@@ -5,6 +5,7 @@
 
 import os
 import collections
+import random
 
 import numpy as np
 import torch
@@ -24,13 +25,13 @@ class Darknet(nn.Module):
         self.postprocess = None
         self.header = [0,2,0]
         self.seen = 0
-        self.input_dim = (0,0,0)
+        self.input_dim = [0,0,0]
         self.num_classes = 0
         self.anchors = []
         self.num_anchors = 0
 
     def _forward(self, x):
-        log(Loglvl.DEBUG, 'Running default forward functions')
+        log(Loglvl.VERBOSE, 'Running default forward functions')
         if isinstance(self.layers, nn.Sequential):
             return self.layers(x)
         elif isinstance(self.layers, nn.ModuleList):
@@ -47,7 +48,11 @@ class Darknet(nn.Module):
         if self.training and callable(self.loss):
             return self.loss(x, target)
         elif not self.training and callable(self.postprocess):
-            return self.postprocess(x)
+            if target is not None and callable(self.loss):
+                loss = self.loss(x.clone(), target)
+                return self.postprocess(x), loss
+            else:
+                return self.postprocess(x)
         else:
             return x
 
@@ -61,6 +66,16 @@ class Darknet(nn.Module):
             else:
                 yield module
 
+    def change_input_dim(self, multiple=32):
+        """ Change input dimensions for training """
+        size = (random.randint(0,9) + 10) * multiple 
+        log(Loglvl.VERBOSE, f'Resizing network [{size}]')
+
+        if not self.training:
+            log(Loglvl.WARN, 'Changing input dimensions whilst not training')
+
+        self.input_dim[:2] = [size, size]
+
     def load_weights(self, weights_file):
         if weights_file is not None:
             if os.path.splitext(weights_file)[1] == '.pt':
@@ -73,10 +88,10 @@ class Darknet(nn.Module):
     def save_weights(self, weights_file):
         if weights_file is not None:
             if os.path.splitext(weights_file)[1] == '.pt':
-                log(Loglvl.VERBOSE, 'Saving weights to pytorch file')
+                log(Loglvl.DEBUG, 'Saving weights to pytorch file')
                 self._save_pickle_weights(weights_file)
             else:
-                log(Loglvl.VERBOSE, 'Saving weights to darknet file')
+                log(Loglvl.DEBUG, 'Saving weights to darknet file')
                 self._save_darknet_weights(weights_file)
 
     def _load_darknet_weights(self, weights_file):
@@ -90,6 +105,7 @@ class Darknet(nn.Module):
                 log(Loglvl.VERBOSE, f'Layer loaded: {module}')
                 if weights.start >= weights.size:
                     log(Loglvl.DEBUG, f'Finished loading weights [{weights.start}/{weights.size} weights]')
+                    break
             except NotImplementedError:
                 log(Loglvl.VERBOSE, f'Layer skipped: {module.__class__.__name__}')
 

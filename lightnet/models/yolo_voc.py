@@ -14,14 +14,14 @@ from .. import layers as lnl
 
 class YoloVoc(ln.Darknet):
     """ yolo-voc.cfg implementation with pytorch """
-    def __init__(self, num_classes=20, weights_file=None):
+    def __init__(self, num_classes=20, weights_file=None, input_dim=[416,416,3]):
         """ Network initialisation """
         super(YoloVoc, self).__init__()
 
         # Parameters
-        self.input_dim = (416, 416, 3)
+        self.input_dim = input_dim
         self.num_classes = num_classes
-        self.anchors = [1.3221, 1.73145,    3.19275, 4.00944,   5.05587, 8.09892,   9.47112, 4.84053,   11.2364, 10.0071]
+        self.anchors = [1.3221,1.73145, 3.19275,4.00944, 5.05587,8.09892, 9.47112,4.84053, 11.2364,10.0071]
         self.num_anchors = 5
 
         # Network
