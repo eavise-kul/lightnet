@@ -4,8 +4,8 @@
 #   
 
 import os
-import torch
 from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataloader import default_collate
 from torchvision import transforms as tf
 from PIL import Image
 import brambox.boxes as bbb
@@ -44,6 +44,9 @@ class BramboxData(Dataset):
 
     def __getitem__(self, index):
         """ Get (img, anno) tuple based of index from self.keys """
+        if index >= len(self):
+            log(Loglvl.ERROR, f'list index out of range [{index}/{len(self)-1}]', IndexError)
+
         # Load
         img = Image.open(self.id(self.keys[index]))
         anno = self.annos[self.keys[index]]
@@ -54,7 +57,6 @@ class BramboxData(Dataset):
         if self.anno_tf is not None:
             anno = self.anno_tf(anno)
 
-        # Return
         return img, anno
 
 
@@ -71,7 +73,7 @@ class DarknetData(BramboxData):
         saturation: Determines saturation shift
         value:      Determines value (exposure) shift
     """
-    def __init__(self, data_file, network, augment=True, jitter=.2, flip=.5, hue=.1, saturation=1.5, value=1.5):
+    def __init__(self, data_file, network, train=True, augment=True, jitter=.2, flip=.5, hue=.1, saturation=1.5, value=1.5, class_label_map=None):
         with open(data_file, 'r') as f:
             self.img_paths = f.read().splitlines()
 
@@ -88,13 +90,29 @@ class DarknetData(BramboxData):
         it  = tf.ToTensor()
         if augment:
             img_tf = tf.Compose([hsv, rc, rf, lb, it])
-            anno_tf = tf.Compose([rc, rf, lb, at])
+            anno_tf = tf.Compose([rc, rf, lb])
         else:
             img_tf = tf.Compose([lb, it])
-            anno_tf = tf.Compose([lb, at])
+            anno_tf = tf.Compose([lb])
+        if train:
+            anno_tf.transforms.append(at)
         
         first_img = Image.open(self.img_paths[0])
         w, h = first_img.size
-        kwargs = { 'image_width': w, 'image_height':h, 'class_label_map': None }
+        kwargs = { 'image_width': w, 'image_height':h, 'class_label_map': class_label_map }
 
         super(DarknetData, self).__init__(anno_format, self.anno_paths, identify, img_tf, anno_tf, **kwargs)
+
+        # Memory optimisation: set AnnoToTensor maximum
+        self.max_anno = max([len(anno) for _,anno in self.annos.items()])
+        if train:
+            at.max = self.max_anno
+
+
+def bbb_collate(batch):
+    if isinstance(batch[0][1], list):
+        img,anno = zip(*batch)
+        img = default_collate(img)
+        return img, list(anno)
+
+    return default_collate(batch)
