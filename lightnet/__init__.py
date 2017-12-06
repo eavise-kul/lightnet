@@ -3,6 +3,7 @@
 #   Copyright EAVISE
 #
 
+from .logger import *
 from .weights import *
 from .network import *
 from .bbox import *
