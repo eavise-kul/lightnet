@@ -6,6 +6,7 @@
 __all__ = ['network', 'data', 'engine', 'models']
 
 
+from .version import __version__
 from .logger import *
 
 from . import network
