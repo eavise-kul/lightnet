@@ -1,6 +1,6 @@
 LIGHTNET
 ========
-<img src="docs/.static/logo.png" alt="Logo" width="250" height="250">  
+<img src="docs/.static/lightnet.png" alt="Logo" width="250" height="250">  
 Building blocks to recreate Darknet networks in Pytorch
 
 
