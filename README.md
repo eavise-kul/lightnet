@@ -1,8 +1,8 @@
 LIGHTNET
 ========
 <img src="docs/.static/lightnet.png" alt="Logo" width="250" height="250">  
-Building blocks to recreate Darknet networks in Pytorch
-
+Building blocks to recreate Darknet networks in Pytorch  
+[![pipeline](https://gitlab.com/EAVISE/lightnet/badges/master/build.svg)](https://eavise.gitlab.io/lightnet/)
 
 ## Why another framework
 [pytorch-yolo2](https://github.com/marvis/pytorch-yolo2) is working perfectly fine, but does not easily allow a user to modify an existing network.
@@ -10,7 +10,8 @@ This is why I decided to create a library, that gives the user all the necessary
 This library has everything you need to control your network, weight loading & saving, datasets, dataloaders and data augmentation.
 
 ## How to use
-_WIP_
+_WIP_  
+[API documentation](https://eavise.gitlab.io/lightnet)
 
 ## Credits
 Credits where credits are due.  
