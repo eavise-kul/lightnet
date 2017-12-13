@@ -30,3 +30,4 @@ Credits where credits are due.
 This library would not have been possible without the great work of the following people:
   - [pjreddie et al.](https://github.com/pjreddie/darknet) for their work on the original YOLO networks
   - [marvis](https://github.com/marvis/pytorch-yolo2) for his implementation of YOLO in pytorch. I took a lot of parts from this repository, and tweaked them to my needs.
+  - [The PyTorch team](http://pytorch.org) for creating a clear and powerfull library for deep learning.
