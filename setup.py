@@ -12,8 +12,6 @@ setup.setup(name='lightnet',
             install_requires=[
                 'numpy',
                 'Pillow',
-                'torch>=0.2.0',
-                'torchvision',
                 'brambox',
             ],
             extras_require={
