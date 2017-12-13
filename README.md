@@ -8,9 +8,22 @@ Building blocks to recreate Darknet networks in Pytorch
 This is why I decided to create a library, that gives the user all the necessary building blocks, to recreate any darknet network.  
 This library has everything you need to control your network, weight loading & saving, datasets, dataloaders and data augmentation.
 
+## Installing
+First install [PyTorch and Torchvision](http://pytorch.org/).  
+Then clone this repository and run one of the following commands:
+```bash
+# If you just want to use Lightnet
+pip install -r requirements.txt
+
+# If you want to develop Lightnet
+pip install -r develop.txt
+```
+
 ## How to use
-Run `make html` in the docs folder. You can now access the API documentation of this project, by opening _docs/.build/html/index.html_ with your favourite browser.  
+Run `make html` in the _docs_ folder. You can now access the API documentation of this project, by opening _docs/.build/html/index.html_ with your favourite browser.  
 The _examples_ folder contains code snippets to train and test networks with lightnet. For examples on how to implement your own networks, you can take a look at the files in _lightnet/models_.
+>To be able to generate the documentation, you need to install Sphinx and some other dependencies.  
+>The easiest way to install them is by using the __-r develop.txt__ option when installing lightnet.
 
 ## Credits
 Credits where credits are due.  
