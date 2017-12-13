@@ -15,8 +15,6 @@ from torch.autograd import Variable
 import brambox.boxes as bbb
 
 import lightnet as ln
-import lightnet.transforms as lnt
-from lightnet.models import *
 ln.log.level = ln.Loglvl.VERBOSE
 
 # Parameters
@@ -30,7 +28,7 @@ TIMES_NETWORK = []
 # Functions
 def create_network():
     """ Create the lightnet network """
-    net = YoloVoc(CLASSES, args.weight, NETWORK_SIZE)
+    net = ln.models.YoloVoc(CLASSES, args.weight, NETWORK_SIZE)
 
     if args.cuda:
         net.cuda()
@@ -43,7 +41,7 @@ def detect(net, img_path):
     # Load image
     img = cv2.imread(img_path)
     preprocess = transforms.Compose([
-            lnt.Letterbox(net),
+            ln.data.Letterbox(net),
             transforms.ToTensor()
         ])
     img_tensor = preprocess(img)
@@ -65,18 +63,19 @@ def detect(net, img_path):
 
 def draw_boxes(img, det, net_dim):
     """ Draw detections and annotations on the image """
-    det = ln.bbox_to_brambox(det, net_dim, (img.shape[1], img.shape[0]), names)
-    bbb.draw_box(img, det, show_labels=True, inline=True)
+    det = ln.data.bbox_to_brambox(det, net_dim, (img.shape[1], img.shape[0]), names)
+    bbb.draw_box(img, det, show_labels=args.label, inline=True)
     return img
 
 # Main
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run a single image through a lightnet network')
     parser.add_argument('weight', help='Path to weight file')
-    parser.add_argument('image', help='Path to image file', nargs='?')
+    parser.add_argument('image', help='Path to image file', nargs='*')
     parser.add_argument('-n', '--names', help='path to names file', default=None)
-    parser.add_argument('-s', '--save', action='store_true', help='Save image in stead of displaying it')
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
+    parser.add_argument('-s', '--save', action='store_true', help='Save image in stead of displaying it')
+    parser.add_argument('-l', '--label', action='store_true', help='Print labels and scores on the image')
     args = parser.parse_args()
 
     # Parse Arguments
@@ -94,15 +93,17 @@ if __name__ == '__main__':
     network = create_network()
 
     # Detection
-    if args.image is not None:
-        image, output = detect(network, args.image)
-        image = draw_boxes(image, output[0], network.input_dim[:2])
-        if args.save:
-            cv2.imwrite('detections.png', image)
-        else:
-            cv2.imshow('image', image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+    if len(args.image) > 0:
+        for img_name in args.image:
+            print(img_name)
+            image, output = detect(network, img_name)
+            image = draw_boxes(image, output[0], network.input_dim[:2])
+            if args.save:
+                cv2.imwrite('detections.png', image)
+            else:
+                cv2.imshow('image', image)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
     else:
         while True:
             try:
@@ -117,9 +118,12 @@ if __name__ == '__main__':
 
             image, output = detect(network, img_path)
             image = draw_boxes(image, output[0], network.input_dim[:2])
-            cv2.imshow('image', image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            if args.save:
+                cv2.imwrite('detections.png', image)
+            else:
+                cv2.imshow('image', image)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
 
     # Timer
     if TIMER:
