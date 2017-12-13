@@ -9,4 +9,14 @@ setup.setup(name='lightnet',
             description='Building blocks for recreating darknet networks in pytorch',
             long_description=open('README.md').read(),
             packages=find_packages(),
+            install_requires=[
+                'numpy',
+                'Pillow',
+                'torch>=0.2.0',
+                'torchvision',
+                'brambox',
+            ],
+            extras_require={
+                'visual': ['visdom']
+            },
 )

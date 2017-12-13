@@ -1,0 +1,9 @@
+# Runtime dependencies
+git+https://gitlab.com/EAVISE/brambox@develop
+
+# Development dependencies
+Sphinx
+sphinx_rtd_theme
+recommonmark
+
+-e .[visual]

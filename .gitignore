@@ -6,6 +6,7 @@ build/
 develop-eggs/
 dist/
 eggs/
+docs/.build
 
 pip-log.txt
 pip-delete-this-directory.txt
