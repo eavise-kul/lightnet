@@ -1,5 +1,5 @@
 #
-#   Image and annotation transforms used by darknet
+#   Image and annotations preprocessing for lightnet networks
 #   The image transformations work with both Pillow and OpenCV images
 #   The annotation transformations work with brambox.annotations.Annotation objects
 #   Copyright EAVISE
@@ -7,22 +7,25 @@
 
 import random
 import collections
-
 import torch
 import cv2
 import numpy as np
 from PIL import Image, ImageOps
 import brambox.boxes as bbb
 
-from .logger import *
+from ..logger import *
 
 __all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'AnnoToTensor']
 
 class Letterbox:
-    """ Transform images and annotations to the right network dimensions
-        Usage: Create 1 Letterbox object and use it for both image and annotation transforms
+    """ Transform images and annotations to the right network dimensions.
 
-        network                 Lightnet network that will process the data
+    Args:
+        network (lightnet.network.Darknet): Lightnet network that will process the data
+
+    Note:
+        Create 1 Letterbox object and use it for both image and annotation transforms.
+        This object will save data from the image transform and use that on the annotation transform.
     """
     def __init__(self, network):
         self.net = network
@@ -113,12 +116,16 @@ class Letterbox:
 
 
 class RandomCrop:
-    """ Take random crop from the image
-        Usage: Create 1 RandomCrop object and use it for both image and annotation transforms
+    """ Take random crop from the image.
 
-        jitter                  [0-1] Number indicating how much of the image we can crop
-        crop_anno               Boolean indicates whether we crop the annotations inside the image crop
-        intersection_threshold  [0-1] Number indicating the minimal percentage an annotation still has to be in the cropped image
+    Args:
+        jitter (Number [0-1]): Indicates how much of the image we can crop
+        crop_anno(Boolean, optional): Whether we crop the annotations inside the image crop; Default **False**
+        intersection_threshold(Number [0-1], optional): The minimal percentage an annotation still has to be in the cropped image; Default **0.001**
+
+    Note:
+        Create 1 RandomCrop object and use it for both image and annotation transforms.
+        This object will save data from the image transform and use that on the annotation transform.
     """
     def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001):
         self.jitter = jitter
@@ -203,10 +210,14 @@ class RandomCrop:
 
 
 class RandomFlip:
-    """ Randomly flip image
-        Usage: Create 1 RandomFlip object and use it for both image and annotation transforms
+    """ Randomly flip image.
 
-        flip_threshold          [0-1] Number indicating chance of flipping image
+    Args:
+        flip_threshold (Number [0-1]): Chance of flipping the image
+
+    Note:
+        Create 1 RandomFlip object and use it for both image and annotation transforms.
+        This object will save data from the image transform and use that on the annotation transform.
     """
     def __init__(self, flip_threshold):
         self.thresh = flip_threshold
@@ -253,11 +264,12 @@ class RandomFlip:
 
 
 class HSVShift:
-    """ Perform random HSV shift on the RGB data
+    """ Perform random HSV shift on the RGB data.
 
-        hue                     Number defining hue shift (Random number between -hue,hue is taken for the shift)
-        saturation              Number defining saturation shift (Random number between 1,saturation is taken -> 50% chance to get 1/dSaturation in stead of dSaturation)
-        value                   Number defining value shift (Random number between 1,value is taken -> 50% chance to get 1/dValue in stead of dValue)
+    Args:
+        hue (Number): Random number between -hue,hue is used to shift the hue
+        saturation (Number): Random number between 1,saturation is used to shift the saturation; 50% chance to get 1/dSaturation in stead of dSaturation
+        value (Number): Random number between 1,value is used to shift the value; 50% chance to get 1/dValue in stead of dValue
     """
     def __init__(self, hue, saturation, value):
         self.hue = hue
@@ -327,13 +339,18 @@ class HSVShift:
 
 
 class AnnoToTensor:
-    """ Converts a list of brambox annotation objects to a tensor
+    """ Converts a list of brambox annotation objects to a tensor.
 
-        network                 lightnet network that will process the data
-        max_anno                Maximum number of annotations in the list
-        class_label_map         class label map to convert class names to an index
+    Args:
+        network (lightnet.network.Darknet): Network that will process the data
+        max_anno (Number, optional): Maximum number of annotations in the list; Default **50**
+        class_label_map (list, optional): class label map to convert class names to an index; Default **None**
 
-        OUTPUT                  tensor of dimension [max_anno, 5] containing [cls,cx,cy,w,h] for every detection
+    Return:
+        torch.Tensor: tensor of dimension [max_anno, 5] containing [class_idx,center_x,center_y,width,height] for every detection
+
+    Warning:
+        If no class_label_map is given, this function will first try to convert the class_label to an integer. If that fails, it is simply given the number 0.
     """
     def __init__(self, network, max_anno=50, class_label_map=None):
         self.net = network

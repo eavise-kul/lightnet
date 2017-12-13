@@ -1,5 +1,5 @@
 #
-#   Region loss computations
+#   Loss modules
 #   Copyright EAVISE
 #
 
@@ -9,16 +9,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-from .bbox import bbox_iou, bbox_multi_ious
-from .logger import *
+from ..util import bbox_iou, bbox_multi_ious
+from ..logger import *
 
 __all__ = ['RegionLoss']
 
 
 class RegionLoss:
-    """ Computes region loss from darknet network output and annotation
+    """ Computes region loss from darknet network output and target annotation.
     
-        network         Lightnet network for wich you want to compute the loss
+    Args:
+        network (lightnet.network.Darknet): Network that will be optimised with this loss function
     """
     def __init__(self, network):
         self.net = network
@@ -34,7 +35,12 @@ class RegionLoss:
         self.thresh = 0.6
 
     def __call__(self, output, target):
-        """ Compute Region loss between output and target """
+        """ Compute Region loss.
+        
+        Args:
+            output (torch.autograd.Variable): Output from the network
+            target (torch.autograd.Variable or torch.Tensor): Tensor containing the annotation targets (see lightnet.data.AnnoToTensor)
+        """
         # Parameters
         nB = output.data.size(0)
         nA = self.num_anchors

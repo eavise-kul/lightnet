@@ -1,5 +1,5 @@
 #
-#   Logging functionality
+#   Lightnet logger: Logging functionality used within the lightnet package
 #   Copyright EAVISE
 #
 
@@ -9,7 +9,16 @@ __all__ = ['log', 'Loglvl']
 
 
 class Loglvl(IntEnum):
-    """ Log level """
+    """ Different levels of logging.
+
+    Attributes:
+        ALL: Show all log messages.
+        DEBUG: Show all debug messages and above.
+        VERBOSE: Show all verbose messages and above.
+        WARN: Show all warn messages and above. This is the default.
+        ERROR: Show all error messages and above.
+        NONE: Show no log messages.
+    """
     ALL         = -1
     NONE        = 999
 
@@ -37,7 +46,14 @@ def colorize(msg, color):
 
 
 class Logger:
-    """ Logger class """
+    """ Logging functionality. An instance log is created for this entire package upon first import.
+    Use it by accessing ``lightnet.log()``. 
+
+    Args:
+       lvl (lightnet.logger.Loglvl): The log level for this message
+       msg (str): The message to print out
+       error (Error, optional): Optional error to raise with the message
+    """
     def __init__(self):
         self.level = Loglvl.WARN
         self.color = True
@@ -57,10 +73,13 @@ class Logger:
                 print(f'{pre_msg} {msg}')
 
         if error is not None:
-            raise error(f'\n{pre_msg} {msg}')
+            if lvl >= self.level:
+                raise error(f'\n{pre_msg} {msg}')
+            else:
+                raise error
 
 
-# Create Logger object
+# Create single logger object
 try:
     log
 except NameError:

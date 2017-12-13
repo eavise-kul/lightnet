@@ -1,24 +1,26 @@
 #
-#   Bounding box computations
+#   Lightnet related postprocessing
+#   Thers are functions to transform the output of the network to brambox detection objects
 #   Copyright EAVISE
 #
 
-import itertools
 import torch
 from torch.autograd import Variable
 from brambox.boxes.detections.detection import *
 
-from .logger import *
+from ..logger import *
+from ..util import *
 
 __all__ = ['BBoxConverter', 'bbox_to_brambox']
 
 
 class BBoxConverter:
-    """ Convert output from darknet networks to bounding boxes
+    """ Convert output from darknet networks to bounding boxes.
         
-        network         Lightnet network the converter will be used with
-        conf_thresh     Confidence threshold to filter detections
-        nms_thresh      Overlapping threshold to filter detections with non-maxima suppresion
+    Args:
+        network (lightnet.network.Darknet): Network the converter will be used with
+        conf_thresh (Number [0-1]): Confidence threshold to filter detections
+        nms_thresh(Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
     """
     def __init__(self, network, conf_thresh, nms_thresh):
         self.conf_thresh = conf_thresh
@@ -202,12 +204,16 @@ class BBoxConverter:
 
 
 def bbox_to_brambox(boxes, net_size, img_size=None, class_label_map=None):
-    """ Convert bounding box array to brambox detection object
+    """ Convert bounding box array to brambox detection object.
         
-        boxes               Array of detection boxes
-        net_size            (width, height) sequence of the input size of the network
-        [img_size]          (width, height) sequence of the final image
-        [class_label_map]   array of class labels
+    Args:
+        boxes (list): Detection boxes
+        net_size (tuple): Input size of the network (width, height)
+        img_size (tuple, optional) Size of the image (width, height); Default **net_size**
+        class_label_map (list, optional): class label map to convert class names to an index; Default **None**
+
+    Warning:
+        If no class_label_map is given, this function will convert the class_index to a string and use that as class_label.
     """
     net_w, net_h = net_size[:2]
     if img_size is not None:
@@ -245,56 +251,3 @@ def bbox_to_brambox(boxes, net_size, img_size=None, class_label_map=None):
         dets.append(det)
 
     return dets
-
-
-def bbox_iou(box1, box2):
-    """ Compute IOU between 2 bounding boxes
-        Box format: [xc, yc, w, h]
-    """
-    mx = min(box1[0]-box1[2]/2, box2[0]-box2[2]/2)
-    Mx = max(box1[0]+box1[2]/2, box2[0]+box2[2]/2)
-    my = min(box1[1]-box1[3]/2, box2[1]-box2[3]/2)
-    My = max(box1[1]+box1[3]/2, box2[1]+box2[3]/2)
-    w1 = box1[2]
-    h1 = box1[3]
-    w2 = box2[2]
-    h2 = box2[3]
-
-    uw = Mx - mx
-    uh = My - my
-    iw = w1 + w2 - uw
-    ih = h1 + h2 - uh
-    if iw <= 0 or ih <= 0:
-        return 0
-
-    area1 = w1 * h1
-    area2 = w2 * h2
-    iarea = iw * ih
-    uarea = area1 + area2 - iarea
-    return iarea/uarea
-
-
-def bbox_multi_ious(boxes1, boxes2):
-    """ Compute IOU between 2 lists of bounding boxes
-        List format: [[xc, yc, w, h],...]
-    """
-    mx = torch.min(boxes1[:,0]-boxes1[:,2]/2, boxes2[:,0]-boxes2[:,2]/2)
-    Mx = torch.max(boxes1[:,0]+boxes1[:,2]/2, boxes2[:,0]+boxes2[:,2]/2)
-    my = torch.min(boxes1[:,1]-boxes1[:,3]/2, boxes2[:,1]-boxes2[:,3]/2)
-    My = torch.max(boxes1[:,1]+boxes1[:,3]/2, boxes2[:,1]+boxes2[:,3]/2)
-    w1 = boxes1[:,2]
-    h1 = boxes1[:,3]
-    w2 = boxes2[:,2]
-    h2 = boxes2[:,3]
-
-    uw = Mx - mx
-    uh = My - my
-    iw = w1 + w2 - uw
-    ih = h1 + h2 - uh
-
-    area1 = w1 * h1
-    area2 = w2 * h2
-    iarea = iw * ih
-    iarea[(iw <= 0) + (ih <= 0) > 0] = 0
-    uarea = area1 + area2 - iarea
-    return iarea/uarea

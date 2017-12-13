@@ -7,8 +7,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-import lightnet.layers as lnl
-from .logger import *
+from ..logger import *
+from . import layer
 
 __all__ = ['WeightLoader', 'WeightSaver']
 
@@ -40,7 +40,7 @@ class WeightLoader:
         """ Load weights for a layer from the weights file """
         if type(layer) == nn.Conv2d:
             self._load_conv(layer)
-        elif type(layer) == lnl.Conv2dBatchLeaky:
+        elif type(layer) == layer.Conv2dBatchLeaky:
             self._load_convbatch(layer)
         elif type(layer) == nn.Linear:
             self._load_fc(layer)
@@ -118,7 +118,7 @@ class WeightSaver:
         """ save weights for a layer """
         if type(layer) == nn.Conv2d:
             self._save_conv(layer)
-        elif type(layer) == lnl.Conv2dBatchLeaky:
+        elif type(layer) == layer.Conv2dBatchLeaky:
             self._save_convbatch(layer)
         elif type(layer) == nn.Linear:
             self._save_fc(layer)

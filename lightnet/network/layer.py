@@ -1,19 +1,29 @@
 #
-#   Darknet specific layers
+#   Extra lightnet layers
 #   Copyright EAVISE
 #
+"""
+.. Note::
+   Every parameter that can get an int or tuple will behave as follows. |br|
+   If a tuple of 2 ints is given, the first int is used for the height and the second for the width. |br|
+   If an int is given, both the width and height are set to this value.
+"""
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .logger import *
+from ..logger import *
 
 __all__ = ['MaxPoolStride1', 'Reorg', 'GlobalAvgPool2d', 'Conv2dBatchLeaky']
 
 
 class MaxPoolStride1(nn.Module):
-    """ Maxpool layer with replicating padding for stride 1 """
+    """ Maxpool layer with a replicating padding, for stride 1
+
+    Args:
+        pool_size (int or tuple): pooling size
+    """
     def __init__(self, pool_size=2):
         super(MaxPoolStride1, self).__init__()
         self.pool = pool_size
@@ -28,7 +38,12 @@ class MaxPoolStride1(nn.Module):
 
 
 class Reorg(nn.Module):
-    """ Reorganize a tensor according to a stride """
+    """ This layer reorganizes a tensor according to a stride.
+    The dimensions 2,3 will be sliced by the stride and then stacked in dimension 1. (input must have 4 dimensions)
+
+    Args:
+        stride (int or tuple): stride to divide the input tensor
+    """
     def __init__(self, stride=2):
         super(Reorg, self).__init__()
         if not isinstance(stride, (tuple, int)):
@@ -64,22 +79,33 @@ class Reorg(nn.Module):
 
 
 class GlobalAvgPool2d(nn.Module):
-    """ Average entire channel to single number """
+    """ This layer averages each channel to a single number.
+    """
     def __init__(self):
         super(GlobalAvgPool2d, self).__init__()
 
     def forward(self, x):
-        N = x.data.size(0)
+        B = x.data.size(0)
         C = x.data.size(1)
         H = x.data.size(2)
         W = x.data.size(3)
         x = F.avg_pool2d(x, (H, W))
-        x = x.view(N, C)
+        x = x.view(B, C)
         return x
 
 
 class Conv2dBatchLeaky(nn.Module):
-    """ Convolution layer followed by a batchnorm and a leaky ReLU """
+    """ This convenience layer groups a 2D convolution, a batchnorm and a leaky ReLU.
+    They are executed in a sequential manner.
+
+    Args:
+        in_channels (int): Number of input channels
+        out_channels (int): Number of output channels
+        kernel_size (int or tuple): Size of the kernel of the convolution
+        stride (int or tuple): Stride of the convolution
+        padding (int or tuple): padding of the convolution
+        leaky_slope (number, optional): Controls the angle of the negative slope of the leaky ReLU; Default **0.1**
+    """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding, leaky_slope=0.1):
         super(Conv2dBatchLeaky, self).__init__()
 
