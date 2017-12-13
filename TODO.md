@@ -1,5 +1,6 @@
 # Lightnet
 Lightnet TODO list
+Created and maintained with [TodoCMD](https://github.com/0phoff/TodoCMD). _Shameless self-promotion_
 
 ## Network
 Network subpackage
@@ -31,7 +32,6 @@ Model implementations subpackage
   - [X] Add yolo-voc
   - [ ] Add tiny-yolo
   - [X] Create darknet dataset
-  - [ ] Create darknet engine
   - [X] Write documentation
 
 ## Varia
