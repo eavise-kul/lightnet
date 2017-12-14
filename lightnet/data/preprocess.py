@@ -8,12 +8,18 @@
 import random
 import collections
 import torch
-import cv2
 import numpy as np
 from PIL import Image, ImageOps
 import brambox.boxes as bbb
 
 from ..logger import *
+
+try:
+    import cv2
+except:
+    log(Loglvl.WARN, 'OpenCV is not installed and cannot be used')
+    cv2 = None
+
 
 __all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'AnnoToTensor']
 
