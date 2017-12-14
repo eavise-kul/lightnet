@@ -33,7 +33,7 @@ class BBoxConverter:
     def __call__(self, network_output):
         """ Compute bounding boxes after thresholding and nms
             
-            network_output  Output tensor from the lightnet network
+            network_output (torch.autograd.Variable): Output tensor from the lightnet network
         """
         #boxes = self._get_region_boxes_nms(network_output.data)
         all_boxes = self._get_region_boxes(network_output.data)
@@ -163,6 +163,7 @@ class BBoxConverter:
         # Save detection if conf*class_conf is higher than threshold
         output = output.cpu()
         cls_max = cls_max.cpu()
+        cls_max_idx = cls_max_idx.cpu()
         boxes = []
         for b in range(batch):
             box_batch = []
