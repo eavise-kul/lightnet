@@ -159,6 +159,8 @@ class Engine:
                 self.__vis.pr(kwargs['pr'], f'{win}_pr', title=f'PR-curve {win} [{self.batch}]', **options)
             elif 'loss' in kwargs:
                 self.__vis.loss(kwargs['loss'], self.batch, f'{win}_loss', kwargs['name'], title=f'{win} loss', **options)
+            else:
+                log(Loglvl.WARN, 'Could not find out what visualisation function to use.')
 
     @property
     def batch(self):

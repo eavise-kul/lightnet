@@ -18,13 +18,14 @@ class Visualisation:
 
     Args:
         options (dict): Options that are passed on to the Visdom constructor
+        close (Boolean, optional): Whether to close all windows in the environment
     """
-    def __init__(self, options):
+    def __init__(self, options, close=False):
         self.vis = visdom.Visdom(**options)
         if not self.vis.check_connection():
             log(Loglvl.ERROR, f'Could not connect to visdom server', OSError)
 
-        if 'env' in options:
+        if close and 'env' in options:
             self.vis.close(env=options['env'])
 
     def pr(self, pr, window=None, **options):
@@ -35,21 +36,24 @@ class Visualisation:
             window (str, optional): Name of the visdom window
             **options (dict): Extra options to pass to the Visdom.line function
         """
-        x = [val[1] for key, val in pr.items()]
-        y = [val[0] for key, val in pr.items()]
-        legend = [f'{key}: {round(bbb.ap(*val)*100, 2)}' for key, val in pr.items()]
+        update = None
+        for key in pr:
+            x = np.array(pr[key][1])
+            y = np.array(pr[key][0])
+            legend = [f'{key}: {round(bbb.ap(*pr[key])*100, 2)}']
 
-        opts = dict(
-            xlabel='Recall',
-            ylabel='Precision',
-            legend=legend,
-            xtickmin=0,
-            xtickmax=1,
-            ytickmin=0,
-            ytickmax=1,
-            **options
-                )
-        self.vis.line(X=np.array(x).transpose(), Y=np.array(y).transpose(), win=window, opts=opts)
+            opts = dict(
+                xlabel='Recall',
+                ylabel='Precision',
+                legend=legend,
+                xtickmin=0,
+                xtickmax=1,
+                ytickmin=0,
+                ytickmax=1,
+                **options
+                    )
+            self.vis.line(X=x, Y=y, win=window, update=update, name=f'{key}', opts=opts)
+            update = 'append'
 
     def loss(self, loss, batch, window, name=None, **options):
         """ Plot loss curve.
