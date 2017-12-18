@@ -14,7 +14,7 @@ __all__ = ['DarknetData']
 
 class DarknetData(lnd.BramboxData):
     """ Dataset that works with darknet files and performs the same data augmentations.
-    If train is False, you must use this dataset with the :meth:`~lightnet.data.bbb_collate` function in a dataloader.
+    If train is False, you must use this dataset with the :meth:`~lightnet.data.list_collate` function in a dataloader.
         
     Args:
         data_file (str): File containing path to image files (relative from where command is run)

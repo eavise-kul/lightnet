@@ -198,7 +198,7 @@ def test(net, dataset):
     net.input_dim = NETWORK_SIZE
     net.eval()
     kwargs = {'num_workers': 4, 'pin_memory': False} if args.cuda else {}
-    loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH//BATCH_SUBDIV, collate_fn=lnd.bbb_collate, **kwargs)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH//BATCH_SUBDIV, collate_fn=lnd.list_collate, **kwargs)
 
     at = lnd.AnnoToTensor(net)
     at.max = dataset.max_anno

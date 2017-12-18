@@ -22,7 +22,7 @@ These classes and functions help to parse the output of a network to understanda
 Dataset
 -------
 .. autoclass:: lightnet.data.BramboxData
-.. autofunction:: lightnet.data.bbb_collate
+.. autofunction:: lightnet.data.list_collate
 
 
 .. include:: ../links.rst

@@ -12,7 +12,7 @@ import brambox.boxes as bbb
 
 from ..logger import *
 
-__all__ = ['BramboxData', 'bbb_collate']
+__all__ = ['BramboxData', 'list_collate']
 
 
 class BramboxData(Dataset):
@@ -61,13 +61,16 @@ class BramboxData(Dataset):
         return img, anno
 
 
-def bbb_collate(batch):
-    """ Function that can collate brambox.Boxes.
-    Use this as the collate function in a Dataloader, if you want to have brambox.Boxes as an output (as opposed to tensors).
+def list_collate(batch):
+    """ Function that collates lists of items together into one list (of lists).
+    Use this as the collate function in a Dataloader, if you want to have a list of items as an output, as opposed to tensors (eg. Brambox.boxes).
     """
-    if isinstance(batch[0][1], list):
-        img,anno = zip(*batch)
-        img = default_collate(img)
-        return img, list(anno)
+    items = list(zip(*batch))
 
-    return default_collate(batch)
+    for i in range(len(items)):
+        if isinstance(items[i][0], list):
+            items[i] = list(items[i])
+        else:
+            items[i] = default_collate(items[i])
+
+    return items

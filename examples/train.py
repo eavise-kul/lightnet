@@ -47,6 +47,7 @@ TS_RATES = (50, 100)                # New values for test rate
 assert BATCH % BATCH_SUBDIV == 0, 'Batch subdivision should be a divisor of batch size'
 assert len(LR_STEPS) == len(LR_SCALES), 'Learning rate scales should have same number of items as steps'
 assert len(BP_STEPS) == len(BP_RATES), 'Backup rates should have same number of items as steps'
+assert len(TS_STEPS) == len(TS_RATES), 'Test rates should have same number of items as steps'
 
 
 class CustomEngine(ln.engine.Engine):
@@ -185,7 +186,7 @@ class CustomEngine(ln.engine.Engine):
             drop_last = False,
             num_workers = WORKERS if self.cuda else 0,
             pin_memory = PIN_MEM if self.cuda else False,
-            collate_fn = ln.data.bbb_collate,
+            collate_fn = ln.data.list_collate,
             )
         for idx, (data, target) in enumerate(loader):
             if self.cuda:
