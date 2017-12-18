@@ -198,8 +198,9 @@ class RandomCrop:
             y2 = min(self.crop[3], anno.y_top_left+anno.height)
             w = x2-x1
             h = y2-y1
-            ratio = (w * h) / (anno.width * anno.height)
-            if w<=0 or h<=0 or ratio < self.inter_thresh:
+            r1 = w / anno.width
+            r2 = h / anno.height
+            if w<=0 or h<=0 or r1 < self.inter_thresh or r2 < self.inter_thresh:
                 return None
 
             # Perform crop
@@ -207,8 +208,13 @@ class RandomCrop:
             anno.y_top_left -= self.crop[1]
 
             if self.crop_anno:
-                anno.x_top_left = max(0, anno.x_top_left)
-                anno.y_top_left = max(0, anno.y_top_left)
+                if anno.x_top_left < 0:
+                    anno.width += anno.x_top_left
+                    anno.x_top_left = 0
+                if anno.y_top_left < 0:
+                    anno.height += anno.y_top_left
+                    anno.y_top_left = 0
+                
                 anno.width = min(self.crop[2]-(anno.x_top_left+self.crop[0]), anno.width)
                 anno.height = min(self.crop[3]-(anno.y_top_left+self.crop[1]), anno.height)
 
@@ -362,6 +368,8 @@ class AnnoToTensor:
         self.net = network
         self.max = max_anno
         self.class_map = class_label_map
+        if class_label_map is None:
+            log(Loglvl.WARN, 'No class_label_map given. If the class_labels are not integers, they will be set to zero.')
 
     def __call__(self, data):
         if isinstance(data, collections.Sequence):

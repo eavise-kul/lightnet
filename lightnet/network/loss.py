@@ -139,7 +139,7 @@ class RegionLoss:
         # Tensors
         conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
         coord_mask = torch.zeros(nB, nA, nH*nW)
-        cls_mask   = torch.zeros(nB, nA, nH*nW)
+        cls_mask   = torch.zeros(nB, nA, nH*nW).byte()
         tx         = torch.zeros(nB, nA, nH*nW) 
         ty         = torch.zeros(nB, nA, nH*nW) 
         tw         = torch.zeros(nB, nA, nH*nW) 
@@ -183,8 +183,8 @@ class RegionLoss:
                 gy = target[b][t][2] * nH
                 gw = target[b][t][3] * nW
                 gh = target[b][t][4] * nH
-                gi = int(gx)
-                gj = int(gy)
+                gi = min(nW-1, max(0, int(gx)))
+                gj = min(nH-1, max(0, int(gy)))
                 gt_box = [0, 0, gw, gh]
                 for n in range(nA):
                     aw = self.anchors[self.anchor_step*n]
