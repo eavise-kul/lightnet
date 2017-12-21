@@ -156,7 +156,10 @@ class Engine:
                 options = {}
 
             if 'pr' in kwargs:
-                self.__vis.pr(kwargs['pr'], f'{win}_pr', title=f'PR-curve {win} [{self.batch}]', **options)
+                if not 'title' in options:
+                    self.__vis.pr(kwargs['pr'], f'{win}_pr', title=f'PR-curve [{self.batch}]', **options)
+                else:
+                    self.__vis.pr(kwargs['pr'], f'{win}_pr', **options)
             elif 'loss' in kwargs:
                 self.__vis.loss(kwargs['loss'], self.batch, f'{win}_loss', kwargs['name'], title=f'{win} loss', **options)
             else:

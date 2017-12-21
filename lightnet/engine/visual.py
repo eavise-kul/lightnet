@@ -37,7 +37,7 @@ class Visualisation:
             **options (dict): Extra options to pass to the Visdom.line function
         """
         update = None
-        for key in pr:
+        for key in sorted(pr):
             x = np.array(pr[key][1])
             y = np.array(pr[key][0])
             legend = [f'{key}: {round(bbb.ap(*pr[key])*100, 2)}']
