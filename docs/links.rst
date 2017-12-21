@@ -1,4 +1,5 @@
 .. LINKS
+.. _lightnet: https://www.gitlab.com/EAVISE/lightnet/
 .. _pytorch: https://www.pytorch.org/
 .. _darknet: https://www.pjreddie.com/darknet/
 .. _pytorch-yolo2: https://github.com/marvis/pytorch-yolo2/
