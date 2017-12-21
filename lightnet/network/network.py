@@ -25,7 +25,7 @@ class Darknet(nn.Module):
           This class will then automatically call the loss and postprocess functions on the output of ``_forward()``,
           depending whether the network is training or evaluating.
 
-    Other Parameters:
+    Attributes:
         self.seen (int): The number of images the network has processed to train (used by engine)
         self.input_dim (list): Input dimensions of the network (used by data transforms)
 

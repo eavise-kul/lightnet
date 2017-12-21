@@ -9,7 +9,8 @@ Network subpackage
   - [X] Add/Test pickle weight loading/saving
   - [X] Add/Test loss function
   - [X] Improve loss function with py36 and pytorch 0.3.0
-  - [ ] Improve loss function on conceptual level
+  - [X] Improve loss function on conceptual level
+  - [X] Loss function can work with brambox objects
 
 ## Data
 Data subpackage
@@ -21,11 +22,16 @@ Data subpackage
   - [X] Add/Test postprocessing
   - [X] Improve postprocessing (box conversion + nms in one loop)
   - [X] Write documentation
+  - [X] Dataset always works with brambox objects
+  - [X] Improve non-maximum suppression _(gpu/pytorch)_
+  - [ ] Improve bbox_to_brambox _(gpu/pytorch)_
 
 ## Engine
 Engine subpackage
   - [X] Create base engine class
   - [X] Test base engine
+  - [X] Engine rates
+  - [ ] Rework visualisation concept
 
 ## Models
 Model implementations subpackage
@@ -39,9 +45,9 @@ Various bits and bops
   - [X] Update README: credits to marvis
   - [ ] Update README: how to use
   - [X] Refactor organisation of the package
-  - [ ] Test whether box+nms is faster than separate
   - [X] Add requirements.txt
   - [X] Write logger documentation
+  - [X] Add logger file print
 
 ## Examples and Scripts
 Everything about creating examples and scripts to show off the library

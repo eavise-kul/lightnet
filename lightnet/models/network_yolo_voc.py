@@ -25,6 +25,12 @@ class YoloVoc(lnn.Darknet):
         input_dim (list, optional): Input dimension for the network; Default **[416,416,3]**
         conf_thresh (Number, optional): Confidence threshold for postprocessing of the boxes; Default **0.25**
         nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
+
+    Attributes:
+        self.anchors (list): Anchor coordinates. Usually they are w,h pairs, but it can also be x,y,w,h pairs
+        self.num_anchors (int): Number of anchor-boxes
+        self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
+        self.postprocess (fn): Postprocessing function. Usually this is :class:`~lightnet.data.BBoxConverter`
     """
     def __init__(self, num_classes=20, weights_file=None, input_dim=[416,416,3], conf_thresh=.25, nms_thresh=.4):
         """ Network initialisation """
@@ -85,13 +91,8 @@ class YoloVoc(lnn.Darknet):
         ]
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
 
-        # Weights
         self.load_weights(weights_file)
-
-        # Loss
         self.loss = lnn.RegionLoss(self) 
-
-        # Postprocessing
         self.postprocess = lnd.BBoxConverter(self, conf_thresh, nms_thresh)
 
     def _forward(self, x):
