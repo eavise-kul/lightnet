@@ -34,7 +34,7 @@ LEARNING_RATE = 0.0001              # Initial learning rate
 MOMENTUM = 0.9
 DECAY = 0.0005
 LR_STEPS = (100, 25000, 35000)      # Steps at which the learning rate should be scaled
-LR_SCALES = (2, 0.5, 0.1)           # Scales to scale the inital learning rate with
+LR_STEPS = (0.001, 0.0001, 0.00001) # Scales to scale the inital learning rate with
 
 BACKUP = 100                        # Initial backup rate 
 BP_STEPS = (500, 5000, 10000)       # Steps at which the backup rate should change
@@ -45,9 +45,6 @@ TS_STEPS = (1000, 5000)             # Steps at which the test rate should change
 TS_RATES = (50, 100)                # New values for test rate
 
 assert BATCH % BATCH_SUBDIV == 0, 'Batch subdivision should be a divisor of batch size'
-assert len(LR_STEPS) == len(LR_SCALES), 'Learning rate scales should have same number of items as steps'
-assert len(BP_STEPS) == len(BP_RATES), 'Backup rates should have same number of items as steps'
-assert len(TS_STEPS) == len(TS_RATES), 'Test rates should have same number of items as steps'
 
 
 class CustomEngine(ln.engine.Engine):
@@ -62,7 +59,7 @@ class CustomEngine(ln.engine.Engine):
         ln.log(ln.Loglvl.DEBUG, 'Creating datasets')
         train = ln.models.DarknetData(arguments.train, net)
         if arguments.test is not None:
-            test = ln.models.DarknetData(arguments.test, net, train=False, augment=False, class_label_map=arguments.names)
+            test = ln.models.DarknetData(arguments.test, net, augment=False, class_label_map=arguments.names)
         else:
             test = None
 
@@ -74,36 +71,27 @@ class CustomEngine(ln.engine.Engine):
             **kwargs
             )
 
+        # Rates
+        self.add_rate('learning_rate', LR_STEPS, [lr/BATCH for lr in LR_RATES])
+        self.add_rate('backup_rate', BP_STEPS, BP_RATES, BACKUP)
+        self.add_rate('test_rate', TS_STEPS, TS_RATES, TEST)
+        self.add_rate('resize_rate', RS_STEPS, RS_RATES, RESIZE)
+
+    def start(self):
+        """ Starting values """
+        self.update_rates()
+        
+        # Resize
+        if self.batch % self.resize_rate == 0:
+            self.network.change_input_dim()
+
     def update(self):
-        """ Update rates according to batch """
-        # Test rate
-        i = 0
-        self.test_rate = TEST
-        while self.batch > TS_STEPS[i]:
-            self.test_rate = TS_RATES[i]
-            i += 1
-            if i >= len(TS_STEPS):
-                break
+        """ Update """
+        self.update_rates()
 
-        # Backup rate
-        i = 0
-        self.backup_rate = BACKUP
-        while self.batch > BP_STEPS[i]:
-            self.backup_rate = BP_RATES[i]
-            i += 1
-            if i >= len(BP_STEPS):
-                break
-
-        # Learning rate
-        lr = LEARNING_RATE
-        for i in range(len(LR_STEPS)):
-            if self.batch >= LR_STEPS[i]:
-                lr *= LR_SCALES[i]
-            else:
-                break
-        if lr/self.batch_size != self.learning_rate:
-            ln.log(ln.Loglvl.VERBOSE, f'Adjusting learning rate [{lr}]')
-            self.learning_rate = lr/self.batch_size
+        # Backup
+        if self.batch % self.backup_rate == 0:
+            self.network.save_weights(os.path.join(self.backup_folder, f'weights_{self.batch}.pt'))
 
         # Resize
         if self.batch % RESIZE_RATE == 0:
@@ -115,7 +103,6 @@ class CustomEngine(ln.engine.Engine):
         conf_loss = []
         cls_loss = []
         
-        self.update()
         self.optimizer.zero_grad()
 
         loader = torch.utils.data.DataLoader(
@@ -124,7 +111,8 @@ class CustomEngine(ln.engine.Engine):
             shuffle = True,
             drop_last = True,
             num_workers = WORKERS if self.cuda else 0,
-            pin_memory = PIN_MEM if self.cuda else False
+            pin_memory = PIN_MEM if self.cuda else False,
+            collate_fn = ln.data.list_collate,
             )
         for idx, (data, target) in enumerate(loader):
             if self.cuda:
@@ -161,20 +149,15 @@ class CustomEngine(ln.engine.Engine):
                 conf_loss = []
                 cls_loss = []
 
-                if self.batch % self.backup_rate == 0:
-                    self.network.save_weights(os.path.join(self.backup_folder, f'weights_{self.batch}.pt'))
+                self.update()
 
                 if self.sigint or self.batch >= self.max_batch or len(self.trainset) - (idx*self.mini_batch_size) < self.batch_size:
                     return
-
-                self.update()
 
     def test(self):
         tot_loss = []
         anno, det = {}, {}
         num_det = 0
-        at = ln.data.AnnoToTensor(self.network)
-        at.max = self.testset.max_anno
 
         saved_dim = self.network.input_dim
         self.network.input_dim = NETWORK_SIZE
@@ -192,9 +175,8 @@ class CustomEngine(ln.engine.Engine):
             if self.cuda:
                 data = data.cuda()
             data = Variable(data, volatile=True)
-            target_tensor = torch.stack([at(a) for a in target])
 
-            output, loss = self.network(data, target_tensor)
+            output, loss = self.network(data, target)
 
             tot_loss.append(loss.data[0]*len(target))
             for i in range(len(target)):

@@ -21,23 +21,36 @@ class BramboxData(Dataset):
     Args:
         anno_format (brambox.boxes.format): Annotation format
         anno_filename (list or str): Annotation filename, list of filenames or expandable sequence
+        class_label_map (list): List of class_labels
         identify (function, optional): Lambda/function to get image based of annotation filename or image id; Default **replace/add .png extension to filename/id**
         img_transform (torchvision.transforms.Compose): Transforms to perform on the images
         anno_transform (torchvision.transforms.Compose): Transforms to perform on the annotations
         kwargs (dict): Keyword arguments that are passed to the brambox parser
     """
-    def __init__(self, anno_format, anno_filename, identify=None, img_transform=None, anno_transform=None, **kwargs):
+    def __init__(self, anno_format, anno_filename, class_label_map=None, identify=None, img_transform=None, anno_transform=None, **kwargs):
         super(BramboxData, self).__init__()
         self.img_tf = img_transform
         self.anno_tf = anno_transform
-        if identify is not None and callable(identify):
+        if callable(identify):
             self.id = identify
         else:
             self.id = lambda name : os.path.splitext(name)[0] + '.png'
 
         # Get annotations
-        self.annos = bbb.parse(anno_format, anno_filename, identify=lambda f:f, **kwargs)
+        self.annos = bbb.parse(anno_format, anno_filename, identify=lambda f:f, class_label_map=class_label_map, **kwargs)
         self.keys = list(self.annos)
+
+        # Add class_ids
+        for k,annos in self.annos.items():
+            for a in annos:
+                if class_label_map is not None:
+                    try:
+                        a.class_id = class_label_map.index(a.class_label)
+                    except ValueError:
+                        log(Loglvl.ERROR, f'{a.class_label} is not found in the class_label_map', ValueError)
+                else:
+                    a.class_id = 0
+
         log(Loglvl.VERBOSE, f'Dataset loaded: {len(self.keys)} images')
 
     def __len__(self):
