@@ -62,5 +62,5 @@ Everything about creating examples and scripts to show off the library
   - [X] Test yolo-voc training
   - [X] Test yolo-voc engine training
   - [ ] Compare speed yolo-voc training
-  - [ ] Compare accuracy yolo-voc trained weights
+  - [X] Compare accuracy yolo-voc trained weights
 
