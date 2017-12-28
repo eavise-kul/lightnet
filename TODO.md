@@ -32,6 +32,7 @@ Engine subpackage
   - [X] Test base engine
   - [X] Engine rates
   - [ ] Rework visualisation concept
+  - [ ] Expose __log.open_file
 
 ## Models
 Model implementations subpackage
