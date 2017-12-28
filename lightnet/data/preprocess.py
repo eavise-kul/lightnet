@@ -8,12 +8,18 @@
 import random
 import collections
 import torch
-import cv2
 import numpy as np
 from PIL import Image, ImageOps
 import brambox.boxes as bbb
 
 from ..logger import *
+
+try:
+    import cv2
+except:
+    log(Loglvl.WARN, 'OpenCV is not installed and cannot be used')
+    cv2 = None
+
 
 __all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'AnnoToTensor']
 
@@ -27,8 +33,8 @@ class Letterbox:
         Create 1 Letterbox object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
     """
-    def __init__(self, network):
-        self.net = network
+    def __init__(self, dataset):
+        self.dataset = dataset
         self.scale = None
         self.pad = None
 
@@ -44,7 +50,7 @@ class Letterbox:
 
     def _tf_pil(self, img):
         """ Letterbox an image to fit in the network """
-        net_w, net_h = self.net.input_dim[:2]
+        net_w, net_h = self.dataset.input_dim
         im_w, im_h = img.size
 
         if im_w == net_w and im_h == net_h:
@@ -74,7 +80,7 @@ class Letterbox:
 
     def _tf_cv(self, img):
         """ Letterbox and image to fit in the network """
-        net_w, net_h = self.net.input_dim[:2]
+        net_w, net_h = self.dataset.input_dim
         im_h, im_w = img.shape[:2]
 
         if im_w == net_w and im_h == net_h:
@@ -192,8 +198,9 @@ class RandomCrop:
             y2 = min(self.crop[3], anno.y_top_left+anno.height)
             w = x2-x1
             h = y2-y1
-            ratio = (w * h) / (anno.width * anno.height)
-            if w<=0 or h<=0 or ratio < self.inter_thresh:
+            r1 = w / anno.width
+            r2 = h / anno.height
+            if w<=0 or h<=0 or r1 < self.inter_thresh or r2 < self.inter_thresh:
                 return None
 
             # Perform crop
@@ -201,8 +208,13 @@ class RandomCrop:
             anno.y_top_left -= self.crop[1]
 
             if self.crop_anno:
-                anno.x_top_left = max(0, anno.x_top_left)
-                anno.y_top_left = max(0, anno.y_top_left)
+                if anno.x_top_left < 0:
+                    anno.width += anno.x_top_left
+                    anno.x_top_left = 0
+                if anno.y_top_left < 0:
+                    anno.height += anno.y_top_left
+                    anno.y_top_left = 0
+                
                 anno.width = min(self.crop[2]-(anno.x_top_left+self.crop[0]), anno.width)
                 anno.height = min(self.crop[3]-(anno.y_top_left+self.crop[1]), anno.height)
 
@@ -352,10 +364,12 @@ class AnnoToTensor:
     Warning:
         If no class_label_map is given, this function will first try to convert the class_label to an integer. If that fails, it is simply given the number 0.
     """
-    def __init__(self, network, max_anno=50, class_label_map=None):
-        self.net = network
+    def __init__(self, dataset, max_anno=50, class_label_map=None):
+        self.dataset = dataset
         self.max = max_anno
         self.class_map = class_label_map
+        if class_label_map is None:
+            log(Loglvl.WARN, 'No class_label_map given. If the class_labels are not integers, they will be set to zero.')
 
     def __call__(self, data):
         if isinstance(data, collections.Sequence):
@@ -363,11 +377,11 @@ class AnnoToTensor:
             if anno_len > self.max:
                 log(Loglvl.ERROR, f'More annotations than maximum allowed [{anno_len}/{self.max}]', ValueError)
 
-            z_np = np.zeros((self.max-anno_len, 5), dtype=np.float32)
+            z_np = np.zeros((self.max-anno_len, 5), dtype=np.float64)
             z_np[:,0] = -1
 
             if anno_len > 0:
-                anno_np = np.array([self._tf_anno(anno) for anno in data], dtype=np.float32)
+                anno_np = np.array([self._tf_anno(anno) for anno in data], dtype=np.float64)
                 return torch.from_numpy(np.concatenate((anno_np, z_np)))
             else:
                 return torch.from_numpy(z_np)
@@ -379,7 +393,7 @@ class AnnoToTensor:
         if not isinstance(anno, bbb.annotations.Annotation):
             log(Loglvl.ERROR, f'AnnoToTensor only works with lists of <brambox annotations> [{type(anno)}]', TypeError)
 
-        net_w, net_h = self.net.input_dim[:2]
+        net_w, net_h = self.dataset.input_dim
 
         if self.class_map is not None:
             cls = self.class_map.index(anno.class_label)

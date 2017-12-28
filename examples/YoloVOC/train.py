@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 #
-#   Train a lightnet network with the engine
+#   Train Yolo on VOC
 #   Copyright EAVISE
 #
 
+import time
 import os
 import argparse
 from statistics import mean
 import torch
 from torch.autograd import Variable
+from torchvision import transforms as tf
 import brambox.boxes as bbb
 
 import lightnet as ln
@@ -16,65 +18,84 @@ ln.log.level = ln.Loglvl.VERBOSE
 #ln.log.color = False
 
 # Parameters
-WORKERS = 4
+WORKERS = 0
 PIN_MEM = True
-VISDOM = {'server': 'http://localhost', 'port': 8080, 'env': 'Lightnet'}
+VISDOM = {'server': 'http://localhost', 'port': 8080, 'env': 'YoloVOC Train'}
+ROOT = 'data'
+CLASS_LABELS = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
 
-CLASSES = 1
-NETWORK_SIZE = [416, 416, 3]
-RESIZE_RATE = 10
-CONF_THRESH = 0.1
+CLASSES = 20
+NETWORK_SIZE = (416, 416)
+CONF_THRESH = 0.001
 NMS_THRESH = 0.4
 
 BATCH = 64 
 BATCH_SUBDIV = 8
-MAX_BATCHES = 45000                 # Maximum batches to train for (None -> forever)
+MAX_BATCHES = 45000
 
-LEARNING_RATE = 0.0001              # Initial learning rate
+JITTER = 0.2
+FLIP = 0.5
+HUE = 0.1
+SAT = 1.5
+VAL = 1.5
+
+LEARNING_RATE = 0.0001
 MOMENTUM = 0.9
 DECAY = 0.0005
-LR_STEPS = (100, 25000, 35000)      # Steps at which the learning rate should be scaled
-LR_STEPS = (0.001, 0.0001, 0.00001) # Scales to scale the inital learning rate with
+LR_STEPS = (100, 1000, 25000, 35000)
+LR_RATES = (0.0005, 0.001, 0.0001, 0.00001)
 
-BACKUP = 100                        # Initial backup rate 
-BP_STEPS = (500, 5000, 10000)       # Steps at which the backup rate should change
-BP_RATES = (500, 1000, 10000)       # New values for the backup rate
+BACKUP = 100
+BP_STEPS = (1000, 10000, 50000)
+BP_RATES = (500, 1000, 5000)
 
-TEST = 25                           # Initial test rate (only tested in between epochs)
-TS_STEPS = (1000, 5000)             # Steps at which the test rate should change
-TS_RATES = (50, 100)                # New values for test rate
+RESIZE = 10
+RS_STEPS = ()
+RS_RATES = ()
 
 assert BATCH % BATCH_SUBDIV == 0, 'Batch subdivision should be a divisor of batch size'
+
+
+class CustomDataset(ln.data.BramboxData):
+    def __init__(self, anno):
+        def identify(img_id):
+            return f'{ROOT}/VOCdevkit/{img_id}'
+
+        lb  = ln.data.Letterbox(self)
+        rf  = ln.data.RandomFlip(FLIP)
+        rc  = ln.data.RandomCrop(JITTER, True, 0.1)
+        hsv = ln.data.HSVShift(HUE, SAT, VAL)
+        it  = tf.ToTensor()
+        img_tf = tf.Compose([hsv, rc, rf, lb, it])
+        anno_tf = tf.Compose([rc, rf, lb])
+
+        super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, CLASS_LABELS, identify, img_tf, anno_tf)
 
 
 class CustomEngine(ln.engine.Engine):
     """ This is a custom engine for this training cycle """
     def __init__(self, arguments, **kwargs):
         ln.log(ln.Loglvl.DEBUG, 'Creating network')
-        net = ln.models.YoloVoc(CLASSES, arguments.weight, NETWORK_SIZE, CONF_THRESH, NMS_THRESH)
+        net = ln.models.YoloVoc(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
         if arguments.cuda:
             net.cuda()
         optim = torch.optim.SGD(net.parameters(), lr=LEARNING_RATE/BATCH, momentum=MOMENTUM, dampening=0, weight_decay=DECAY*BATCH)
 
-        ln.log(ln.Loglvl.DEBUG, 'Creating datasets')
-        train = ln.models.DarknetData(arguments.train, net)
-        if arguments.test is not None:
-            test = ln.models.DarknetData(arguments.test, net, augment=False, class_label_map=arguments.names)
-        else:
-            test = None
+        ln.log(ln.Loglvl.DEBUG, 'Creating dataset')
+        train = CustomDataset(args.train)
 
         # Super init
+        ln.log(ln.Loglvl.DEBUG, 'Initialising Engine')
         super(CustomEngine, self).__init__(
-            net, optim, train, test, arguments.cuda, arguments.visdom,
-            batch_size=BATCH, batch_subdivisions=BATCH_SUBDIV, max_batch=MAX_BATCHES,
-            class_label_map=arguments.names, backup_folder=arguments.backup,
+            net, optim, train, None, arguments.cuda, arguments.visdom,
+            batch_size=BATCH, batch_subdivisions=BATCH_SUBDIV,
+            backup_folder=arguments.backup,
             **kwargs
             )
 
         # Rates
         self.add_rate('learning_rate', LR_STEPS, [lr/BATCH for lr in LR_RATES])
         self.add_rate('backup_rate', BP_STEPS, BP_RATES, BACKUP)
-        self.add_rate('test_rate', TS_STEPS, TS_RATES, TEST)
         self.add_rate('resize_rate', RS_STEPS, RS_RATES, RESIZE)
 
     def start(self):
@@ -83,19 +104,17 @@ class CustomEngine(ln.engine.Engine):
         
         # Resize
         if self.batch % self.resize_rate == 0:
-            self.network.change_input_dim()
+            self.trainset.change_input_dim()
 
     def update(self):
         """ Update """
-        self.update_rates()
+        if self.batch % self.resize_rate == 0:
+            self.trainset.change_input_dim()
 
-        # Backup
         if self.batch % self.backup_rate == 0:
             self.network.save_weights(os.path.join(self.backup_folder, f'weights_{self.batch}.pt'))
 
-        # Resize
-        if self.batch % RESIZE_RATE == 0:
-            self.network.change_input_dim()
+        self.update_rates()
 
     def train(self):
         tot_loss = []
@@ -112,7 +131,7 @@ class CustomEngine(ln.engine.Engine):
             drop_last = True,
             num_workers = WORKERS if self.cuda else 0,
             pin_memory = PIN_MEM if self.cuda else False,
-            collate_fn = ln.data.list_collate,
+            collate_fn = ln.data.list_collate
             )
         for idx, (data, target) in enumerate(loader):
             if self.cuda:
@@ -151,64 +170,22 @@ class CustomEngine(ln.engine.Engine):
 
                 self.update()
 
-                if self.sigint or self.batch >= self.max_batch or len(self.trainset) - (idx*self.mini_batch_size) < self.batch_size:
+                if self.sigint or self.batch >= MAX_BATCHES or len(self.trainset) - (idx*self.mini_batch_size) < self.batch_size:
                     return
 
-    def test(self):
-        tot_loss = []
-        anno, det = {}, {}
-        num_det = 0
-
-        saved_dim = self.network.input_dim
-        self.network.input_dim = NETWORK_SIZE
-
-        loader = torch.utils.data.DataLoader(
-            self.testset,
-            batch_size = self.mini_batch_size,
-            shuffle = False,
-            drop_last = False,
-            num_workers = WORKERS if self.cuda else 0,
-            pin_memory = PIN_MEM if self.cuda else False,
-            collate_fn = ln.data.list_collate,
-            )
-        for idx, (data, target) in enumerate(loader):
-            if self.cuda:
-                data = data.cuda()
-            data = Variable(data, volatile=True)
-
-            output, loss = self.network(data, target)
-
-            tot_loss.append(loss.data[0]*len(target))
-            for i in range(len(target)):
-                key = len(anno)
-                anno[key] = target[i]
-                det[key] = ln.data.bbox_to_brambox(output[i], self.network.input_dim, class_label_map=self.class_label_map)
-                num_det += len(det[key])
-
-            if self.sigint:
-                return
-
-        if num_det > 1:
-            pr = bbb.pr(det, anno, class_label_map=self.class_label_map)
-            m_ap = bbb.mean_ap(pr)
-            loss = round(sum(tot_loss)/len(anno), 5)
-
-            self.log(f'Loss:{loss} mAP:{round(m_ap*100, 2)}%')
-            self.visual(pr=pr)
-            self.visual(loss=loss, name='Total loss')
+    def quit(self):
+        if self.batch >= MAX_BATCHES or self.sigint:
+            self.network.save_weights(os.path.join(self.backup_folder, f'backup.pt'))
+            return True
         else:
-            ln.log(ln.Loglvl.WARN, f'Not enough detections to perform advanced statistics [{num_det}]')
-            self.log(f'Loss:{sum(tot_loss)/len(anno)}')
-        self.network.input_dim = saved_dim
+            return False
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a lightnet network')
     parser.add_argument('weight', help='Path to weight file', default=None)
-    parser.add_argument('train', help='File containing paths to training images')
-    parser.add_argument('test', help='File containing paths to test images', nargs='?')
+    parser.add_argument('train', help='Pickle annotation file')
     parser.add_argument('-b', '--backup', help='Backup folder', default='./backup')
-    parser.add_argument('-n', '--names', help='Detection names file', default=None)
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
     parser.add_argument('-v', '--visdom', action='store_true', help='Visualize training data with visdom')
     args = parser.parse_args()
@@ -233,10 +210,12 @@ if __name__ == '__main__':
         else:
             ln.log(ln.Loglvl.ERROR, 'Backup path is not a folder', ValueError)
 
-    if args.names is not None:
-        with open(args.names, 'r') as f:
-            args.names = f.read().splitlines()
-
     # Train
     eng = CustomEngine(args)
+    b1 = eng.batch
+    t1 = time.time()
     eng()
+    t2 = time.time()
+    b2 = eng.batch
+
+    print(f'\nDuration of {b2-b1} batches: {t2-t1} seconds')

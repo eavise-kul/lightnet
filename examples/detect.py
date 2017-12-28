@@ -18,8 +18,10 @@ import lightnet as ln
 ln.log.level = ln.Loglvl.VERBOSE
 
 # Parameters
-CLASSES = 1
+CLASSES = 20
 NETWORK_SIZE = [416, 416, 3]
+CONF_THRESH = .25
+NMS_THRESH = .4
 
 TIMER = False
 TIMES_NETWORK = []
@@ -28,7 +30,7 @@ TIMES_NETWORK = []
 # Functions
 def create_network():
     """ Create the lightnet network """
-    net = ln.models.YoloVoc(CLASSES, args.weight, NETWORK_SIZE)
+    net = ln.models.YoloVoc(CLASSES, args.weight, NETWORK_SIZE, CONF_THRESH, NMS_THRESH)
 
     if args.cuda:
         net.cuda()

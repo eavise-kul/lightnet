@@ -2,7 +2,7 @@
 git+https://gitlab.com/EAVISE/brambox@develop
 
 # Development dependencies
-Sphinx
+git+https://github.com/sphinx-doc/sphinx  # Sphinx 1.7+ for py36 f-strings
 sphinx_rtd_theme
 recommonmark
 

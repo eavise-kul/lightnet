@@ -33,92 +33,10 @@ class BBoxConverter:
     def __call__(self, network_output):
         """ Compute bounding boxes after thresholding and nms
             
-            network_output  Output tensor from the lightnet network
+            network_output (torch.autograd.Variable): Output tensor from the lightnet network
         """
-        #boxes = self._get_region_boxes_nms(network_output.data)
-        all_boxes = self._get_region_boxes(network_output.data)
-        boxes = [self._nms(box) for box in all_boxes]
-        return boxes
-
-    def _get_region_boxes_nms(self, output):
-        """ Returns array of detections for every image in batch """
-        # Check dimensions
-        if output.dim() == 3:
-            output.unsqueeze_(0)
-
-        # Parameters
-        cuda = output.is_cuda
-        batch = output.size(0)
-        h = output.size(2)
-        w = output.size(3)
-
-        # Compute xc,yc, w,h, box_score
-        lin_x = torch.linspace(0, w-1, w).repeat(h,1).view(h*w)
-        lin_y = torch.linspace(0, h-1, h).repeat(w,1).t().contiguous().view(h*w)
-        anchor_w = torch.Tensor(self.anchors[::self.anchor_step]).view(self.num_anchors, 1)
-        anchor_h = torch.Tensor(self.anchors[1::self.anchor_step]).view(self.num_anchors, 1)
-        if cuda:
-            lin_x = lin_x.cuda()
-            lin_y = lin_y.cuda()
-            anchor_w = anchor_w.cuda()
-            anchor_h = anchor_h.cuda()
-
-        output = output.view(batch, self.num_anchors, -1, h*w)  # -1 == 5+num_classes (we can drop feature maps if 1 class)
-        output[:,:,0,:].sigmoid_().add_(lin_x).div_(w)          # X center
-        output[:,:,1,:].sigmoid_().add_(lin_y).div_(h)          # Y center
-        output[:,:,2,:].exp_().mul_(anchor_w).div_(w)           # Width
-        output[:,:,3,:].exp_().mul_(anchor_h).div_(h)           # Height
-        output[:,:,4,:].sigmoid_()                              # Box score
-
-        # Compute class_score
-        if self.num_classes > 1:
-            cls_scores = torch.nn.functional.softmax(Variable(output[:,:,5:,:], volatile=True), 2).data
-            cls_max, cls_max_idx = torch.max(cls_scores, 2)
-            cls_max = cls_max.mul(output[:,:,4,:]).contiguous().view(batch, -1)
-        else:
-            cls_max = output[:,:,4,:].contiguous().view(batch, -1)
-            cls_max_idx = torch.zeros_like(cls_max)
-
-        # Sort class_score for nms
-        _, cls_max_sort_id = torch.sort(cls_max, 1, True)
-
-        # Save detection if conf*class_conf is higher than threshold
-        output = output.cpu()
-        cls_max = cls_max.cpu()
-        cls_max_idx = cls_max_idx.view(batch, -1).cpu()
-        cls_max_sort_id = cls_max_sort_id.cpu()
-        boxes = []
-        for b in range(batch):
-            box_batch = []
-            for i in range(self.num_anchors*h*w):
-                idx = cls_max_sort_id[b,i]
-                if cls_max[b,idx] < 0:
-                    continue
-                if cls_max[b,idx] < self.conf_thresh:
-                    break
-
-                a = idx // (h*w)
-                hw = idx % (h*w)
-                box_batch.append([
-                    output[b,a,0,hw],
-                    output[b,a,1,hw],
-                    output[b,a,2,hw],
-                    output[b,a,3,hw],
-                    cls_max[b,idx],
-                    cls_max_idx[b,idx]
-                ])
-
-                for j in range(i+1, self.num_anchors*h*w):
-                    idx2 = cls_max_sort_id[b,j]
-                    a2 = idx2 // (h*w)
-                    hw2 = idx2 % (h*w)
-                    if cls_max[b,idx2] >= 0 and cls_max[b,idx2] < self.conf_thresh:
-                        break
-                    if cls_max[b,idx2] >= 0 and bbox_iou(box_batch[-1], output[b,a2,0:4,hw2]) > self.nms_thresh:
-                        cls_max[b,idx2] = -1
-                        
-            boxes.append(box_batch)
-
+        boxes = self._get_region_boxes(network_output.data)
+        boxes = [self._nms(torch.Tensor(box)) for box in boxes]
         return boxes
 
     def _get_region_boxes(self, output):
@@ -163,6 +81,7 @@ class BBoxConverter:
         # Save detection if conf*class_conf is higher than threshold
         output = output.cpu()
         cls_max = cls_max.cpu()
+        cls_max_idx = cls_max_idx.cpu()
         boxes = []
         for b in range(batch):
             box_batch = []
@@ -181,33 +100,62 @@ class BBoxConverter:
 
         return boxes
 
-    def _nms(self, detections):
-        """ Returns pruned detections after nms """
-        det_len = len(detections)
+    def _nms(self, boxes):
+        '''Non maximum suppression.
 
-        if len(detections) == 0:
-            return detections
+        Args:
+          boxes (tensor): Bounding boxes from get_detections
 
-        det_scores = torch.Tensor([det[4] for det in detections])
-        _,sortIds = torch.sort(det_scores, 0, True)
-        out_detections = []
-        for i in range(det_len):
-            det_i = detections[sortIds[i]]
-            if det_i[4] > 0:
-                out_detections.append(det_i)
-                for j in range(i+1, det_len):
-                    det_j = detections[sortIds[j]]
-                    if det_j[4] > 0 and bbox_iou(det_i, det_j) > self.nms_thresh:
-                        det_j[4] = 0
+        Return:
+          (tensor) Pruned boxes
+        '''
+        if boxes.numel() == 0:
+            return boxes
 
-        return out_detections
+        a = boxes[:,:2]
+        b = boxes[:,2:4]
+        bboxes = torch.cat([a-b/2,a+b/2], 1) 
+        scores = boxes[:,4]
+
+        x1 = bboxes[:,0]
+        y1 = bboxes[:,1]
+        x2 = bboxes[:,2]
+        y2 = bboxes[:,3]
+
+        areas = ((x2-x1) * (y2-y1))
+        _, order = scores.sort(0, descending=True)
+
+        keep = []
+        while order.numel() > 0:
+            i = order[0]
+            keep.append(i)
+
+            if order.numel() == 1:
+                break
+
+            xx1 = x1[order[1:]].clamp(min=x1[i])
+            yy1 = y1[order[1:]].clamp(min=y1[i])
+            xx2 = x2[order[1:]].clamp(max=x2[i])
+            yy2 = y2[order[1:]].clamp(max=y2[i])
+
+            w = (xx2-xx1).clamp(min=0)
+            h = (yy2-yy1).clamp(min=0)
+            inter = w*h
+
+            iou = inter / (areas[i] + areas[order[1:]] - inter)
+
+            ids = (iou<=self.nms_thresh).nonzero().squeeze()
+            if ids.numel() == 0:
+                break
+            order = order[ids+1]
+        return boxes[torch.LongTensor(keep)]
 
 
 def bbox_to_brambox(boxes, net_size, img_size=None, class_label_map=None):
     """ Convert bounding box array to brambox detection object.
         
     Args:
-        boxes (list): Detection boxes
+        boxes (tensor): Detection boxes
         net_size (tuple): Input size of the network (width, height)
         img_size (tuple, optional) Size of the image (width, height); Default **net_size**
         class_label_map (list, optional): class label map to convert class names to an index; Default **None**
@@ -238,7 +186,7 @@ def bbox_to_brambox(boxes, net_size, img_size=None, class_label_map=None):
         det.y_top_left = (box[1] - box[3]/2) * net_h
         det.width = box[2] * net_w
         det.height = box[3] * net_h
-        det.confidence = box[4]*100
+        det.confidence = box[4]
         if class_label_map is not None:
             det.class_label = class_label_map[int(box[5])]
         else:

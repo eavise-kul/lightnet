@@ -33,21 +33,21 @@ class Engine:
         **kwargs (dict, optional): Extra arguments that are set as attributes to the engine
 
     Attributes:
-        network: Lightnet network
-        optimizer: Torch optimizer
-        trainset: Torch dataset for training
-        testset: Torch dataset for testing; Default **None**
-        cuda: Boolean indicating whether to use cuda
-        batch_size: Number indicating batch_size
-        batch_subdivisions: How to subdivide batch
-        max_batch: Maximum number of batches to process
-        test_rate: How often to run test
-        visdom: Visdom object used to plot data
-        sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send.
+        self.network: Lightnet network
+        self.optimizer: Torch optimizer
+        self.trainset: Torch dataset for training
+        self.testset: Torch dataset for testing; Default **None**
+        self.cuda: Boolean indicating whether to use cuda
+        self.batch_size: Number indicating batch_size
+        self.batch_subdivisions: How to subdivide batch
+        self.max_batch: Maximum number of batches to process
+        self.test_rate: How often to run test
+        self.visdom: Visdom object used to plot data
+        self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send.
 
-        batch (computed): Current batch number
-        mini_batch_size (computed): Size of one mini-batch, according to batch_size and batch_subdivisions
-        learning_rate (computed): Property to set and get learning rate of the optimizer
+        self.batch (computed): Current batch number
+        self.mini_batch_size (computed): Size of one mini-batch, according to batch_size and batch_subdivisions
+        self.learning_rate (computed): Property to set and get learning rate of the optimizer
 
     Note:
         Some preset values of the engine can be overwritten with kwargs.
@@ -66,13 +66,16 @@ class Engine:
         self.testset = testset
         self.cuda = cuda
 
+        self.__lr = self.optimizer.param_groups[0]['lr']
+        self.__rates = {}
+
+        self.sigint = False
+        signal.signal(signal.SIGINT, self.__sigint_handler)
+
         self.__log = ln.logger.Logger()
         self.__log.color = False
         self.__log.level = 0
         self.__log.lvl_msg = ['[TRAIN]   ', '[TEST]    ']
-
-        self.sigint = False
-        signal.signal(signal.SIGINT, self.__sigint_handler)
 
         if visdom is not None:
             from .visual import Visualisation
@@ -86,8 +89,6 @@ class Engine:
         self.batch_subdivisions = 8
         self.max_batch = None
         self.test_rate = 50
-
-        self.__lr = self.optimizer.param_groups[0]['lr']
 
         for key,val in kwargs.items():
             if not hasattr(self, key):
@@ -107,6 +108,8 @@ class Engine:
             log(Loglvl.DEBUG, 'Starting train epoch')
             self.network.train()
             self.train()
+
+            self.update_rates()
 
             if self.quit() or self.sigint:
                 log(Loglvl.VERBOSE, 'Reached quitting criteria')
@@ -156,9 +159,14 @@ class Engine:
                 options = {}
 
             if 'pr' in kwargs:
-                self.__vis.pr(kwargs['pr'], f'{win}_pr', title=f'PR-curve {win} [{self.batch}]', **options)
+                if not 'title' in options:
+                    self.__vis.pr(kwargs['pr'], f'{win}_pr', title=f'PR-curve [{self.batch}]', **options)
+                else:
+                    self.__vis.pr(kwargs['pr'], f'{win}_pr', **options)
             elif 'loss' in kwargs:
                 self.__vis.loss(kwargs['loss'], self.batch, f'{win}_loss', kwargs['name'], title=f'{win} loss', **options)
+            else:
+                log(Loglvl.WARN, 'Could not find out what visualisation function to use.')
 
     @property
     def batch(self):
@@ -195,6 +203,53 @@ class Engine:
         self.__lr = lr
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
+
+    def add_rate(self, name, steps, values, default=None):
+        """ Add a rate to the engine. Rates are values that change according to the current batch number.
+
+        Args:
+            name (str): Name that will be used for the attribute. You can access the value with self.name
+            steps (list): Batches at which the rate should change
+            values (list): New values that will be used for the attribute
+            default (optional): Default value to use for the rate; Default **None**
+
+        Example:
+            >>> import lightnet as ln
+            >>> eng = ln.engine.Engine(...)
+            >>> eng.add_rate('learning_rate', [100, 500, 35000], [.001, .0001, .00001], .0001)
+            >>> eng.add_rate('test_rate', [1000, 5000], [100, 500]) # test_rate already has default value of 50
+        """
+        if default is not None or not hasattr(self, name):
+            setattr(self, name, default)
+        if name in self.__rates:
+            log(Loglvl.WARN, f'{name} rate was already used, overwriting...')
+
+        if len(steps) > len(values):
+            diff = len(steps) - len(values)
+            values = values + diff * [values[-1]]
+            log(Loglvl.WARN, f'{name} has more steps than values, extending values to {values}')
+        elif len(steps) < len(values):
+            values = values[:len(steps)]
+            log(Loglvl.WARN, f'{name} has more values than steps, shortening values to {values}')
+
+        self.__rates[name] = (steps, values)
+
+    def update_rates(self):
+        """ Update rates according to batch size.
+        This function gets automatically called every epoch, but to be entirely correct,
+        you should also call this function every batch in your training cycle.
+        """
+        for key, (steps,values) in self.__rates.items():
+            new_rate = None
+            for i in range(len(steps)):
+                if self.batch >= steps[i]:
+                    new_rate = values[i]
+                else:
+                    break
+
+            if new_rate is not None and new_rate != getattr(self, key):
+                log(Loglvl.VERBOSE, f'Adjusting {key} [{new_rate}]')
+                setattr(self, key, new_rate)
 
     def train(self):
         """ Training loop code.

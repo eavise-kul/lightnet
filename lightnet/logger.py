@@ -59,16 +59,26 @@ class Logger:
         self.color = True
         self.lvl_msg = ['[DEBUG]   ', '[VERBOSE] ', '[WARN]    ', '[ERROR]   ']
         self.lvl_col = [ColorCode.GRAY, ColorCode.WHITE, ColorCode.YELLOW, ColorCode.RED]
+        self.fp = None
+
+    def __del__(self):
+        if self.fp is not None:
+            self.fp.close()
 
     def __call__(self, lvl, msg, error=None):
         """ Print out log message if lvl is higher than the set Loglvl """
         if lvl >= self.level:
             if lvl < len(self.lvl_msg):
                 pre_msg = self.lvl_msg[lvl]
-                if self.color:
-                    pre_msg = colorize(pre_msg, self.lvl_col[lvl])
             else:
                 pre_msg = '       '
+
+            if self.fp is not None:
+                self.fp.write(f'{pre_msg} {msg}\n')
+
+            if self.color:
+                pre_msg = colorize(pre_msg, self.lvl_col[lvl])
+
             if error is None:
                 print(f'{pre_msg} {msg}')
 
@@ -77,6 +87,18 @@ class Logger:
                 raise error(f'\n{pre_msg} {msg}')
             else:
                 raise error
+
+    def open_file(self, name, mode='w'):
+        """ Open a file to save all log messages.
+        The messages are saved to the file without color, independent of the log.color setting.
+
+        Args:
+            name (str): Filename
+            mode (str, optional): Mode to open the file; Default **'w'**
+        """
+        if self.fp is not None:
+            self.fp.close()
+        self.fp = open(name, mode, buffering=1)
 
 
 # Create single logger object

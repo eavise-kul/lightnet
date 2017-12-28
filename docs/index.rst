@@ -21,11 +21,11 @@ It was mainly created to implement the darknet_ networks in python.
    :maxdepth: 2
    :caption: API
 
-   Network <api/network>
-   Data <api/data>
-   Engine <api/engine>
-   Models <api/models>
-   Logger <api/logger>
+   lightnet.network <api/network>
+   lightnet.data <api/data>
+   lightnet.engine <api/engine>
+   lightnet.models <api/models>
+   lightnet.logger <api/logger>
 
 
 Indices and tables

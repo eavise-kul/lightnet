@@ -5,8 +5,6 @@
 
 import os
 import collections
-import random
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -25,7 +23,7 @@ class Darknet(nn.Module):
           This class will then automatically call the loss and postprocess functions on the output of ``_forward()``,
           depending whether the network is training or evaluating.
 
-    Other Parameters:
+    Attributes:
         self.seen (int): The number of images the network has processed to train (used by engine)
         self.input_dim (list): Input dimensions of the network (used by data transforms)
 
@@ -46,7 +44,6 @@ class Darknet(nn.Module):
         self.postprocess = None
         self.header = [0,2,0]
         self.seen = 0
-        self.input_dim = [0,0,0]
 
     def _forward(self, x):
         log(Loglvl.VERBOSE, 'Running default forward functions')
@@ -111,21 +108,6 @@ class Darknet(nn.Module):
                 yield from self.modules_recurse(module)
             else:
                 yield module
-
-    def change_input_dim(self, multiple=32):
-        """ This function randomly changes the the input dimension of the network.
-        It changes the **self.input_dim[:2]** variable to be a random number between **(10-19)*multiple**.
-
-        Args:
-            multiple (int, optional): Factor to change the random new size; Default **32**
-        """
-        size = (random.randint(0,9) + 10) * multiple 
-        log(Loglvl.VERBOSE, f'Resizing network [{size}]')
-
-        if not self.training:
-            log(Loglvl.WARN, 'Changing input dimensions whilst not training')
-
-        self.input_dim[:2] = [size, size]
 
     def load_weights(self, weights_file):
         """ This function will load the weights from a file.

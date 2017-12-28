@@ -16,9 +16,14 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
     background-color: #fff;
 }
 
+.wy-nav-content {
+  min-height: 100vh;
+  max-width: 1000px;
+}
+
 @media screen and (min-width: 1400px) {
     .wy-nav-content-wrap {
-        background-color: rgba(0, 0, 0, 0.0470588);
+      background: #fff;
     }
 
     .wy-nav-content {
@@ -114,5 +119,5 @@ nav .hidden-section {
 }
 
 .wy-side-nav-search>div.version {
-    color: #000;
+  color: #d44d2c;
 }

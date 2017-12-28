@@ -13,6 +13,7 @@ This package has some basic logging functionality. Here is an example of how to 
 
 
 .. autoclass:: lightnet.logger.Logger
+   :members:
 .. autoclass:: lightnet.logger.Loglvl
 
 

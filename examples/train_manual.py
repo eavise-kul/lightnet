@@ -124,7 +124,7 @@ def train(net, optim, dataset):
 
     net.train()
     kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}
-    loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH//BATCH_SUBDIV, shuffle=True, drop_last=True, **kwargs)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH//BATCH_SUBDIV, shuffle=True, drop_last=True, collate_fn=lnd.list_collate, **kwargs)
 
     # Adjust rates
     batch = net.seen // BATCH
@@ -198,10 +198,8 @@ def test(net, dataset):
     net.input_dim = NETWORK_SIZE
     net.eval()
     kwargs = {'num_workers': 4, 'pin_memory': False} if args.cuda else {}
-    loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH//BATCH_SUBDIV, collate_fn=lnd.bbb_collate, **kwargs)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH//BATCH_SUBDIV, collate_fn=lnd.list_collate, **kwargs)
 
-    at = lnd.AnnoToTensor(net)
-    at.max = dataset.max_anno
     tot_loss = []
     anno, det = {}, {}
     num_det = 0
@@ -210,8 +208,7 @@ def test(net, dataset):
         if args.cuda:
             data = data.cuda()
         data = Variable(data, volatile=True)
-        target_tensor = torch.stack([at(a) for a in target])
-        output, loss = net(data, target_tensor)
+        output, loss = net(data, target)
 
         # Save output & target
         for i in range(len(target)):
@@ -310,7 +307,7 @@ if __name__ == '__main__':
     ln.log(ln.Loglvl.DEBUG, 'Creating datasets')
     trainset = lnm.DarknetData(args.train, network)
     if args.test is not None:
-        testset = lnm.DarknetData(args.test, network, train=False, augment=False, class_label_map=names)
+        testset = lnm.DarknetData(args.test, network, augment=False, class_label_map=names)
     print()
 
     # Main loop
