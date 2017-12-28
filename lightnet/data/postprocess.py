@@ -35,8 +35,8 @@ class BBoxConverter:
             
             network_output (torch.autograd.Variable): Output tensor from the lightnet network
         """
-        all_boxes = self._get_region_boxes(network_output.data)
-        boxes = [self._nms(torch.Tensor(box)) for box in all_boxes]
+        boxes = self._get_region_boxes(network_output.data)
+        boxes = [self._nms(torch.Tensor(box)) for box in boxes]
         return boxes
 
     def _get_region_boxes(self, output):
@@ -109,6 +109,9 @@ class BBoxConverter:
         Return:
           (tensor) Pruned boxes
         '''
+        if boxes.numel() == 0:
+            return boxes
+
         a = boxes[:,:2]
         b = boxes[:,2:4]
         bboxes = torch.cat([a-b/2,a+b/2], 1) 
@@ -183,7 +186,7 @@ def bbox_to_brambox(boxes, net_size, img_size=None, class_label_map=None):
         det.y_top_left = (box[1] - box[3]/2) * net_h
         det.width = box[2] * net_w
         det.height = box[3] * net_h
-        det.confidence = box[4]*100
+        det.confidence = box[4]
         if class_label_map is not None:
             det.class_label = class_label_map[int(box[5])]
         else:
