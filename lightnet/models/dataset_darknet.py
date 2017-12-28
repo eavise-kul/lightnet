@@ -18,8 +18,8 @@ class DarknetData(lnd.BramboxData):
         
     Args:
         data_file (str): File containing path to image files (relative from where command is run)
-        network (lightnet.network.Darknet): Network that will be used with dataset (needed for network input dimension)
         augment (Boolean, optional): Whether or not you want data augmentation; Default **True**
+        input_dimension (tuple): Input dimension of the network width,height; Default **416,416**
         jitter (Number [0-1], optional): Determines random crop sizes; Default **0.2**
         flip (Number [0-1], optional): Determines whether image will be flipped; Default **0.5**
         hue (Number, optional): Determines hue shift; Default **0.1**
@@ -30,7 +30,7 @@ class DarknetData(lnd.BramboxData):
     Return:
         (tuple): image_tensor, list of brambox boxes
     """
-    def __init__(self, data_file, network, augment=True, jitter=.2, flip=.5, hue=.1, saturation=1.5, value=1.5, class_label_map=None):
+    def __init__(self, data_file, augment=True, input_dimension=(416,416), jitter=.2, flip=.5, hue=.1, saturation=1.5, value=1.5, class_label_map=None):
         with open(data_file, 'r') as f:
             self.img_paths = f.read().splitlines()
 
@@ -39,7 +39,7 @@ class DarknetData(lnd.BramboxData):
         self.anno_paths = [os.path.splitext(p)[0]+'.txt' for p in self.img_paths]
         identify = lambda name : self.img_paths[self.anno_paths.index(name)]
         
-        lb  = lnd.Letterbox(network)
+        lb  = lnd.Letterbox(self)
         rf  = lnd.RandomFlip(flip)
         rc  = lnd.RandomCrop(jitter, True)
         hsv = lnd.HSVShift(hue, saturation, value)

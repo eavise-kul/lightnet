@@ -5,7 +5,9 @@
 
 import os
 import copy
+import random
 from PIL import Image
+import torch.multiprocessing as multiprocessing
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import default_collate
 import brambox.boxes as bbb
@@ -21,14 +23,16 @@ class BramboxData(Dataset):
     Args:
         anno_format (brambox.boxes.format): Annotation format
         anno_filename (list or str): Annotation filename, list of filenames or expandable sequence
+        input_dimension (tuple): Tuple containing width,height values
         class_label_map (list): List of class_labels
         identify (function, optional): Lambda/function to get image based of annotation filename or image id; Default **replace/add .png extension to filename/id**
         img_transform (torchvision.transforms.Compose): Transforms to perform on the images
         anno_transform (torchvision.transforms.Compose): Transforms to perform on the annotations
         kwargs (dict): Keyword arguments that are passed to the brambox parser
     """
-    def __init__(self, anno_format, anno_filename, class_label_map=None, identify=None, img_transform=None, anno_transform=None, **kwargs):
+    def __init__(self, anno_format, anno_filename, input_dimension, class_label_map=None, identify=None, img_transform=None, anno_transform=None, **kwargs):
         super(BramboxData, self).__init__()
+        self.input_dim = multiprocessing.Array('i', input_dimension[:2])
         self.img_tf = img_transform
         self.anno_tf = anno_transform
         if callable(identify):
@@ -41,6 +45,8 @@ class BramboxData(Dataset):
         self.keys = list(self.annos)
 
         # Add class_ids
+        if class_label_map is None:
+            log(Loglvl.WARN, f'No class_label_map given, annotations wont have a class_id for the loss function')
         for k,annos in self.annos.items():
             for a in annos:
                 if class_label_map is not None:
@@ -72,6 +78,19 @@ class BramboxData(Dataset):
             anno = self.anno_tf(anno)
 
         return img, anno
+
+    def change_input_dim(self, multiple=32):
+        """ This function randomly changes the the input dimension of the dataset (can be used by letterbox).
+        It changes the **self.input_dim** variable to be a random number between **(10-19)*multiple**.
+
+        Args:
+            multiple (int, optional): Factor to change the random new size; Default **32**
+        """
+        size = (random.randint(0,9) + 10) * multiple 
+        log(Loglvl.VERBOSE, f'Resizing network [{size}]')
+
+        self.input_dim[0] = size
+        self.input_dim[1] = size
 
 
 def list_collate(batch):

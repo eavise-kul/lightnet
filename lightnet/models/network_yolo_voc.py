@@ -22,9 +22,9 @@ class YoloVoc(lnn.Darknet):
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
         weights_file (str, optional): Path to the saved weights; Default **None**
-        input_dim (list, optional): Input dimension for the network; Default **[416,416,3]**
         conf_thresh (Number, optional): Confidence threshold for postprocessing of the boxes; Default **0.25**
         nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
+        input_channels (Number, optional): Number of input channels; Default **3**
 
     Attributes:
         self.anchors (list): Anchor coordinates. Usually they are w,h pairs, but it can also be x,y,w,h pairs
@@ -32,21 +32,21 @@ class YoloVoc(lnn.Darknet):
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
         self.postprocess (fn): Postprocessing function. Usually this is :class:`~lightnet.data.BBoxConverter`
     """
-    def __init__(self, num_classes=20, weights_file=None, input_dim=[416,416,3], conf_thresh=.25, nms_thresh=.4):
+    def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3):
         """ Network initialisation """
         super(YoloVoc, self).__init__()
 
         # Parameters
-        self.input_dim = input_dim[:]
         self.num_classes = num_classes
         self.anchors = [1.3221,1.73145, 3.19275,4.00944, 5.05587,8.09892, 9.47112,4.84053, 11.2364,10.0071]
         self.num_anchors = 5
+        self.reduction = 32
 
         # Network
         layer_list = [
             # Sequence 0 : input = image tensor
             OrderedDict([
-                ('1_convbatch',     lnn.layer.Conv2dBatchLeaky(self.input_dim[2], 32, 3, 1, 1)),
+                ('1_convbatch',     lnn.layer.Conv2dBatchLeaky(input_channels, 32, 3, 1, 1)),
                 ('2_max',           nn.MaxPool2d(2, 2)),
                 ('3_convbatch',     lnn.layer.Conv2dBatchLeaky(32, 64, 3, 1, 1)),
                 ('4_max',           nn.MaxPool2d(2, 2)),
