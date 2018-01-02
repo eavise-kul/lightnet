@@ -18,7 +18,7 @@ ln.log.level = ln.Loglvl.VERBOSE
 #ln.log.color = False
 
 # Parameters
-WORKERS = 0
+WORKERS = 1
 PIN_MEM = True
 VISDOM = {'server': 'http://localhost', 'port': 8080, 'env': 'YoloVOC Train'}
 ROOT = 'data'
@@ -69,7 +69,7 @@ class CustomDataset(ln.data.BramboxData):
         img_tf = tf.Compose([hsv, rc, rf, lb, it])
         anno_tf = tf.Compose([rc, rf, lb])
 
-        super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, CLASS_LABELS, identify, img_tf, anno_tf)
+        super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, CLASS_LABELS, identify, img_tf, anno_tf, RESIZE*BATCH)
 
 
 class CustomEngine(ln.engine.Engine):
@@ -96,21 +96,14 @@ class CustomEngine(ln.engine.Engine):
         # Rates
         self.add_rate('learning_rate', LR_STEPS, [lr/BATCH for lr in LR_RATES])
         self.add_rate('backup_rate', BP_STEPS, BP_RATES, BACKUP)
-        self.add_rate('resize_rate', RS_STEPS, RS_RATES, RESIZE)
 
     def start(self):
         """ Starting values """
         self.update_rates()
-        
-        # Resize
-        if self.batch % self.resize_rate == 0:
-            self.trainset.change_input_dim()
+        self.trainset.random_input_dim()
 
     def update(self):
         """ Update """
-        if self.batch % self.resize_rate == 0:
-            self.trainset.change_input_dim()
-
         if self.batch % self.backup_rate == 0:
             self.network.save_weights(os.path.join(self.backup_folder, f'weights_{self.batch}.pt'))
 

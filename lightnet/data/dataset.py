@@ -28,13 +28,16 @@ class BramboxData(Dataset):
         identify (function, optional): Lambda/function to get image based of annotation filename or image id; Default **replace/add .png extension to filename/id**
         img_transform (torchvision.transforms.Compose): Transforms to perform on the images
         anno_transform (torchvision.transforms.Compose): Transforms to perform on the annotations
+        random_resize (int, optional): Randomly change the size of input_dim every n images where n is this parameter; Default **None** 
         kwargs (dict): Keyword arguments that are passed to the brambox parser
     """
-    def __init__(self, anno_format, anno_filename, input_dimension, class_label_map=None, identify=None, img_transform=None, anno_transform=None, **kwargs):
+    def __init__(self, anno_format, anno_filename, input_dimension, class_label_map=None, identify=None, img_transform=None, anno_transform=None, random_resize=None, **kwargs):
         super(BramboxData, self).__init__()
-        self.input_dim = multiprocessing.Array('i', input_dimension[:2])
+        self.__input_dim = multiprocessing.Array('i', input_dimension[:2])
         self.img_tf = img_transform
         self.anno_tf = anno_transform
+        self.random_resize = random_resize
+        self.image_counter = multiprocessing.Value('i', 0)
         if callable(identify):
             self.id = identify
         else:
@@ -77,10 +80,38 @@ class BramboxData(Dataset):
         if self.anno_tf is not None:
             anno = self.anno_tf(anno)
 
-        return img, anno
+        # Image counter
+        if self.random_resize is not None:
+            print(self.image_counter.value, self.input_dim[0])
+            self.image_counter.value += 1
+            if self.image_counter.value >= self.random_resize:
+                self.image_counter.value = 0
+                self.random_input_dim()
 
-    def change_input_dim(self, multiple=32):
-        """ This function randomly changes the the input dimension of the dataset (can be used by letterbox).
+        return self.image_counter.value-1, img, anno
+
+    @property
+    def input_dim(self):
+        """ Dimensions that can be used by transforms to set the correct image size, etc.
+        This property uses a :class:`multiprocessing.Array` to store a width, height tuple.
+        This allows transforms to have a single source of truth for the input dimension of the network,
+        that works with multiple parallel workers in a dataloader.
+
+        Args:
+            dim (list): Tuple containing width,height values.
+
+        Return:
+            list: Tuple containing the current width,height
+        """
+        return self.__input_dim
+
+    @input_dim.setter
+    def input_dim(self, dim):
+        self.__input_dim[0] = dim[0]
+        self.__input_dim[1] = dim[1]
+
+    def random_input_dim(self, multiple=32):
+        """ This function randomly changes the the input dimension of the dataset.
         It changes the **self.input_dim** variable to be a random number between **(10-19)*multiple**.
 
         Args:
@@ -88,9 +119,7 @@ class BramboxData(Dataset):
         """
         size = (random.randint(0,9) + 10) * multiple 
         log(Loglvl.VERBOSE, f'Resizing network [{size}]')
-
-        self.input_dim[0] = size
-        self.input_dim[1] = size
+        self.input_dim = (size, size)
 
 
 def list_collate(batch):
@@ -98,6 +127,8 @@ def list_collate(batch):
     Use this as the collate function in a Dataloader, if you want to have a list of items as an output, as opposed to tensors (eg. Brambox.boxes).
     """
     items = list(zip(*batch))
+    print(items[0])
+    items = items[1:]
 
     for i in range(len(items)):
         if isinstance(items[i][0], list):
