@@ -82,13 +82,12 @@ class BramboxData(Dataset):
 
         # Image counter
         if self.random_resize is not None:
-            print(self.image_counter.value, self.input_dim[0])
             self.image_counter.value += 1
             if self.image_counter.value >= self.random_resize:
                 self.image_counter.value = 0
                 self.random_input_dim()
 
-        return self.image_counter.value-1, img, anno
+        return img, anno
 
     @property
     def input_dim(self):
@@ -127,8 +126,6 @@ def list_collate(batch):
     Use this as the collate function in a Dataloader, if you want to have a list of items as an output, as opposed to tensors (eg. Brambox.boxes).
     """
     items = list(zip(*batch))
-    print(items[0])
-    items = items[1:]
 
     for i in range(len(items)):
         if isinstance(items[i][0], list):
