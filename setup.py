@@ -10,7 +10,7 @@ def get_version():
         f.write('#\n')
         f.write('#   Lightnet version: Automatically generated version file\n')
         f.write('#\n\n')
-        f.write(f'__version__ = "{version}"')
+        f.write(f'__version__ = "{version}"\n')
     
     return version
 

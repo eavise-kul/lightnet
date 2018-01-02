@@ -50,11 +50,12 @@ class Engine:
         self.learning_rate (computed): Property to set and get learning rate of the optimizer
 
     Note:
-        Some preset values of the engine can be overwritten with kwargs.
-            - batch_size: size of one batch
-            - batch_subdivisions: number of subdivisions needed for one batch
-            - max_batch: maximum number of batches to train for
-            - test_rate: how often to run testset
+        Some preset values of the engine can be overwritten with kwargs:
+
+        - batch_size: size of one batch
+        - batch_subdivisions: number of subdivisions needed for one batch
+        - max_batch: maximum number of batches to train for
+        - test_rate: how often to run testset
     """
 
     __allowed = ('batch_size', 'batch_subdivisions', 'max_batch', 'test_rate')

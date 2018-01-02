@@ -46,6 +46,7 @@ autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['torch', 'torchvision', 'visdom']
 intersphinx_mapping = {
     'pytorch': ('http://pytorch.org/docs/master/', None),
+    'python': ('https://docs.python.org/3.6', None),
     }
 
 # Add any paths that contain templates here, relative to this directory.
