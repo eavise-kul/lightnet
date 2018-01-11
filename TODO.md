@@ -24,7 +24,7 @@ Data subpackage
   - [X] Write documentation
   - [X] Dataset always works with brambox objects
   - [X] Improve non-maximum suppression _(gpu/pytorch)_
-  - [ ] Improve bbox_to_brambox _(gpu/pytorch)_
+  - [X] Improve bbox_to_brambox _(gpu/pytorch)_
   - [X] FIX preprocessing and random resizing with multiple workers
   - [X] Clean up dataset and preprocessing
 

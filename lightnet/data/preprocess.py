@@ -13,6 +13,7 @@ from PIL import Image, ImageOps
 import brambox.boxes as bbb
 
 from ..logger import *
+from .process import *
 
 try:
     import cv2
@@ -23,7 +24,7 @@ except:
 
 __all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'BramboxToTensor']
 
-class Letterbox:
+class Letterbox(BaseMultiTransform):
     """ Transform images and annotations to the right network dimensions.
 
     Args:
@@ -43,7 +44,9 @@ class Letterbox:
         self.scale = None
 
     def __call__(self, data):
-        if isinstance(data, collections.Sequence):
+        if data is None:
+            return None
+        elif isinstance(data, collections.Sequence):
             return self._tf_anno(data)
         elif isinstance(data, Image.Image):
             return self._tf_pil(data)
@@ -132,7 +135,7 @@ class Letterbox:
         return annos
 
 
-class RandomCrop:
+class RandomCrop(BaseMultiTransform):
     """ Take random crop from the image.
 
     Args:
@@ -150,7 +153,9 @@ class RandomCrop:
         self.crop_modifier = bbb.CropModifier(float('Inf'), intersection_threshold)
 
     def __call__(self, data):
-        if isinstance(data, collections.Sequence):
+        if data is None:
+            return None
+        elif isinstance(data, collections.Sequence):
             return self._tf_anno(data)
         elif isinstance(data, Image.Image):
             return self._tf_pil(data)
@@ -227,7 +232,7 @@ class RandomCrop:
         return annos
 
 
-class RandomFlip:
+class RandomFlip(BaseMultiTransform):
     """ Randomly flip image.
 
     Args:
@@ -243,7 +248,9 @@ class RandomFlip:
         self.im_w = None
 
     def __call__(self, data):
-        if isinstance(data, collections.Sequence):
+        if data is None:
+            return None
+        elif isinstance(data, collections.Sequence):
             return [self._tf_anno(anno) for anno in data]
         elif isinstance(data, Image.Image):
             return self._tf_pil(data)
@@ -281,7 +288,7 @@ class RandomFlip:
         return anno
 
 
-class HSVShift:
+class HSVShift(BaseTransform):
     """ Perform random HSV shift on the RGB data.
 
     Args:
@@ -291,27 +298,36 @@ class HSVShift:
     """
     def __init__(self, hue, saturation, value):
         self.hue = hue
-        self.sat = saturation
-        self.val = value
+        self.saturation = saturation
+        self.value = value
 
-    def __call__(self, data):
+    @classmethod
+    def apply(cls, data, hue, saturation, value):
+        dh = random.uniform(-hue, hue)
+        ds = random.uniform(1, saturation)
+        if random.random() < 0.5:
+            ds = 1/ds
+        dv = random.uniform(1, value)
+        if random.random() < 0.5:
+            dv = 1/dv
+
         if data is None:
             return None
         elif isinstance(data, Image.Image):
-            return self._tf_pil(data)
+            return cls._tf_pil(data, dh, ds, dv)
         elif isinstance(data, np.ndarray):
-            return self._tf_cv(data)
+            return cls._tf_cv(data, dh, ds, dv)
         else:
             log(Loglvl.ERROR, f'HSVShift only works with <PIL images> or <OpenCV images> [{type(data)}]', TypeError)
 
-    def _tf_pil(self, img):
+    @staticmethod
+    def _tf_pil(img, dh, ds, dv):
         """ Random hsv shift """
-        self._get_hsv()
         img = img.convert('HSV')
         channels = list(img.split())
 
         def change_hue(x):
-            x += int(self.dh*x)
+            x += int(dh*x)
             while x > 255:
                 x -= 255
             while x < 0:
@@ -319,20 +335,20 @@ class HSVShift:
             return x
 
         channels[0] = channels[0].point(change_hue)
-        channels[1] = channels[1].point(lambda i:min(255, max(0, int(i*self.ds))))
-        channels[2] = channels[2].point(lambda i:min(255, max(0, int(i*self.dv))))
+        channels[1] = channels[1].point(lambda i:min(255, max(0, int(i*ds))))
+        channels[2] = channels[2].point(lambda i:min(255, max(0, int(i*dv))))
 
         img = Image.merge(img.mode, tuple(channels))
         img = img.convert('RGB')
         return img
 
-    def _tf_cv(self, img):
+    @staticmethod
+    def _tf_cv(img, dh, ds, dv):
         """ Random hsv shift """
-        self._get_hsv()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
         def change_hue(x):
-            x += int(self.dh*x)
+            x += int(dh*x)
             while x > 255:
                 x -= 255
             while x < 0:
@@ -340,23 +356,14 @@ class HSVShift:
             return x
         
         img[:,:,0] = np.vectorize(change_hue)(img[:,:,0])
-        img[:,:,1] = np.vectorize(lambda i:min(255, max(0, int(i*self.ds))))(img[:,:,1])
-        img[:,:,2] = np.vectorize(lambda i:min(255, max(0, int(i*self.dv))))(img[:,:,2])
+        img[:,:,1] = np.vectorize(lambda i:min(255, max(0, int(i*ds))))(img[:,:,1])
+        img[:,:,2] = np.vectorize(lambda i:min(255, max(0, int(i*dv))))(img[:,:,2])
 
         img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
         return img
 
-    def _get_hsv(self):
-        self.dh = random.uniform(-self.hue, self.hue)
-        self.ds = random.uniform(1, self.sat)
-        if random.random() < 0.5:
-            self.ds = 1/self.ds
-        self.dv = random.uniform(1, self.val)
-        if random.random() < 0.5:
-            self.dv = 1/self.dv
 
-
-class BramboxToTensor:
+class BramboxToTensor(BaseTransform):
     """ Converts a list of brambox annotation objects to a tensor.
 
     Args:
@@ -374,46 +381,55 @@ class BramboxToTensor:
     def __init__(self, dimension=None, dataset=None, max_anno=50, class_label_map=None):
         if dataset is None and dimension is None:
             log(Loglvl.ERROR, 'This transform either requires a dimension or a dataset to infer the dimension', ValueError)
-        self.dimension = dimension
-        self.dataset = dataset
-        self.max = max_anno
-        self.class_map = class_label_map
         if class_label_map is None:
             log(Loglvl.WARN, 'No class_label_map given. If the class_labels are not integers, they will be set to zero.')
 
-    def __call__(self, data):
-        if isinstance(data, collections.Sequence):
-            anno_len = len(data)
-            if anno_len > self.max:
-                log(Loglvl.ERROR, f'More annotations than maximum allowed [{anno_len}/{self.max}]', ValueError)
+        self.dimension = dimension
+        self.dataset = dataset
+        self.max_anno = max_anno
+        self.class_label_map = class_label_map
 
-            z_np = np.zeros((self.max-anno_len, 5), dtype=np.float64)
+    def __call__(self, data):
+        if self.dataset is not None:
+            dim = self.dataset.input_dim
+        else:
+            dim = self.dimension
+        return self.apply(data, dim, self.max_anno, self.class_label_map)
+
+    @classmethod
+    def apply(cls, data, dimension, max_anno=None, class_label_map=None):
+        if not isinstance(data, collections.Sequence):
+            log(Loglvl.ERROR, f'BramboxToTensor only works with <brambox annotation list> [{type(data)}]', TypeError)
+
+        anno_np = np.array([cls._tf_anno(anno) for anno in data], dtype=np.float64)
+
+        if max_anno is not None:
+            anno_len = len(data)
+            if anno_len > max_anno:
+                log(Loglvl.ERROR, f'More annotations than maximum allowed [{anno_len}/{max_anno}]', ValueError)
+
+            z_np = np.zeros((max_anno-anno_len, 5), dtype=np.float64)
             z_np[:,0] = -1
 
             if anno_len > 0:
-                anno_np = np.array([self._tf_anno(anno) for anno in data], dtype=np.float64)
                 return torch.from_numpy(np.concatenate((anno_np, z_np)))
             else:
                 return torch.from_numpy(z_np)
         else:
-            log(Loglvl.ERROR, f'BramboxToTensor only works with <brambox annotation lists> [{type(data)}]', TypeError)
+            return torch.from_numpy(anno_np)
 
-    def _tf_anno(self, anno):
+    @staticmethod
+    def _tf_anno(anno, dimension, class_label_map):
         """ Transforms brambox annotation to list """
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        else:
-            net_w, net_h = self.dimension
+        net_w, net_h = dimension
 
-        if self.class_map is not None:
-            cls = self.class_map.index(anno.class_label)
-        elif isinstance(anno.class_label, str):
+        if class_label_map is not None:
+            cls = class_label_map.index(anno.class_label)
+        else:
             try:
                 cls = int(anno.class_label)
             except:
                 cls = 0
-        else:
-            cls = 0
 
         cx = (anno.x_top_left + (anno.width / 2)) / net_w
         cy = (anno.y_top_left + (anno.height / 2)) / net_h
