@@ -17,7 +17,7 @@ __all__ = ['YoloVoc']
 class YoloVoc(lnn.Darknet):
     """ yolo-voc.2.0.cfg implementation with pytorch.
     This network uses :class:`~lightnet.network.RegionLoss` as loss function
-    and :class:`~lightnet.data.BBoxConverter` as postprocessing function.
+    and :class:`~lightnet.data.GetBoundingBoxes` as postprocessing function.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
@@ -30,7 +30,7 @@ class YoloVoc(lnn.Darknet):
         self.anchors (list): Anchor coordinates. Usually they are w,h pairs, but it can also be x,y,w,h pairs
         self.num_anchors (int): Number of anchor-boxes
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
-        self.postprocess (fn): Postprocessing function. Usually this is :class:`~lightnet.data.BBoxConverter`
+        self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes`
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3):
         """ Network initialisation """
@@ -93,7 +93,7 @@ class YoloVoc(lnn.Darknet):
 
         self.load_weights(weights_file)
         self.loss = lnn.RegionLoss(self) 
-        self.postprocess = lnd.BBoxConverter(self, conf_thresh, nms_thresh)
+        self.postprocess = lnd.GetBoundingBoxes(self, conf_thresh, nms_thresh)
 
     def _forward(self, x):
         outputs = []

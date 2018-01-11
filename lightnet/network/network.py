@@ -16,12 +16,13 @@ __all__ = ['Darknet']
 class Darknet(nn.Module):
     """ This class provides an abstraction layer on top of the ``pytorch Module``
     to make it easier to implement the darknet networks. There are 2 basic ways of using this class:
-        - Override the ``forward()`` function.
-          This is the easiest solution for people who already know how to use pytorch.
-          This module then only adds the benefit of being able to load in darknet weights.
-        - Define ``self.loss`` and ``self.postprocess`` as functions and override the ``_forward()`` function.
-          This class will then automatically call the loss and postprocess functions on the output of ``_forward()``,
-          depending whether the network is training or evaluating.
+
+    - Override the ``forward()`` function.
+      This is the easiest solution for people who already know how to use pytorch.
+      This module then only adds the benefit of being able to load in darknet weights.
+    - Define ``self.loss`` and ``self.postprocess`` as functions and override the ``_forward()`` function.
+      This class will then automatically call the loss and postprocess functions on the output of ``_forward()``,
+      depending whether the network is training or evaluating.
 
     Attributes:
         self.seen (int): The number of images the network has processed to train (used by engine)

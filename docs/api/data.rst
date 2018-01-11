@@ -10,7 +10,7 @@ These classes work just like :mod:`torchvision transforms <pytorch:torchvision>`
 .. autoclass:: lightnet.data.RandomCrop
 .. autoclass:: lightnet.data.RandomFlip
 .. autoclass:: lightnet.data.HSVShift
-.. autoclass:: lightnet.data.AnnoToTensor
+.. autoclass:: lightnet.data.BramboxToTensor
 
 Postprocessing
 --------------
@@ -22,6 +22,8 @@ These classes and functions help to parse the output of a network to understanda
 Dataset
 -------
 .. autoclass:: lightnet.data.BramboxData
+   :members:
+.. autoclass:: lightnet.data.DataLoader
    :members:
 .. autofunction:: lightnet.data.list_collate
 

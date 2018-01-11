@@ -21,22 +21,26 @@ except:
     cv2 = None
 
 
-__all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'AnnoToTensor']
+__all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'BramboxToTensor']
 
 class Letterbox:
     """ Transform images and annotations to the right network dimensions.
 
     Args:
-        network (lightnet.network.Darknet): Lightnet network that will process the data
+        dimension (tuple, optional): Default size for the letterboxing, expressed as a (width, height) tuple; Default **None**
+        dataset (lightnet.data.BramboxData, optional): Dataset that uses this transform; Default **None**
 
     Note:
         Create 1 Letterbox object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
     """
-    def __init__(self, dataset):
+    def __init__(self, dimension=None, dataset=None):
+        if dimension is None and dataset is None:
+            log(Loglvl.ERROR, 'This transform either requires a dimension or a dataset to infer the dimension', ValueError)
+        self.dimension = dimension
         self.dataset = dataset
-        self.scale = None
         self.pad = None
+        self.scale = None
 
     def __call__(self, data):
         if isinstance(data, collections.Sequence):
@@ -50,7 +54,10 @@ class Letterbox:
 
     def _tf_pil(self, img):
         """ Letterbox an image to fit in the network """
-        net_w, net_h = self.dataset.input_dim
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        else:
+            net_w, net_h = self.dimension
         im_w, im_h = img.size
 
         if im_w == net_w and im_h == net_h:
@@ -80,7 +87,10 @@ class Letterbox:
 
     def _tf_cv(self, img):
         """ Letterbox and image to fit in the network """
-        net_w, net_h = self.dataset.input_dim
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        else:
+            net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
 
         if im_w == net_w and im_h == net_h:
@@ -346,11 +356,12 @@ class HSVShift:
             self.dv = 1/self.dv
 
 
-class AnnoToTensor:
+class BramboxToTensor:
     """ Converts a list of brambox annotation objects to a tensor.
 
     Args:
-        network (lightnet.network.Darknet): Network that will process the data
+        dimension (tuple, optional): Default size of the transformed images, expressed as a (width, height) tuple; Default **None**
+        dataset (lightnet.data.BramboxData, optional): Dataset that uses this transform; Default **None**
         max_anno (Number, optional): Maximum number of annotations in the list; Default **50**
         class_label_map (list, optional): class label map to convert class names to an index; Default **None**
 
@@ -360,7 +371,10 @@ class AnnoToTensor:
     Warning:
         If no class_label_map is given, this function will first try to convert the class_label to an integer. If that fails, it is simply given the number 0.
     """
-    def __init__(self, dataset, max_anno=50, class_label_map=None):
+    def __init__(self, dimension=None, dataset=None, max_anno=50, class_label_map=None):
+        if dataset is None and dimension is None:
+            log(Loglvl.ERROR, 'This transform either requires a dimension or a dataset to infer the dimension', ValueError)
+        self.dimension = dimension
         self.dataset = dataset
         self.max = max_anno
         self.class_map = class_label_map
@@ -382,14 +396,14 @@ class AnnoToTensor:
             else:
                 return torch.from_numpy(z_np)
         else:
-            log(Loglvl.ERROR, f'AnnoToTensor only works with <brambox annotation lists> [{type(data)}]', TypeError)
+            log(Loglvl.ERROR, f'BramboxToTensor only works with <brambox annotation lists> [{type(data)}]', TypeError)
 
     def _tf_anno(self, anno):
         """ Transforms brambox annotation to list """
-        if not isinstance(anno, bbb.annotations.Annotation):
-            log(Loglvl.ERROR, f'AnnoToTensor only works with lists of <brambox annotations> [{type(anno)}]', TypeError)
-
-        net_w, net_h = self.dataset.input_dim
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        else:
+            net_w, net_h = self.dimension
 
         if self.class_map is not None:
             cls = self.class_map.index(anno.class_label)
