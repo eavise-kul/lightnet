@@ -27,14 +27,16 @@ Data subpackage
   - [X] Improve bbox_to_brambox _(gpu/pytorch)_
   - [X] FIX preprocessing and random resizing with multiple workers
   - [X] Clean up dataset and preprocessing
+  - [ ] RandomCrop: black border -> gray 
 
 ## Engine
 Engine subpackage
+  - [ ] Rework engine (variables)
   - [X] Create base engine class
   - [X] Test base engine
   - [X] Engine rates
   - [ ] Rework visualisation concept
-  - [ ] Expose __log.open_file
+  - [ ] Expose _log.open_file_
 
 ## Models
 Model implementations subpackage
@@ -46,11 +48,12 @@ Model implementations subpackage
 ## Varia
 Various bits and bops
   - [X] Update README: credits to marvis
-  - [ ] Update README: how to use
   - [X] Refactor organisation of the package
   - [X] Add requirements.txt
   - [X] Write logger documentation
   - [X] Add logger file print
+  - [ ] Add brambox intersphinx mapping
+  - [ ] Add _how_to_use_ guide
 
 ## Examples and Scripts
 Everything about creating examples and scripts to show off the library

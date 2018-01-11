@@ -10,7 +10,7 @@ We compared training and testing the Yolo network on the Pascal VOC imageset. Fo
 ========  =======  =======
 Network   Batches  mAP (%)
 ========  =======  =======
-Lightnet  40000    72.78
+Lightnet  40000    73.3
 --------  -------  -------
 Darknet   80200    76.8
 ========  =======  =======

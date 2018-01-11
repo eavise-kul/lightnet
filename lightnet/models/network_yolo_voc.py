@@ -15,9 +15,9 @@ __all__ = ['YoloVoc']
 
 
 class YoloVoc(lnn.Darknet):
-    """ yolo-voc.2.0.cfg implementation with pytorch.
-    This network uses :class:`~lightnet.network.RegionLoss` as loss function
-    and :class:`~lightnet.data.GetBoundingBoxes` as postprocessing function.
+    """ *yolo-voc.2.0.cfg* implementation with pytorch.
+    This network uses :class:`~lightnet.network.RegionLoss` as its loss function
+    and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
