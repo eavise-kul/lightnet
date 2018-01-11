@@ -9,6 +9,7 @@ import argparse
 from statistics import mean
 import torch
 from torch.autograd import Variable
+from torchvision import transforms as tf
 import brambox.boxes as bbb
 
 import lightnet as ln
@@ -21,7 +22,8 @@ PIN_MEM = True
 VISDOM = {'server': 'http://localhost', 'port': 8080, 'env': 'Lightnet'}
 
 CLASSES = 1
-NETWORK_SIZE = [416, 416, 3]
+NETWORK_SIZE = [416, 416]
+IMG_SIZE = [960, 540]
 RESIZE_RATE = 10
 CONF_THRESH = 0.1
 NMS_THRESH = 0.4
@@ -34,7 +36,7 @@ LEARNING_RATE = 0.0001              # Initial learning rate
 MOMENTUM = 0.9
 DECAY = 0.0005
 LR_STEPS = (100, 25000, 35000)      # Steps at which the learning rate should be scaled
-LR_STEPS = (0.001, 0.0001, 0.00001) # Scales to scale the inital learning rate with
+LR_RATES = (0.001, 0.0001, 0.00001) # Scales to scale the inital learning rate with
 
 BACKUP = 100                        # Initial backup rate 
 BP_STEPS = (500, 5000, 10000)       # Steps at which the backup rate should change
@@ -44,6 +46,10 @@ TEST = 25                           # Initial test rate (only tested in between 
 TS_STEPS = (1000, 5000)             # Steps at which the test rate should change
 TS_RATES = (50, 100)                # New values for test rate
 
+RESIZE = 10
+RS_STEPS = ()
+RS_RATES = ()
+
 assert BATCH % BATCH_SUBDIV == 0, 'Batch subdivision should be a divisor of batch size'
 
 
@@ -51,15 +57,19 @@ class CustomEngine(ln.engine.Engine):
     """ This is a custom engine for this training cycle """
     def __init__(self, arguments, **kwargs):
         ln.log(ln.Loglvl.DEBUG, 'Creating network')
-        net = ln.models.YoloVoc(CLASSES, arguments.weight, NETWORK_SIZE, CONF_THRESH, NMS_THRESH)
+        net = ln.models.YoloVoc(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
+        net.postprocess = tf.Compose([
+            net.postprocess,
+            ln.data.TensorToBrambox(NETWORK_SIZE, arguments.names),
+        ])
         if arguments.cuda:
             net.cuda()
         optim = torch.optim.SGD(net.parameters(), lr=LEARNING_RATE/BATCH, momentum=MOMENTUM, dampening=0, weight_decay=DECAY*BATCH)
 
         ln.log(ln.Loglvl.DEBUG, 'Creating datasets')
-        train = ln.models.DarknetData(arguments.train, net)
+        train = ln.models.DarknetData(arguments.train, input_dimension=NETWORK_SIZE, class_label_map=arguments.names)
         if arguments.test is not None:
-            test = ln.models.DarknetData(arguments.test, net, augment=False, class_label_map=arguments.names)
+            test = ln.models.DarknetData(arguments.test, False, NETWORK_SIZE, class_label_map=arguments.names)
         else:
             test = None
 
@@ -80,10 +90,16 @@ class CustomEngine(ln.engine.Engine):
     def start(self):
         """ Starting values """
         self.update_rates()
-        
-        # Resize
-        if self.batch % self.resize_rate == 0:
-            self.network.change_input_dim()
+        self.trainloader = ln.data.DataLoader(
+            self.trainset,
+            batch_size = BATCH // BATCH_SUBDIV,
+            shuffle = True,
+            drop_last = True,
+            num_workers = WORKERS if self.cuda else 0,
+            pin_memory = PIN_MEM if self.cuda else False,
+            collate_fn = ln.data.list_collate,
+            )
+        self.trainloader.change_input_dim()
 
     def update(self):
         """ Update """
@@ -95,7 +111,7 @@ class CustomEngine(ln.engine.Engine):
 
         # Resize
         if self.batch % RESIZE_RATE == 0:
-            self.network.change_input_dim()
+            self.trainloader.change_input_dim()
 
     def train(self):
         tot_loss = []
@@ -105,16 +121,7 @@ class CustomEngine(ln.engine.Engine):
         
         self.optimizer.zero_grad()
 
-        loader = torch.utils.data.DataLoader(
-            self.trainset,
-            batch_size = self.mini_batch_size,
-            shuffle = True,
-            drop_last = True,
-            num_workers = WORKERS if self.cuda else 0,
-            pin_memory = PIN_MEM if self.cuda else False,
-            collate_fn = ln.data.list_collate,
-            )
-        for idx, (data, target) in enumerate(loader):
+        for idx, (data, target) in enumerate(self.trainloader):
             if self.cuda:
                 data = data.cuda()
             data = Variable(data, requires_grad=True)
@@ -159,9 +166,6 @@ class CustomEngine(ln.engine.Engine):
         anno, det = {}, {}
         num_det = 0
 
-        saved_dim = self.network.input_dim
-        self.network.input_dim = NETWORK_SIZE
-
         loader = torch.utils.data.DataLoader(
             self.testset,
             batch_size = self.mini_batch_size,
@@ -179,27 +183,19 @@ class CustomEngine(ln.engine.Engine):
             output, loss = self.network(data, target)
 
             tot_loss.append(loss.data[0]*len(target))
-            for i in range(len(target)):
-                key = len(anno)
-                anno[key] = target[i]
-                det[key] = ln.data.bbox_to_brambox(output[i], self.network.input_dim, class_label_map=self.class_label_map)
-                num_det += len(det[key])
+            key_val = len(anno)
+            anno.update({key_val+k: v for k,v in enumerate(target)})
+            det.update({key_val+k: v for k,v in enumerate(output)})
 
             if self.sigint:
                 return
 
-        if num_det > 1:
-            pr = bbb.pr(det, anno, class_label_map=self.class_label_map)
-            m_ap = bbb.mean_ap(pr)
-            loss = round(sum(tot_loss)/len(anno), 5)
-
-            self.log(f'Loss:{loss} mAP:{round(m_ap*100, 2)}%')
-            self.visual(pr=pr)
-            self.visual(loss=loss, name='Total loss')
-        else:
-            ln.log(ln.Loglvl.WARN, f'Not enough detections to perform advanced statistics [{num_det}]')
-            self.log(f'Loss:{sum(tot_loss)/len(anno)}')
-        self.network.input_dim = saved_dim
+        pr = bbb.pr(det, anno)
+        m_ap = bbb.ap(*pr)
+        loss = round(sum(tot_loss)/len(anno), 5)
+        self.log(f'Loss:{loss} mAP:{round(m_ap*100, 2)}%')
+        self.visual(pr=pr)
+        self.visual(loss=loss, name='Total loss')
 
 
 if __name__ == '__main__':
@@ -238,5 +234,12 @@ if __name__ == '__main__':
             args.names = f.read().splitlines()
 
     # Train
+    import time
     eng = CustomEngine(args)
+    b1 = eng.batch
+    t1 = time.time()
     eng()
+    t2 = time.time()
+    b2 = eng.batch
+
+    print(f'\nDuration of {b2-b1} batches: {t2-t1} seconds [{(t2-t1)/(b2-b1)}]')

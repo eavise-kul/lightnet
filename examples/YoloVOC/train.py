@@ -18,7 +18,7 @@ ln.log.level = ln.Loglvl.VERBOSE
 #ln.log.color = False
 
 # Parameters
-WORKERS = 1
+WORKERS = 4
 PIN_MEM = True
 VISDOM = {'server': 'http://localhost', 'port': 8080, 'env': 'YoloVOC Train'}
 ROOT = 'data'
@@ -61,7 +61,7 @@ class CustomDataset(ln.data.BramboxData):
         def identify(img_id):
             return f'{ROOT}/VOCdevkit/{img_id}'
 
-        lb  = ln.data.Letterbox(self)
+        lb  = ln.data.Letterbox(dataset=self)
         rf  = ln.data.RandomFlip(FLIP)
         rc  = ln.data.RandomCrop(JITTER, True, 0.1)
         hsv = ln.data.HSVShift(HUE, SAT, VAL)
@@ -96,16 +96,31 @@ class CustomEngine(ln.engine.Engine):
         # Rates
         self.add_rate('learning_rate', LR_STEPS, [lr/BATCH for lr in LR_RATES])
         self.add_rate('backup_rate', BP_STEPS, BP_RATES, BACKUP)
+        self.add_rate('resize_rate', RS_STEPS, RS_RATES, RESIZE)
 
     def start(self):
         """ Starting values """
         self.update_rates()
-        self.trainset.random_input_dim()
+
+        self.trainloader = ln.data.DataLoader(
+            self.trainset,
+            batch_size = BATCH // BATCH_SUBDIV,
+            shuffle = True,
+            drop_last = True,
+            num_workers = WORKERS if self.cuda else 0,
+            pin_memory = PIN_MEM if self.cuda else False,
+            collate_fn = ln.data.list_collate,
+            )
+
+        self.trainloader.change_input_dim()
 
     def update(self):
         """ Update """
         if self.batch % self.backup_rate == 0:
             self.network.save_weights(os.path.join(self.backup_folder, f'weights_{self.batch}.pt'))
+
+        if self.batch % self.resize_rate == 0:
+            self.trainloader.change_input_dim()
 
         self.update_rates()
 
@@ -117,16 +132,8 @@ class CustomEngine(ln.engine.Engine):
         
         self.optimizer.zero_grad()
 
-        loader = torch.utils.data.DataLoader(
-            self.trainset,
-            batch_size = self.mini_batch_size,
-            shuffle = True,
-            drop_last = True,
-            num_workers = WORKERS if self.cuda else 0,
-            pin_memory = PIN_MEM if self.cuda else False,
-            collate_fn = ln.data.list_collate
-            )
-        for idx, (data, target) in enumerate(loader):
+        for idx, (data, target) in enumerate(self.trainloader):
+            print(data.shape)
             if self.cuda:
                 data = data.cuda()
             data = Variable(data, requires_grad=True)
@@ -211,4 +218,4 @@ if __name__ == '__main__':
     t2 = time.time()
     b2 = eng.batch
 
-    print(f'\nDuration of {b2-b1} batches: {t2-t1} seconds')
+    print(f'\nDuration of {b2-b1} batches: {t2-t1} seconds [{round((t2-t1)/(b2-b1), 3)} sec/batch]')

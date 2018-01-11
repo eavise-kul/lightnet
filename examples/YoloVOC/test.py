@@ -10,7 +10,6 @@ import argparse
 from statistics import mean
 import torch
 from torch.autograd import Variable
-from torch.utils.data.dataloader import default_collate
 from torchvision import transforms as tf
 from tqdm import tqdm
 import cv2
@@ -62,6 +61,10 @@ class CustomDataset(ln.data.BramboxData):
 def test(arguments):
     ln.log(ln.Loglvl.DEBUG, 'Creating network')
     net = ln.models.YoloVoc(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
+    net.postprocess = tf.Compose([
+        net.postprocess,
+        ln.data.TensorToBrambox(NETWORK_SIZE, arguments.names),
+    ])
     net.eval()
     if arguments.cuda:
         net.cuda()
@@ -104,44 +107,24 @@ def test(arguments):
         if net.loss.loss_cls is not None:
             cls_loss.append(net.loss.loss_cls.data[0]*len(box))
 
-        key = len(anno)
-        for i in range(len(box)):
-            anno[key] = box[i]
-            det[key] = ln.data.bbox_to_brambox(output[i], test.input_dim, class_label_map=CLASS_LABELS)
-            num_det += len(det[key])
-            key += 1
+        key_val = len(anno)
+        anno.update({key_val+k: v for k,v in enumerate(target)})
+        det.update({key_val+k: v for k,v in enumerate(output)})
 
     ln.log(ln.Loglvl.DEBUG, 'Computing statistics')
-    if num_det > 1:
-        if arguments.visdom:
-            for k,d in det.items():
-                if len(d) > 0:
-                    img = tf.ToPILImage()(test[k][0])
-                    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-                    d_draw = [dd for dd in d if dd.confidence > .25]
-                    bbb.draw_box(img, anno[k], color=(255,0,0), inline=True)
-                    bbb.draw_box(img, d_draw, color=(0,0,255), show_labels=True, inline=True)
-                    img = np.array([img[...,2], img[...,1], img[...,0]])
-                    vis.vis.image(np.array(img))
-                    break
-
-        pr = bbb.pr(det, anno, class_label_map=CLASS_LABELS)
-        m_ap = round(bbb.mean_ap(pr)*100, 2)
-
-        tot = round(sum(tot_loss)/len(anno), 5)
-        coord = round(sum(coord_loss)/len(anno), 2)
-        conf = round(sum(conf_loss)/len(anno), 2)
-        if len(cls_loss) > 0:
-            cls = round(sum(cls_loss)/len(anno), 2)
-            ln.log(ln.Loglvl.VERBOSE, f'mAP:{m_ap}% Loss:{tot} (Coord:{coord} Conf:{conf} Cls:{cls})')
-        else:
-            ln.log(ln.Loglvl.VERBOSE, f'mAP:{m_ap}% Loss:{tot} (Coord:{coord} Conf:{conf})')
-
-        if arguments.visdom:
-            vis.pr(pr, f'pr_{net.seen//BATCH}', title=f'PR - {m_ap}% mAP [{net.seen//BATCH}]')
+    pr = bbb.pr(det, anno)
+    m_ap = round(bbb.ap(*pr)*100, 2)
+    tot = round(sum(tot_loss)/len(anno), 5)
+    coord = round(sum(coord_loss)/len(anno), 2)
+    conf = round(sum(conf_loss)/len(anno), 2)
+    if len(cls_loss) > 0:
+        cls = round(sum(cls_loss)/len(anno), 2)
+        ln.log(ln.Loglvl.VERBOSE, f'mAP:{m_ap}% Loss:{tot} (Coord:{coord} Conf:{conf} Cls:{cls})')
     else:
-        ln.log(ln.Loglvl.WARN, f'Not enough detections to perform advanced statistics [{num_det}]')
-        ln.log(ln.Loglvl.VERBOSE, f'Loss:{sum(tot_loss)/len(anno)}')
+        ln.log(ln.Loglvl.VERBOSE, f'mAP:{m_ap}% Loss:{tot} (Coord:{coord} Conf:{conf})')
+
+    if arguments.visdom:
+        vis.pr(pr, f'pr_{net.seen//BATCH}', title=f'PR - {m_ap}% mAP [{net.seen//BATCH}]')
 
 
 if __name__ == '__main__':
