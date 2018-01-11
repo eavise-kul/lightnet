@@ -40,7 +40,7 @@ class Letterbox:
 
     def __call__(self, data):
         if isinstance(data, collections.Sequence):
-            return [self._tf_anno(anno) for anno in data]
+            return self._tf_anno(data)
         elif isinstance(data, Image.Image):
             return self._tf_pil(data)
         elif isinstance(data, np.ndarray):
@@ -108,17 +108,18 @@ class Letterbox:
         img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=(127,127,127))
         return img
 
-    def _tf_anno(self, anno):
+    def _tf_anno(self, annos):
         """ Change coordinates of an annotation, according to the previous letterboxing """
-        if not isinstance(anno, bbb.annotations.Annotation):
-            log(Loglvl.ERROR, f'Letterbox only works with lists of <brambox annotations> [{type(anno)}]', TypeError)
-
-        if self.scale is not None:
-            anno.rescale(self.scale)
-        if self.pad is not None:
-            anno.x_top_left += self.pad[0]
-            anno.y_top_left += self.pad[1]
-        return anno
+        for anno in annos:
+            if self.scale is not None:
+                anno.x_top_left *= self.scale
+                anno.y_top_left *= self.scale
+                anno.width *= self.scale
+                anno.height *= self.scale
+            if self.pad is not None:
+                anno.x_top_left += self.pad[0]
+                anno.y_top_left += self.pad[1]
+        return annos
 
 
 class RandomCrop:
@@ -127,7 +128,7 @@ class RandomCrop:
     Args:
         jitter (Number [0-1]): Indicates how much of the image we can crop
         crop_anno(Boolean, optional): Whether we crop the annotations inside the image crop; Default **False**
-        intersection_threshold(Number [0-1], optional): The minimal percentage an annotation still has to be in the cropped image; Default **0.001**
+        intersection_threshold(number or list, optional): Argument passed on to :class:`brambox.boxes.util.modifiers.CropModifier`
 
     Note:
         Create 1 RandomCrop object and use it for both image and annotation transforms.
@@ -136,12 +137,11 @@ class RandomCrop:
     def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001):
         self.jitter = jitter
         self.crop_anno = crop_anno
-        self.inter_thresh = intersection_threshold
-        self.crop = None
+        self.crop_modifier = bbb.CropModifier(float('Inf'), intersection_threshold)
 
     def __call__(self, data):
         if isinstance(data, collections.Sequence):
-            return list(filter(lambda a:a is not None, [self._tf_anno(anno) for anno in data]))
+            return self._tf_anno(data)
         elif isinstance(data, Image.Image):
             return self._tf_pil(data)
         elif isinstance(data, np.ndarray):
@@ -152,27 +152,27 @@ class RandomCrop:
     def _tf_pil(self, img):
         """ Take random crop from image """
         im_w, im_h = img.size
-        self._get_crop(im_w, im_h)
+        crop = self._get_crop(im_w, im_h)
 
-        return img.crop((self.crop[0], self.crop[1], self.crop[2]-1, self.crop[3]-1))
+        return img.crop((crop[0], crop[1], crop[2]-1, crop[3]-1))
 
     def _tf_cv(self, img):
         """ Take random crop from image """
         im_h, im_w = img.shape[:2]
-        self._get_crop(im_w, im_h)
+        crop = self._get_crop(im_w, im_h)
 
-        crop_w = self.crop[2] - self.crop[0]
-        crop_h = self.crop[3] - self.crop[1]
-        img_crop = np.zeros((crop_h, crop_w) + img.shape[2:], dtype=img.dtype)
+        crop_w = crop[2] - crop[0]
+        crop_h = crop[3] - crop[1]
+        img_crop = np.ones((crop_h, crop_w) + img.shape[2:], dtype=img.dtype) * 127
 
-        src_x1 = max(0, self.crop[0])
-        src_x2 = min(self.crop[2], im_w)
-        src_y1 = max(0, self.crop[1])
-        src_y2 = min(self.crop[3], im_h)
-        dst_x1 = max(0, -self.crop[0])
-        dst_x2 = crop_w - max(0, self.crop[2]-im_w)
-        dst_y1 = max(0, -self.crop[1])
-        dst_y2 = crop_h - max(0, self.crop[3]-im_h)
+        src_x1 = max(0, crop[0])
+        src_x2 = min(crop[2], im_w)
+        src_y1 = max(0, crop[1])
+        src_y2 = min(crop[3], im_h)
+        dst_x1 = max(0, -crop[0])
+        dst_x2 = crop_w - max(0, crop[2]-im_w)
+        dst_y1 = max(0, -crop[1])
+        dst_y2 = crop_h - max(0, crop[3]-im_h)
         img_crop[dst_y1:dst_y2, dst_x1:dst_x2] = img[src_y1:src_y2, src_x1:src_x2]
 
         return img_crop
@@ -183,42 +183,38 @@ class RandomCrop:
         crop_right = random.randint(-dw, dw)
         crop_top = random.randint(-dh, dh)
         crop_bottom = random.randint(-dh, dh)
-        self.crop = (crop_left, crop_top, im_w-crop_right, im_h-crop_bottom)
+        crop = (crop_left, crop_top, im_w-crop_right, im_h-crop_bottom)
 
-    def _tf_anno(self, anno):
+        self.crop_modifier.area = crop
+        return crop
+
+    def _tf_anno(self, annos):
         """ Change coordinates of an annotation, according to the previous crop """
-        if not isinstance(anno, bbb.annotations.Annotation):
-            log(Loglvl.ERROR, f'RandomCrop only works with lists of <brambox annotations> [{type(anno)}]', TypeError)
+        if self.crop_anno:
+            bbb.modify(annos, [self.crop_modifier])
+        else:
+            crop = self.crop_modifier.area
+            for i in range(len(annos)-1, -1, -1):
+                anno = annos[i]
+                x1 = max(crop[0], anno.x_top_left)
+                x2 = min(crop[2], anno.x_top_left+anno.width)
+                y1 = max(crop[1], anno.y_top_left)
+                y2 = min(crop[3], anno.y_top_left+anno.height)
+                w = x2-x1
+                h = y2-y1
 
-        if self.crop is not None:
-            # Check intersection
-            x1 = max(self.crop[0], anno.x_top_left)
-            x2 = min(self.crop[2], anno.x_top_left+anno.width)
-            y1 = max(self.crop[1], anno.y_top_left)
-            y2 = min(self.crop[3], anno.y_top_left+anno.height)
-            w = x2-x1
-            h = y2-y1
-            r1 = w / anno.width
-            r2 = h / anno.height
-            if w<=0 or h<=0 or r1 < self.inter_thresh or r2 < self.inter_thresh:
-                return None
+                if self.crop_modifier.inter_area:
+                    ratio = ((w * h) / (anno.width * anno.height)) < self.crop_modifier.inter_thresh
+                else:
+                    ratio = (w / anno.width) < self.crop_modifier.inter_thresh[0] or (h / anno.height) < self.crop_modifier.inter_thresh[1]
+                if w <= 0 or h <= 0 or ratio:
+                    del annos[i]
+                    continue
 
-            # Perform crop
-            anno.x_top_left -= self.crop[0]
-            anno.y_top_left -= self.crop[1]
+                annos[i].x_top_left -= crop[0]
+                annos[i].y_top_left -= crop[1]
 
-            if self.crop_anno:
-                if anno.x_top_left < 0:
-                    anno.width += anno.x_top_left
-                    anno.x_top_left = 0
-                if anno.y_top_left < 0:
-                    anno.height += anno.y_top_left
-                    anno.y_top_left = 0
-                
-                anno.width = min(self.crop[2]-(anno.x_top_left+self.crop[0]), anno.width)
-                anno.height = min(self.crop[3]-(anno.y_top_left+self.crop[1]), anno.height)
-
-        return anno
+        return annos
 
 
 class RandomFlip:

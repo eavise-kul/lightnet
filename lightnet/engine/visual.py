@@ -28,7 +28,7 @@ class Visualisation:
         if close and 'env' in options:
             self.vis.close(env=options['env'])
 
-    def pr(self, pr, window=None, **options):
+    def pr(self, pr, window=None, update=None, name='', **options):
         """ Plot Precision and Recall curves.
         
         Args:
@@ -36,24 +36,19 @@ class Visualisation:
             window (str, optional): Name of the visdom window
             **options (dict): Extra options to pass to the Visdom.line function
         """
-        update = None
-        for key in sorted(pr):
-            x = np.array(pr[key][1])
-            y = np.array(pr[key][0])
-            legend = [f'{key}: {round(bbb.ap(*pr[key])*100, 2)}']
+        x = np.array(pr[1])
+        y = np.array(pr[0])
+        opts = dict(
+            xlabel='Recall',
+            ylabel='Precision',
+            xtickmin=0,
+            xtickmax=1,
+            ytickmin=0,
+            ytickmax=1,
+            **options
+                )
 
-            opts = dict(
-                xlabel='Recall',
-                ylabel='Precision',
-                legend=legend,
-                xtickmin=0,
-                xtickmax=1,
-                ytickmin=0,
-                ytickmax=1,
-                **options
-                    )
-            self.vis.line(X=x, Y=y, win=window, update=update, name=f'{key}', opts=opts)
-            update = 'append'
+        self.vis.line(X=x, Y=y, win=window, update=update, name=name, opts=opts)
 
     def loss(self, loss, batch, window, name=None, **options):
         """ Plot loss curve.
