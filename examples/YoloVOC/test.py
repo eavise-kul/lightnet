@@ -25,9 +25,10 @@ WORKERS = 4
 PIN_MEM = False
 VISDOM = {'server': 'http://localhost', 'port': 8080, 'env': 'YoloVOC Test'}
 ROOT = 'data'
-CLASS_LABELS = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+TESTFILE = f'{ROOT}/test.pkl'
 
 CLASSES = 20
+LABELS = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
 NETWORK_SIZE = (416, 416)
 CONF_THRESH = 0.001
 NMS_THRESH = 0.5
@@ -43,13 +44,13 @@ class CustomDataset(ln.data.BramboxData):
         def identify(img_id):
             return f'{ROOT}/VOCdevkit/{img_id}'
 
-        lb  = ln.data.Letterbox(self)
         rc  = ln.data.RandomCrop(0, True, 0.1)   # Dont randomcrop image, but crop annos inside of images
+        lb  = ln.data.Letterbox(dataset=self)
         it  = tf.ToTensor()
         img_tf = tf.Compose([rc, lb, it])
         anno_tf = tf.Compose([rc, lb])
 
-        super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, CLASS_LABELS, identify, img_tf, anno_tf)
+        super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, LABELS, identify, img_tf, anno_tf)
 
     def __getitem__(self, index):
         img, anno = super(CustomDataset, self).__getitem__(index)
@@ -63,14 +64,22 @@ def test(arguments):
     net = ln.models.YoloVoc(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
     net.postprocess = tf.Compose([
         net.postprocess,
-        ln.data.TensorToBrambox(NETWORK_SIZE, arguments.names),
+        ln.data.TensorToBrambox(NETWORK_SIZE, LABELS),
     ])
     net.eval()
     if arguments.cuda:
         net.cuda()
 
     ln.log(ln.Loglvl.DEBUG, 'Creating dataset')
-    test = CustomDataset(arguments.test, net)
+    loader = torch.utils.data.DataLoader(
+        CustomDataset(TESTFILE, net),
+        batch_size = BATCH // BATCH_SUBDIV,
+        shuffle = False,
+        drop_last = False,
+        num_workers = WORKERS if arguments.cuda else 0,
+        pin_memory = PIN_MEM if arguments.cuda else False,
+        collate_fn = ln.data.list_collate,
+    )
 
     if arguments.visdom:
         ln.log(ln.Loglvl.DEBUG, 'Creating visdom visualisation wrapper')
@@ -84,17 +93,7 @@ def test(arguments):
     anno, det = {}, {}
     num_det = 0
 
-    loader = torch.utils.data.DataLoader(
-        test,
-        batch_size = BATCH // BATCH_SUBDIV,
-        shuffle = False,
-        drop_last = False,
-        num_workers = WORKERS if arguments.cuda else 0,
-        pin_memory = PIN_MEM if arguments.cuda else False,
-        collate_fn = ln.data.list_collate,
-        )
-    total = int(len(test) / (BATCH//BATCH_SUBDIV) + .5)
-    for data, box in tqdm(loader, total=total):
+    for data, box in tqdm(loader, total=len(loader)):
         if arguments.cuda:
             data = data.cuda()
         data = Variable(data, volatile=True)
@@ -108,10 +107,11 @@ def test(arguments):
             cls_loss.append(net.loss.loss_cls.data[0]*len(box))
 
         key_val = len(anno)
-        anno.update({key_val+k: v for k,v in enumerate(target)})
+        anno.update({key_val+k: v for k,v in enumerate(box)})
         det.update({key_val+k: v for k,v in enumerate(output)})
 
     ln.log(ln.Loglvl.DEBUG, 'Computing statistics')
+
     pr = bbb.pr(det, anno)
     m_ap = round(bbb.ap(*pr)*100, 2)
     tot = round(sum(tot_loss)/len(anno), 5)
@@ -130,7 +130,6 @@ def test(arguments):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a lightnet network')
     parser.add_argument('weight', help='Path to weight file', default=None)
-    parser.add_argument('test', help='Pickle annotation file')
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
     parser.add_argument('-v', '--visdom', action='store_true', help='Visualize training data with visdom')
     args = parser.parse_args()

@@ -22,9 +22,10 @@ WORKERS = 4
 PIN_MEM = True
 VISDOM = {'server': 'http://localhost', 'port': 8080, 'env': 'YoloVOC Train'}
 ROOT = 'data'
-CLASS_LABELS = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+TRAINFILE = f'{ROOT}/train.pkl'
 
 CLASSES = 20
+LABELS = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
 NETWORK_SIZE = (416, 416)
 CONF_THRESH = 0.001
 NMS_THRESH = 0.4
@@ -69,41 +70,35 @@ class CustomDataset(ln.data.BramboxData):
         img_tf = tf.Compose([hsv, rc, rf, lb, it])
         anno_tf = tf.Compose([rc, rf, lb])
 
-        super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, CLASS_LABELS, identify, img_tf, anno_tf, RESIZE*BATCH)
+        super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, LABELS, identify, img_tf, anno_tf, RESIZE*BATCH)
 
 
 class CustomEngine(ln.engine.Engine):
     """ This is a custom engine for this training cycle """
-    def __init__(self, arguments, **kwargs):
+    batch_size = BATCH
+    batch_subdivisions = BATCH_SUBDIV
+    max_batch = MAX_BATCHES
+
+    def __init__(self, arguments):
+        self.cuda = arguments.cuda
+        self.backup_folder = arguments.backup
+
         ln.log(ln.Loglvl.DEBUG, 'Creating network')
         net = ln.models.YoloVoc(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
+        net.postprocess = tf.Compose([
+            net.postprocess,
+            ln.data.TensorToBrambox(NETWORK_SIZE, LABELS),
+        ])
         if arguments.cuda:
             net.cuda()
         optim = torch.optim.SGD(net.parameters(), lr=LEARNING_RATE/BATCH, momentum=MOMENTUM, dampening=0, weight_decay=DECAY*BATCH)
-
-        ln.log(ln.Loglvl.DEBUG, 'Creating dataset')
-        train = CustomDataset(args.train)
-
-        # Super init
-        ln.log(ln.Loglvl.DEBUG, 'Initialising Engine')
-        super(CustomEngine, self).__init__(
-            net, optim, train, None, arguments.cuda, arguments.visdom,
-            batch_size=BATCH, batch_subdivisions=BATCH_SUBDIV,
-            backup_folder=arguments.backup,
-            **kwargs
-            )
-
-        # Rates
-        self.add_rate('learning_rate', LR_STEPS, [lr/BATCH for lr in LR_RATES])
-        self.add_rate('backup_rate', BP_STEPS, BP_RATES, BACKUP)
-        self.add_rate('resize_rate', RS_STEPS, RS_RATES, RESIZE)
+        super(CustomEngine, self).__init__(net, optim, arguments.visdom)
 
     def start(self):
         """ Starting values """
-        self.update_rates()
-
+        ln.log(ln.Loglvl.DEBUG, 'Creating dataset')
         self.trainloader = ln.data.DataLoader(
-            self.trainset,
+            CustomDataset(TRAINFILE),
             batch_size = BATCH // BATCH_SUBDIV,
             shuffle = True,
             drop_last = True,
@@ -112,6 +107,10 @@ class CustomEngine(ln.engine.Engine):
             collate_fn = ln.data.list_collate,
             )
 
+        self.add_rate('learning_rate', LR_STEPS, [lr/BATCH for lr in LR_RATES])
+        self.add_rate('backup_rate', BP_STEPS, BP_RATES, BACKUP)
+        self.add_rate('resize_rate', RS_STEPS, RS_RATES, RESIZE)
+        self.update_rates()
         self.trainloader.change_input_dim()
 
     def update(self):
@@ -133,7 +132,6 @@ class CustomEngine(ln.engine.Engine):
         self.optimizer.zero_grad()
 
         for idx, (data, target) in enumerate(self.trainloader):
-            print(data.shape)
             if self.cuda:
                 data = data.cuda()
             data = Variable(data, requires_grad=True)
@@ -170,11 +168,11 @@ class CustomEngine(ln.engine.Engine):
 
                 self.update()
 
-                if self.sigint or self.batch >= MAX_BATCHES or len(self.trainset) - (idx*self.mini_batch_size) < self.batch_size:
+                if self.sigint or self.batch >= self.max_batch or (len(self.trainloader) - idx) <= self.batch_subdivisions:
                     return
 
     def quit(self):
-        if self.batch >= MAX_BATCHES or self.sigint:
+        if self.batch >= self.max_batch or self.sigint:
             self.network.save_weights(os.path.join(self.backup_folder, f'backup.pt'))
             return True
         else:
@@ -184,7 +182,6 @@ class CustomEngine(ln.engine.Engine):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a lightnet network')
     parser.add_argument('weight', help='Path to weight file', default=None)
-    parser.add_argument('train', help='Pickle annotation file')
     parser.add_argument('-b', '--backup', help='Backup folder', default='./backup')
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
     parser.add_argument('-v', '--visdom', action='store_true', help='Visualize training data with visdom')
