@@ -15,8 +15,8 @@ __all__ = ['Engine']
 
 
 class Engine:
-    """ This class removes the boilerplate code needed for writing the training code.
-    Here is the code that runs when the engine is called
+    """ This class removes the boilerplate code needed for writing your training cycle. |br|
+    Here is the code that runs when the engine is called:
     
     .. literalinclude:: /../lightnet/engine/engine.py
        :language: python
@@ -26,46 +26,26 @@ class Engine:
     Args:
         network (lightnet.network.Darknet): Lightnet network to train
         optimizer (torch.optim): Optimizer for the network
-        trainset (torch.utils.data.Dataset): Dataset with training images and annotations
-        testset (torch.utils.data.Dataset, optional): Dataset with images and annotation to test; Default **None**
-        cuda (Boolean, optional): Whether to use cuda; Default **False**
         visdom (dict, optional): Set this dict with options for starting up visdom. If set to None, visualisation with visdom is disabled; Default **None**
-        **kwargs (dict, optional): Extra arguments that are set as attributes to the engine
 
     Attributes:
         self.network: Lightnet network
         self.optimizer: Torch optimizer
-        self.trainset: Torch dataset for training
-        self.testset: Torch dataset for testing; Default **None**
-        self.cuda: Boolean indicating whether to use cuda
-        self.batch_size: Number indicating batch_size
-        self.batch_subdivisions: How to subdivide batch
-        self.max_batch: Maximum number of batches to process
-        self.test_rate: How often to run test
-        self.visdom: Visdom object used to plot data
-        self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send.
-
-        self.batch (computed): Current batch number
-        self.mini_batch_size (computed): Size of one mini-batch, according to batch_size and batch_subdivisions
-        self.learning_rate (computed): Property to set and get learning rate of the optimizer
-
-    Note:
-        Some preset values of the engine can be overwritten with kwargs:
-
-        - batch_size: size of one batch
-        - batch_subdivisions: number of subdivisions needed for one batch
-        - max_batch: maximum number of batches to train for
-        - test_rate: how often to run testset
+        self.batch_size: Number indicating batch_size; Default **1**
+        self.batch_subdivisions: How to subdivide batch; Default **1**
+        self.max_batch: Maximum number of batches to process; Default **None**
+        self.test_rate: How often to run test; Default **None**
+        self.visdom: Visdom object used to plot data; Default **None**
+        self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send; Default **False**
     """
+    batch_size = 1
+    batch_subdivisions = 1
+    max_batch = None
+    test_rate = None
 
-    __allowed = ('batch_size', 'batch_subdivisions', 'max_batch', 'test_rate')
-
-    def __init__(self, network, optimizer, trainset, testset=None, cuda=False, visdom=None, **kwargs):
+    def __init__(self, network, optimizer, visdom=None):
         self.network = network
         self.optimizer = optimizer
-        self.trainset = trainset
-        self.testset = testset
-        self.cuda = cuda
 
         self.__lr = self.optimizer.param_groups[0]['lr']
         self.__rates = {}
@@ -86,25 +66,12 @@ class Engine:
             self.__vis = None
             self.visdom = None
     
-        self.batch_size = 64
-        self.batch_subdivisions = 8
-        self.max_batch = None
-        self.test_rate = 50
-
-        for key,val in kwargs.items():
-            if not hasattr(self, key):
-                setattr(self, key, val)
-            elif key in self.__class__.__allowed:
-                log(Loglvl.DEBUG, f'Attribute [{key}] already exists, overwriting with kwarg value [{val}]')
-                setattr(self, key, val)
-            else:
-                log(Loglvl.WARN, f'Attribute [{key}] already exists, keeping old value [{getattr(self, key)}]')
-    
     def __call__(self):
         """ Start the training cycle. """
         self.start()
+        if self.test_rate is not None:
+            last_test = self.batch - (self.batch % self.test_rate)
 
-        last_test = self.batch - (self.batch % self.test_rate)
         while True:
             log(Loglvl.DEBUG, 'Starting train epoch')
             self.network.train()
@@ -116,11 +83,47 @@ class Engine:
                 log(Loglvl.VERBOSE, 'Reached quitting criteria')
                 break
 
-            if self.testset is not None and self.batch - last_test >= self.test_rate:
+            if self.test_rate is not None and self.batch - last_test >= self.test_rate:
                 log(Loglvl.DEBUG, 'Starting test epoch')
                 last_test += self.test_rate
                 self.network.eval()
                 self.test()
+
+    @property
+    def batch(self):
+        """ Get current batch number.
+
+        Return:
+            int: Computed as self.network.seen // self.batch_size
+        """
+        return self.network.seen // self.batch_size
+
+    @property
+    def mini_batch_size(self):
+        """ Get the size of one mini_batch
+
+        Return:
+            int: Computed as self.batch_size // self.batch_subdivisions
+        """
+        return self.batch_size // self.batch_subdivisions
+
+    @property
+    def learning_rate(self):
+        """ Get and set the learning rate
+            
+        Args:
+            lr (Number): Set the learning rate for all values of optimizer.param_groups[i]['lr']
+
+        Return:
+            Number: The current learning rate
+        """
+        return self.__lr
+
+    @learning_rate.setter
+    def learning_rate(self, lr):
+        self.__lr = lr
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = lr
 
     def log(self, msg):
         """ Log messages about training and testing.
@@ -169,42 +172,6 @@ class Engine:
             else:
                 log(Loglvl.WARN, 'Could not find out what visualisation function to use.')
 
-    @property
-    def batch(self):
-        """ Get current batch number.
-
-        Return:
-            int: Computed as self.network.seen // self.batch_size
-        """
-        return self.network.seen // self.batch_size
-
-    @property
-    def mini_batch_size(self):
-        """ Get size of one mini-batch.
-        
-        Return:
-            int: Computed as self.batch_size // self.batch_subdivisions
-        """
-        return self.batch_size // self.batch_subdivisions
-
-    @property
-    def learning_rate(self):
-        """ Get and set the learning rate
-            
-        Args:
-            lr (Number): Set the learning rate for all values of optimizer.param_groups[i]['lr']
-
-        Return:
-            Number: The current learning rate
-        """
-        return self.__lr
-
-    @learning_rate.setter
-    def learning_rate(self, lr):
-        self.__lr = lr
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr
-
     def add_rate(self, name, steps, values, default=None):
         """ Add a rate to the engine. Rates are values that change according to the current batch number.
 
@@ -217,8 +184,8 @@ class Engine:
         Example:
             >>> import lightnet as ln
             >>> eng = ln.engine.Engine(...)
-            >>> eng.add_rate('learning_rate', [100, 500, 35000], [.001, .0001, .00001], .0001)
-            >>> eng.add_rate('test_rate', [1000, 5000], [100, 500]) # test_rate already has default value of 50
+            >>> eng.add_rate('test_rate', [1000, 5000], [100, 500], 50)
+            >>> eng.add_rate('learning_rate', [100, 1000, 10000], [.01, .001, .0001]) # Learning rate already has a value
         """
         if default is not None or not hasattr(self, name):
             setattr(self, name, default)
@@ -236,9 +203,9 @@ class Engine:
         self.__rates[name] = (steps, values)
 
     def update_rates(self):
-        """ Update rates according to batch size.
-        This function gets automatically called every epoch, but to be entirely correct,
-        you should also call this function every batch in your training cycle.
+        """ Update rates according to batch size. |br|
+        This function gets automatically called every epoch,
+        but to be entirely correct you should also call this function every batch in your training cycle.
         """
         for key, (steps,values) in self.__rates.items():
             new_rate = None
@@ -252,35 +219,31 @@ class Engine:
                 log(Loglvl.VERBOSE, f'Adjusting {key} [{new_rate}]')
                 setattr(self, key, new_rate)
 
-    def train(self):
-        """ Training loop code.
-
-        Args:
-            idx (int): Mini-batch number
-            data: Return Value from the trainset; usually a tuple (data, target)
+    def start(self):
+        """ First function that gets called when starting the engine. |br|
+            Use it to create your dataloader, set the correct starting values for your rates, etc.
         """
+        self.update_rates()
+
+    def train(self):
+        """ Code to train one epoch should come in this function. """
         raise NotImplementedError
 
     def test(self):
-        """ Test loop code.
-
-        Args:
-            idx (int): Mini-batch number
-            data: Return value from the testset; usually a tuple (data, target)
-        """
+        """ This function should contain the code to perform one evaluation on your test-set. """
         raise NotImplementedError
-
-    def start(self):
-        """ First function that gets called when starting the engine.
-            Use it to set correct starting values for learning rate, test rate, etc.
-        """
-        pass
 
     def quit(self):
         """ This function gets called after every training epoch and decides if the training cycle continues.
 
         Return:
             Boolean: Whether are not to stop the training cycle
+
+        Note:
+            This function gets called before checking the ``self.sigint`` attribute.
+            This means you can also check this attribute in this function. |br|
+            If it evaluates to **True**, you know the program will exit after this function and you can thus
+            perform the necessary actions (eg. save final weights).
         """
         if self.max_batch is not None:
             return self.batch >= self.max_batch
