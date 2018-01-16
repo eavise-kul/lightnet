@@ -47,7 +47,7 @@ class Darknet(nn.Module):
         self.seen = 0
 
     def _forward(self, x):
-        log(Loglvl.VERBOSE, 'Running default forward functions')
+        log(Loglvl.DEBUG, 'Running default forward functions')
         if isinstance(self.layers, nn.Sequential):
             return self.layers(x)
         elif isinstance(self.layers, nn.ModuleList):

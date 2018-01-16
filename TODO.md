@@ -41,7 +41,7 @@ Engine subpackage
 ## Models
 Model implementations subpackage
   - [X] Add yolo-voc
-  - [ ] Add tiny-yolo
+  - [X] Add tiny-yolo
   - [X] Create darknet dataset
   - [X] Write documentation
 

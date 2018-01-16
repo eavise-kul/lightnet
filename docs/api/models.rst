@@ -4,8 +4,8 @@ Models
 
 Networks
 --------
-.. autoclass:: lightnet.models.YoloVoc
-   :members:
+.. autoclass:: lightnet.models.Yolo
+.. autoclass:: lightnet.models.TinyYolo
 
 Data
 ----

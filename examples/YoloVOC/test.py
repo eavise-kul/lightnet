@@ -61,7 +61,7 @@ class CustomDataset(ln.data.BramboxData):
 
 def test(arguments):
     ln.log(ln.Loglvl.DEBUG, 'Creating network')
-    net = ln.models.YoloVoc(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
+    net = ln.models.Yolo(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
     net.postprocess = tf.Compose([
         net.postprocess,
         ln.data.TensorToBrambox(NETWORK_SIZE, LABELS),
@@ -107,8 +107,8 @@ def test(arguments):
             cls_loss.append(net.loss.loss_cls.data[0]*len(box))
 
         key_val = len(anno)
-        anno.update({key_val+k: v for k,v in enumerate(box)})
-        det.update({key_val+k: v for k,v in enumerate(output)})
+        anno.update({loader.dataset.keys[key_val+k]: v for k,v in enumerate(box)})
+        det.update({loader.dataset.keys[key_val+k]: v for k,v in enumerate(output)})
 
     ln.log(ln.Loglvl.DEBUG, 'Computing statistics')
 

@@ -84,7 +84,7 @@ class CustomEngine(ln.engine.Engine):
         self.backup_folder = arguments.backup
 
         ln.log(ln.Loglvl.DEBUG, 'Creating network')
-        net = ln.models.YoloVoc(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
+        net = ln.models.Yolo(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
         net.postprocess = tf.Compose([
             net.postprocess,
             ln.data.TensorToBrambox(NETWORK_SIZE, LABELS),

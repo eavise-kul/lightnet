@@ -1,5 +1,5 @@
 #
-#   Darknet yolo-VOC model
+#   Darknet YOLOv2 model
 #   Copyright EAVISE
 #
 
@@ -11,11 +11,11 @@ import torch.nn as nn
 import lightnet.network as lnn
 import lightnet.data as lnd
 
-__all__ = ['YoloVoc']
+__all__ = ['Yolo']
 
 
-class YoloVoc(lnn.Darknet):
-    """ *yolo-voc.2.0.cfg* implementation with pytorch.
+class Yolo(lnn.Darknet):
+    """ `Yolo v2`_ implementation with pytorch.
     This network uses :class:`~lightnet.network.RegionLoss` as its loss function
     and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
 
@@ -31,16 +31,18 @@ class YoloVoc(lnn.Darknet):
         self.num_anchors (int): Number of anchor-boxes
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes`
+
+    .. _Yolo v2: https://github.com/pjreddie/darknet/blob/master/cfg/yolo-voc.2.0.cfg
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3):
         """ Network initialisation """
-        super(YoloVoc, self).__init__()
+        super(Yolo, self).__init__()
 
         # Parameters
         self.num_classes = num_classes
-        self.anchors = [1.3221,1.73145, 3.19275,4.00944, 5.05587,8.09892, 9.47112,4.84053, 11.2364,10.0071]
+        self.anchors = [1.08,1.19, 3.42,4.41, 6.63,11.38, 9.42,5.11, 16.62,10.52]
         self.num_anchors = 5
-        self.reduction = 32
+        self.reduction = 32     # input_dim/output_dim
 
         # Network
         layer_list = [
