@@ -18,7 +18,7 @@ ln.log.level = ln.Loglvl.VERBOSE
 #ln.log.color = False
 
 # Parameters
-WORKERS = 4
+WORKERS = 8
 PIN_MEM = True
 VISDOM = {'server': 'http://localhost', 'port': 8080, 'env': 'YoloVOC Train'}
 ROOT = 'data'
