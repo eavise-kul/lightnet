@@ -15,25 +15,30 @@ import torch.nn.functional as F
 
 from ..logger import *
 
-__all__ = ['MaxPoolStride1', 'Reorg', 'GlobalAvgPool2d', 'Conv2dBatchLeaky']
+__all__ = ['PaddedMaxPool2d', 'Reorg', 'GlobalAvgPool2d', 'Conv2dBatchLeaky']
 
 
-class MaxPoolStride1(nn.Module):
-    """ Maxpool layer with a replicating padding, for stride 1
+class PaddedMaxPool2d(nn.Module):
+    """ Maxpool layer with a replicating padding.
 
     Args:
-        pool_size (int or tuple): pooling size
+        kernel_size (int or tuple): Kernel size for maxpooling
+        stride (int or tuple, optional): The stride of the window; Default ``kernel_size``
+        padding (tuple, optional): (left, right, top, bottom) padding; Default **None**
+        dilation (int or tuple, optional): A parameter that controls the stride of elements in the window 
     """
-    def __init__(self, pool_size=2):
-        super(MaxPoolStride1, self).__init__()
-        self.pool = pool_size
-        self.stride = 1
+    def __init__(self, kernel_size, stride=None, padding=(0,0,0,0), dilation=1):
+        super(PaddedMaxPool2d, self).__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride or kernel_size
+        self.padding = padding
+        self.dilation = dilation
 
     def __repr__(self):
-        return f'{self.__class__.__name__} (pool_size={self.pool}, stride={self.stride})'
+        return f'{self.__class__.__name__} (kernel_size={self.kernel_size}, stride={self.stride}, padding={self.padding}, dilation={self.dilation})'
 
     def forward(self, x):
-        x = F.max_pool2d(F.pad(x, (0,1,0,1), mode='replicate'), self.pool, stride=self.stride)
+        x = F.max_pool2d(F.pad(x, self.padding, mode='replicate'), self.kernel_size, self.stride, 0, self.dilation)
         return x
 
 

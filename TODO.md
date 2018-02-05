@@ -37,6 +37,7 @@ Engine subpackage
   - [X] Engine rates
   - [ ] Rework visualisation concept
   - [ ] Expose _log.open_file_
+  - [ ] Make visdom completely optional _(fix imports)_
 
 ## Models
 Model implementations subpackage
