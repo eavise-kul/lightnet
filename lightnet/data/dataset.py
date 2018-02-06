@@ -31,15 +31,13 @@ class BramboxData(Dataset):
         identify (function, optional): Lambda/function to get image based of annotation filename or image id; Default **replace/add .png extension to filename/id**
         img_transform (torchvision.transforms.Compose): Transforms to perform on the images
         anno_transform (torchvision.transforms.Compose): Transforms to perform on the annotations
-        random_resize (int, optional): Randomly change the size of input_dim every n images where n is this parameter; Default **None** 
         kwargs (dict): Keyword arguments that are passed to the brambox parser
     """
-    def __init__(self, anno_format, anno_filename, input_dimension, class_label_map=None, identify=None, img_transform=None, anno_transform=None, random_resize=None, **kwargs):
+    def __init__(self, anno_format, anno_filename, input_dimension, class_label_map=None, identify=None, img_transform=None, anno_transform=None, **kwargs):
         super(BramboxData, self).__init__()
         self.__input_dim = input_dimension[:2]
         self.img_tf = img_transform
         self.anno_tf = anno_transform
-        self.random_resize = random_resize
         if callable(identify):
             self.id = identify
         else:
@@ -106,8 +104,7 @@ class DataLoader(torchDataLoader):
     """ Lightnet dataloader that enables on the fly resizing of the images.
     See :class:`torch.utils.data.DataLoader` for more information on the arguments.
     """
-    def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None,
-                 num_workers=0, collate_fn=default_collate, pin_memory=False, drop_last=False):
+    def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None, num_workers=0, collate_fn=default_collate, pin_memory=False, drop_last=False):
         self.dataset = dataset
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -167,18 +164,17 @@ class BatchSampler(torchBatchSampler):
         super(BatchSampler, self).__init__(*args, **kwargs)
 
     def __iter__(self):
-        if self.new_input_dim is not None:
-            self.__set_input_dim()
+        self.__set_input_dim()
         for batch in super(BatchSampler, self).__iter__():
             yield [(self.input_dim, idx) for idx in batch]
-            if self.new_input_dim is not None:
-                self.__set_input_dim()
+            self.__set_input_dim()
 
     def __set_input_dim(self):
         """ This function randomly changes the the input dimension of the dataset. """
-        log(Loglvl.VERBOSE, f'Resizing network {self.new_input_dim[:2]}')
-        self.input_dim = (self.new_input_dim[0], self.new_input_dim[1])
-        self.new_input_dim = None
+        if self.new_input_dim is not None:
+            log(Loglvl.VERBOSE, f'Resizing network {self.new_input_dim[:2]}')
+            self.input_dim = (self.new_input_dim[0], self.new_input_dim[1])
+            self.new_input_dim = None
 
 
 def list_collate(batch):
