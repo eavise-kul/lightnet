@@ -401,7 +401,7 @@ class BramboxToTensor(BaseTransform):
         if not isinstance(data, collections.Sequence):
             log(Loglvl.ERROR, f'BramboxToTensor only works with <brambox annotation list> [{type(data)}]', TypeError)
 
-        anno_np = np.array([cls._tf_anno(anno) for anno in data], dtype=np.float64)
+        anno_np = np.array([cls._tf_anno(anno, dimension, class_label_map) for anno in data], dtype=np.float64)
 
         if max_anno is not None:
             anno_len = len(data)
