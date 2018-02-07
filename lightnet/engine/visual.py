@@ -3,78 +3,79 @@
 #   Copyright EAVISE
 #   
 
-import visdom
+try:
+    import visdom
+except ImportError:
+    log(Loglvl.WARN, 'visdom not found')
+    visdom = None
 import numpy as np
 import brambox.boxes as bbb
 
 from ..logger import *
 
-__all__ = ['Visualisation']
+__all__ = ['LinePlotter']
 
 
-class Visualisation:
-    """ This class contains visualisation functions,
-    that can automatically compute and plot certain statistics for you.
+class LinePlotter:
+    """ Wrapper to easily plot curves and lines.
 
     Args:
-        options (dict): Options that are passed on to the Visdom constructor
-        close (Boolean, optional): Whether to close all windows in the environment
+        visdom (object): Visdom plotting object
+        window (str): Name of the window to plot lines
+        env (str, optional): Name of the environment to plot into; Default **main**
+        name (str, optional): Name of the trace to draw by default; Default **None**
+        opts (dict, optional): Dictionary with default options; Default **{}**
     """
-    def __init__(self, options, close=False):
-        self.vis = visdom.Visdom(**options)
-        if not self.vis.check_connection():
-            log(Loglvl.ERROR, f'Could not connect to visdom server', OSError)
+    def __init__(self, visdom, window, env=None, name=None, opts={}):
+        if not visdom.check_connection():
+            log(Loglvl.ERROR, 'No connection with visdom server', ConnectionError)
 
-        if close and 'env' in options:
-            self.vis.close(env=options['env'])
+        self.vis = visdom
+        self.win = window
+        self.env = env
+        self.name = name
+        self.opts = opts
 
-    def pr(self, pr, window=None, update=None, name='', **options):
-        """ Plot Precision and Recall curves.
+        self.traces = []
+        if name is not None:
+            self.traces.append(name)
+
+    def __call__(self, y, x=None, opts={}, name=None, update='append'):
+        """ Add point(s) to a trace or draw a new trace in the window.
         
         Args:
-            pr (dict): Dictionary containing (p, r) tuples (eg. output of brambox.boxes.pr)
-            window (str, optional): Name of the visdom window
-            **options (dict): Extra options to pass to the Visdom.line function
+            y (numpy or torch array): Y-value(s) to plot
+            x (numpy or torch array, optional): X-value(s) to plot the Y-value(s) at; Default **None**
+            opts (dict, optional): Extra options to pass for this call; Default **{}**
+            name (str, optional): Name of the trace to change; Default **Use init name**
+            update (str, optional): What to do with new data; Default **append**
         """
-        x = np.array(pr[1])
-        y = np.array(pr[0])
-        opts = dict(
-            xlabel='Recall',
-            ylabel='Precision',
-            xtickmin=0,
-            xtickmax=1,
-            ytickmin=0,
-            ytickmax=1,
-            **options
-                )
+        if name is None:
+            name = self.name
+        if name is not None and name not in self.traces:
+            self.traces.append(name)
+        opts = dict(self.opts, **opts)
 
-        self.vis.line(X=x, Y=y, win=window, update=update, name=name, opts=opts)
-
-    def loss(self, loss, batch, window, name=None, **options):
-        """ Plot loss curve.
-        
-        Args:
-            loss (Number): new loss value
-            batch (Number): batch number
-            window (str): Name of the visdom window
-            name (str, optional): Name of the visdom line inside the window
-            **options (dict): Extra options to pass to the Visdom.line function
-        """
-        x = np.array([batch])
-        y = np.array([loss])
-        
-        if not 'legend' in options and name is not None:
-            options['legend'] = [name]
-            
-        if not self.vis.win_exists(window):
-            opts = dict(
-                xlabel='Batch',
-                ylabel='Loss',
-                **options
-                )
-            update = None
+        if not self.vis.win_exists(self.win, self.env):
+            if 'legend' not in opts:
+                opts['legend'] = [name]
+            self.vis.line(y,x, self.win, self.env, opts, name=name)
         else:
-            opts = options
-            update = 'append'
+            self.vis.line(y,x, self.win, self.env, opts, update, name)
 
-        self.vis.line(X=x, Y=y, win=window, name=name, update=update, opts=opts)
+    def clear(self, name=None):
+        """ Clear the traces that were used with this lineplotter.
+
+        Args:
+            name (str, optional): Name of the trace to clear; Default **all**
+        """
+        if name is not None:
+            self.vis.line(None, win=self.win, env=self.env, name=name, update='remove')
+        else:
+            for name in self.traces:
+                self.vis.line(None, win=self.win, env=self.env, name=name, update='remove')
+
+    def close(self):
+        """ Close the visdom window. """
+        if self.vis.win_exists(self.win, self.env):
+            self.vis.close(self.win, self.env)

@@ -7,6 +7,11 @@ from statistics import mean
 import signal
 import sys
 import torch
+try:
+    import visdom
+except ImportError:
+    visdom = None
+
 
 import lightnet as ln
 from ..logger import *
@@ -43,7 +48,7 @@ class Engine:
     max_batch = None
     test_rate = None
 
-    def __init__(self, network, optimizer, visdom=None):
+    def __init__(self, network, optimizer, visdom_opts=None):
         self.network = network
         self.optimizer = optimizer
 
@@ -58,12 +63,9 @@ class Engine:
         self.__log.level = 0
         self.__log.lvl_msg = ['[TRAIN]   ', '[TEST]    ']
 
-        if visdom is not None:
-            from .visual import Visualisation
-            self.__vis = Visualisation(visdom)
-            self.visdom = self.__vis.vis
+        if visdom_opts is not None:
+            self.visdom = visdom.Visdom(visdom_opts)
         else:
-            self.__vis = None
             self.visdom = None
     
     def __call__(self):
@@ -136,41 +138,6 @@ class Engine:
             self.__log(0, msg)
         else:
             self.__log(1, msg)
-
-    def visual(self, **kwargs):
-        """ visualisation wrapper function.
-        This function will call the visdom functions on the right windows and titles.
-
-        Args:
-            kwargs (dict): Call this functions with key-value pairs representing the arguments of the functions of :class:`~lightnet.engine.Visualisation`
-
-        Note:
-            The keyword arguments should have all parameters that the underlining functions from :class:`~lightnet.engine.Visualisation` requires.
-            This function will automatically infer the correct function, from the arguments passed.
-            Some parameters (eg. batch number) will be automatically computed from the engine data. |br|
-            Besides the parameters of the function, you can also pass an **opts** keyword argument.
-            This keyword needs to be a dictionary, containing extra options that are passed along to visdom_.
-        """
-        if self.__vis is not None:
-            if self.network.training:
-                win = 'Train'
-            else:
-                win = 'Test'
-
-            if 'opts' in kwargs:
-                options = kwargs['opts']
-            else:
-                options = {}
-
-            if 'pr' in kwargs:
-                if not 'title' in options:
-                    self.__vis.pr(kwargs['pr'], f'{win}_pr', title=f'PR-curve [{self.batch}]', **options)
-                else:
-                    self.__vis.pr(kwargs['pr'], f'{win}_pr', **options)
-            elif 'loss' in kwargs:
-                self.__vis.loss(kwargs['loss'], self.batch, f'{win}_loss', kwargs['name'], title=f'{win} loss', **options)
-            else:
-                log(Loglvl.WARN, 'Could not find out what visualisation function to use.')
 
     def add_rate(self, name, steps, values, default=None):
         """ Add a rate to the engine. Rates are values that change according to the current batch number.
