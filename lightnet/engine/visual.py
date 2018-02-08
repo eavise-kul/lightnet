@@ -21,12 +21,12 @@ class LinePlotter:
 
     Args:
         visdom (object): Visdom plotting object
-        window (str): Name of the window to plot lines
+        window (str, optional): Name of the window to plot lines; Default **None**
         env (str, optional): Name of the environment to plot into; Default **main**
         name (str, optional): Name of the trace to draw by default; Default **None**
         opts (dict, optional): Dictionary with default options; Default **{}**
     """
-    def __init__(self, visdom, window, env=None, name=None, opts={}):
+    def __init__(self, visdom, window=None, env=None, name=None, opts={}):
         if not visdom.check_connection():
             log(Loglvl.ERROR, 'No connection with visdom server', ConnectionError)
 

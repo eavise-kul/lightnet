@@ -31,13 +31,13 @@ Data subpackage
 
 ## Engine
 Engine subpackage
-  - [ ] Rework engine (variables)
   - [X] Create base engine class
   - [X] Test base engine
   - [X] Engine rates
-  - [ ] Rework visualisation concept
+  - [X] Rework visualisation concept
+  - [X] Make visdom completely optional _(fix imports)_
   - [ ] Expose _log.open_file_
-  - [ ] Make visdom completely optional _(fix imports)_
+  - [ ] Rework entire engine class _(not sure how)_
 
 ## Models
 Model implementations subpackage
@@ -68,6 +68,6 @@ Everything about creating examples and scripts to show off the library
   - [X] Add yolo-voc training with darknet engine
   - [X] Test yolo-voc training
   - [X] Test yolo-voc engine training
-  - [ ] Compare speed yolo-voc training
   - [X] Compare accuracy yolo-voc trained weights
+  - [ ] Compare speed yolo-voc training
 
