@@ -7,11 +7,6 @@ from statistics import mean
 import signal
 import sys
 import torch
-try:
-    import visdom
-except ImportError:
-    visdom = None
-
 
 import lightnet as ln
 from ..logger import *
@@ -31,42 +26,47 @@ class Engine:
     Args:
         network (lightnet.network.Darknet): Lightnet network to train
         optimizer (torch.optim): Optimizer for the network
-        visdom (dict, optional): Set this dict with options for starting up visdom. If set to None, visualisation with visdom is disabled; Default **None**
+        **kwargs (dict, optional): Keywords arguments that will be set as attributes of the engine
 
     Attributes:
         self.network: Lightnet network
         self.optimizer: Torch optimizer
         self.batch_size: Number indicating batch_size; Default **1**
-        self.batch_subdivisions: How to subdivide batch; Default **1**
+        self.mini_batch_size: Size of a mini_batch; Default **1**
         self.max_batch: Maximum number of batches to process; Default **None**
         self.test_rate: How often to run test; Default **None**
-        self.visdom: Visdom object used to plot data; Default **None**
         self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send; Default **False**
     """
+    __allowed_overwrite = ['batch_size', 'mini_batch_size', 'max_batch', 'test_rate']
     batch_size = 1
-    batch_subdivisions = 1
+    mini_batch_size = 1
     max_batch = None
     test_rate = None
 
-    def __init__(self, network, optimizer, visdom_opts=None):
+    def __init__(self, network, optimizer, **kwargs):
         self.network = network
         self.optimizer = optimizer
 
+        # Rates
         self.__lr = self.optimizer.param_groups[0]['lr']
         self.__rates = {}
 
+        # Sigint handling
         self.sigint = False
         signal.signal(signal.SIGINT, self.__sigint_handler)
 
+        # Logging
         self.__log = ln.logger.Logger()
         self.__log.color = False
         self.__log.level = 0
         self.__log.lvl_msg = ['[TRAIN]   ', '[TEST]    ']
 
-        if visdom_opts is not None:
-            self.visdom = visdom.Visdom(visdom_opts)
-        else:
-            self.visdom = None
+        # Set attributes
+        for key in kwargs:
+            if not hasattr(self, key) or key in self.__allowed_overwrite:
+                setattr(self, key, kwargs[key])
+            else:
+                log(Loglvl.WARN, f'{key} attribute already exists on engine. Keeping original value [{getattr(self, key)}]')
     
     def __call__(self):
         """ Start the training cycle. """
@@ -74,22 +74,29 @@ class Engine:
         if self.test_rate is not None:
             last_test = self.batch - (self.batch % self.test_rate)
 
+        log(Loglvl.DEBUG, 'Start training')
+        self.network.train()
+        self._update_rates()
         while True:
-            log(Loglvl.DEBUG, 'Starting train epoch')
-            self.network.train()
-            self.train()
+            for idx, data in enumerate(self.training_dataloader):
+                self.process_batch(data)
+                if (idx + 1) % self.mini_batch_size != 0:
+                    continue
+                self.train_batch()
 
-            self.update_rates()
+                self._update_rates()
 
-            if self.quit() or self.sigint:
-                log(Loglvl.VERBOSE, 'Reached quitting criteria')
-                break
+                if self.quit() or self.sigint:
+                    log(Loglvl.VERBOSE, 'Reached quitting criteria')
+                    return
 
-            if self.test_rate is not None and self.batch - last_test >= self.test_rate:
-                log(Loglvl.DEBUG, 'Starting test epoch')
-                last_test += self.test_rate
-                self.network.eval()
-                self.test()
+                if self.test_rate is not None and self.batch - last_test >= self.test_rate:
+                    log(Loglvl.DEBUG, 'Start testing')
+                    last_test += self.test_rate
+                    self.network.eval()
+                    self.test()
+                    log(Loglvl.DEBUG, 'Done testing')
+                    self.network.train()
 
     @property
     def batch(self):
@@ -99,15 +106,6 @@ class Engine:
             int: Computed as self.network.seen // self.batch_size
         """
         return self.network.seen // self.batch_size
-
-    @property
-    def mini_batch_size(self):
-        """ Get the size of one mini_batch
-
-        Return:
-            int: Computed as self.batch_size // self.batch_subdivisions
-        """
-        return self.batch_size // self.batch_subdivisions
 
     @property
     def learning_rate(self):
@@ -140,7 +138,8 @@ class Engine:
             self.__log(1, msg)
 
     def add_rate(self, name, steps, values, default=None):
-        """ Add a rate to the engine. Rates are values that change according to the current batch number.
+        """ Add a rate to the engine.
+        Rates are object attributes that automatically change according to the current batch number.
 
         Args:
             name (str): Name that will be used for the attribute. You can access the value with self.name
@@ -169,10 +168,9 @@ class Engine:
 
         self.__rates[name] = (steps, values)
 
-    def update_rates(self):
+    def _update_rates(self):
         """ Update rates according to batch size. |br|
-        This function gets automatically called every epoch,
-        but to be entirely correct you should also call this function every batch in your training cycle.
+        This function gets automatically called every batch, and should generally not be called by the user.
         """
         for key, (steps,values) in self.__rates.items():
             new_rate = None
@@ -190,15 +188,21 @@ class Engine:
         """ First function that gets called when starting the engine. |br|
             Use it to create your dataloader, set the correct starting values for your rates, etc.
         """
-        self.update_rates()
+        pass
 
-    def train(self):
-        """ Code to train one epoch should come in this function. """
-        raise NotImplementedError
+    def process_batch(self, data):
+        """ This function should contain the code to process the forward pass of one (mini-)batch. """
+        log(Loglvl.ERROR, 'process_batch() function is not implemented', NotImplementedError)
+
+    def train_batch(self):
+        """ This function should contain the code to process the backpropagation of a batch. |br|
+        Statistical computations, performing backups at regular intervals, etc. also happen here.
+        """
+        log(Loglvl.ERROR, 'train_batch() function is not implemented', NotImplementedError)
 
     def test(self):
-        """ This function should contain the code to perform one evaluation on your test-set. """
-        raise NotImplementedError
+        """ This function should contain the code to perform an evaluation on your test-set. """
+        log(Loglvl.WARN, 'test() function is not implemented')
 
     def quit(self):
         """ This function gets called after every training epoch and decides if the training cycle continues.
