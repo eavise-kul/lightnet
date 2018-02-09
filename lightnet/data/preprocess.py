@@ -74,7 +74,9 @@ class Letterbox(BaseMultiTransform):
         else:
             self.scale = net_h / im_h
         if self.scale != 1:
-            img = img.resize((int(self.scale*im_w), int(self.scale*im_h)))
+            bands = img.split()
+            bands = [b.resize((int(self.scale*im_w), int(self.scale*im_h))) for b in bands]
+            img  = Image.merge(img.mode, bands)
             im_w, im_h = img.size
 
         if im_w == net_w and im_h == net_h:
@@ -85,7 +87,7 @@ class Letterbox(BaseMultiTransform):
         pad_w = (net_w - im_w) / 2
         pad_h = (net_h - im_h) / 2
         self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = ImageOps.expand(img, border=self.pad, fill=(127,127,127))
+        img = ImageOps.expand(img, border=self.pad)
         return img
 
     def _tf_cv(self, img):
@@ -118,7 +120,7 @@ class Letterbox(BaseMultiTransform):
         pad_w = (net_w - im_w) / 2
         pad_h = (net_h - im_h) / 2
         self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=(127,127,127))
+        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=0)
         return img
 
     def _tf_anno(self, annos):
@@ -178,7 +180,7 @@ class RandomCrop(BaseMultiTransform):
 
         crop_w = crop[2] - crop[0]
         crop_h = crop[3] - crop[1]
-        img_crop = np.ones((crop_h, crop_w) + img.shape[2:], dtype=img.dtype) * 127
+        img_crop = np.zeros((crop_h, crop_w) + img.shape[2:], dtype=img.dtype)
 
         src_x1 = max(0, crop[0])
         src_x2 = min(crop[2], im_w)
