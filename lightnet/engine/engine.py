@@ -78,18 +78,25 @@ class Engine:
         self.network.train()
         self._update_rates()
         while True:
-            for idx, data in enumerate(self.training_dataloader):
+            loader = self.training_dataloader
+            for idx, data in enumerate(loader):
+                # Forward and backward on (mini-)batches
                 self.process_batch(data)
-                if (idx + 1) % self.mini_batch_size != 0:
+                if (idx + 1) % self.batch_subdivisions != 0:
                     continue
+
+                # Optimizer step
                 self.train_batch()
 
+                # Automatically update registered rates
                 self._update_rates()
 
+                # Check if we need to stop training
                 if self.quit() or self.sigint:
                     log(Loglvl.VERBOSE, 'Reached quitting criteria')
                     return
 
+                # Check if we need to perform testing
                 if self.test_rate is not None and self.batch - last_test >= self.test_rate:
                     log(Loglvl.DEBUG, 'Start testing')
                     last_test += self.test_rate
@@ -97,6 +104,10 @@ class Engine:
                     self.test()
                     log(Loglvl.DEBUG, 'Done testing')
                     self.network.train()
+
+                # Not enough mini-batches left to have an entire batch
+                if (len(loader) - idx) <= self.batch_subdivisions:
+                    break
 
     @property
     def batch(self):
@@ -106,6 +117,15 @@ class Engine:
             int: Computed as self.network.seen // self.batch_size
         """
         return self.network.seen // self.batch_size
+
+    @property
+    def batch_subdivisions(self):
+        """ Get number of mini-batches per batch.
+
+        Return:
+            int: Computed as self.batch_size // self.mini_batch_size
+        """
+        return self.batch_size // self.mini_batch_size
 
     @property
     def learning_rate(self):
@@ -191,11 +211,11 @@ class Engine:
         pass
 
     def process_batch(self, data):
-        """ This function should contain the code to process the forward pass of one (mini-)batch. """
+        """ This function should contain the code to process the forward and backward pass of one (mini-)batch. """
         log(Loglvl.ERROR, 'process_batch() function is not implemented', NotImplementedError)
 
     def train_batch(self):
-        """ This function should contain the code to process the backpropagation of a batch. |br|
+        """ This function should contain the code to update the weights of the network. |br|
         Statistical computations, performing backups at regular intervals, etc. also happen here.
         """
         log(Loglvl.ERROR, 'train_batch() function is not implemented', NotImplementedError)
