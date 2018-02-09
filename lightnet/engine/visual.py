@@ -44,19 +44,26 @@ class LinePlotter:
             opts (dict, optional): Extra options to pass for this call; Default **{}**
             name (str, optional): Name of the trace to change; Default **Use init name**
             update (str, optional): What to do with new data; Default **append**
+
+        Note:
+            If opts is set to ``None``, no options will be passed (not even the default ones).
+            This is sometimes necessary, like when you want to remove a trace.
         """
         if name is None:
             name = self.name
         if name is not None and name not in self.traces:
             self.traces.append(name)
-        opts = dict(self.opts, **opts)
+        if opts is not None:
+            opts = dict(self.opts, **opts)
 
         if not self.vis.win_exists(self.win, self.env):
             if 'legend' not in opts:
                 opts['legend'] = [name]
             self.vis.line(y,x, self.win, self.env, opts, name=name)
+            log(Loglvl.DEBUG, f'Created new visdom window [{self.win}]')
         else:
             self.vis.line(y,x, self.win, self.env, opts, update, name)
+            log(Loglvl.DEBUG, f'Updated visdom window [{self.win}]')
 
     def clear(self, name=None):
         """ Clear the traces that were used with this lineplotter.
