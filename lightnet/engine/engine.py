@@ -88,9 +88,6 @@ class Engine:
                 # Optimizer step
                 self.train_batch()
 
-                # Automatically update registered rates
-                self._update_rates()
-
                 # Check if we need to stop training
                 if self.quit() or self.sigint:
                     log(Loglvl.VERBOSE, 'Reached quitting criteria')
@@ -104,6 +101,9 @@ class Engine:
                     self.test()
                     log(Loglvl.DEBUG, 'Done testing')
                     self.network.train()
+
+                # Automatically update registered rates
+                self._update_rates()
 
                 # Not enough mini-batches left to have an entire batch
                 if (len(loader) - idx) <= self.batch_subdivisions:
