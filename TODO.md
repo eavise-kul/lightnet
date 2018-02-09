@@ -36,8 +36,8 @@ Engine subpackage
   - [X] Engine rates
   - [X] Rework visualisation concept
   - [X] Make visdom completely optional _(fix imports)_
+  - [X] Rework entire engine class
   - [ ] Expose _log.open_file_
-  - [ ] Rework entire engine class _(not sure how)_
 
 ## Models
 Model implementations subpackage
@@ -70,4 +70,5 @@ Everything about creating examples and scripts to show off the library
   - [X] Test yolo-voc engine training
   - [X] Compare accuracy yolo-voc trained weights
   - [ ] Compare speed yolo-voc training
+  - [ ] Change training examples to use new engine
 

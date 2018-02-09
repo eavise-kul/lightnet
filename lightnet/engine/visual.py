@@ -3,11 +3,6 @@
 #   Copyright EAVISE
 #   
 
-try:
-    import visdom
-except ImportError:
-    log(Loglvl.WARN, 'visdom not found')
-    visdom = None
 import numpy as np
 import brambox.boxes as bbb
 
