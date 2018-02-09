@@ -33,14 +33,14 @@ class Engine:
         self.optimizer: Torch optimizer
         self.batch_size: Number indicating batch_size; Default **1**
         self.mini_batch_size: Size of a mini_batch; Default **1**
-        self.max_batch: Maximum number of batches to process; Default **None**
+        self.max_batches: Maximum number of batches to process; Default **None**
         self.test_rate: How often to run test; Default **None**
         self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send; Default **False**
     """
-    __allowed_overwrite = ['batch_size', 'mini_batch_size', 'max_batch', 'test_rate']
+    __allowed_overwrite = ['batch_size', 'mini_batch_size', 'max_batches', 'test_rate']
     batch_size = 1
     mini_batch_size = 1
-    max_batch = None
+    max_batches = None
     test_rate = None
 
     def __init__(self, network, optimizer, **kwargs):
@@ -236,8 +236,8 @@ class Engine:
             If it evaluates to **True**, you know the program will exit after this function and you can thus
             perform the necessary actions (eg. save final weights).
         """
-        if self.max_batch is not None:
-            return self.batch >= self.max_batch
+        if self.max_batches is not None:
+            return self.batch >= self.max_batches
         else:
             return False
 
