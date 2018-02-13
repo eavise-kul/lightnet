@@ -2,7 +2,7 @@
 git+https://gitlab.com/EAVISE/brambox@develop
 
 # Development dependencies
-git+https://github.com/sphinx-doc/sphinx@1.7-release
+sphinx
 sphinx_rtd_theme
 recommonmark
 
