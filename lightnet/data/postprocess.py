@@ -174,11 +174,17 @@ class TensorToBrambox(BaseTransform):
     @classmethod
     def apply(cls, boxes, network_size, class_label_map=None):
         if torch.is_tensor(boxes):
-            return cls._convert(boxes, network_size[0], network_size[1], class_label_map)
+            if boxes.dim() == 0:
+                return []
+            else:
+                return cls._convert(boxes, network_size[0], network_size[1], class_label_map)
         else:
             converted_boxes = []
             for box in boxes:
-                converted_boxes.append(cls._convert(box, network_size[0], network_size[1], class_label_map))
+                if box.dim() == 0:
+                    converted_boxes.append([])
+                else:
+                    converted_boxes.append(cls._convert(box, network_size[0], network_size[1], class_label_map))
             return converted_boxes
 
     @staticmethod
@@ -225,7 +231,9 @@ class ReverseLetterbox(BaseTransform):
             scale = im_h/net_h
         pad = int((net_w - im_w/scale) / 2), int((net_h - im_h/scale) / 2)
 
-        if isinstance(boxes[0], Detection):
+        if len(boxes) == 0:
+            return boxes
+        elif isinstance(boxes[0], Detection):
             return cls._transform(boxes, scale, pad)
         else:
             converted_boxes = []
