@@ -27,7 +27,6 @@ Data subpackage
   - [X] Improve bbox_to_brambox _(gpu/pytorch)_
   - [X] FIX preprocessing and random resizing with multiple workers
   - [X] Clean up dataset and preprocessing
-  - [ ] RandomCrop: black border -> gray 
 
 ## Engine
 Engine subpackage

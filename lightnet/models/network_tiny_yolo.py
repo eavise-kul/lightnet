@@ -25,6 +25,7 @@ class TinyYolo(lnn.Darknet):
         conf_thresh (Number, optional): Confidence threshold for postprocessing of the boxes; Default **0.25**
         nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
         input_channels (Number, optional): Number of input channels; Default **3**
+        anchors (dict, optional): Dictionary containing `num` and `values` properties with anchor values; Default **Tiny yolo v2 anchors**
 
     Attributes:
         self.anchors (list): Anchor coordinates. Usually they are w,h pairs, but it can also be x,y,w,h pairs
@@ -34,14 +35,14 @@ class TinyYolo(lnn.Darknet):
 
     .. _Tiny Yolo v2: https://github.com/pjreddie/darknet/blob/master/cfg/tiny-yolo-voc.cfg
     """
-    def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3):
+    def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3, anchors=dict(num=5, values=[1.08,1.19, 3.42,4.41, 6.63,11.38, 9.42,5.11, 16.62,10.52])):
         """ Network initialisation """
         super(TinyYolo, self).__init__()
 
         # Parameters
         self.num_classes = num_classes
-        self.anchors = [1.08,1.19, 3.42,4.41, 6.63,11.38, 9.42,5.11, 16.62,10.52]
-        self.num_anchors = 5
+        self.num_anchors = anchors['num']
+        self.anchors = anchors['values']
         self.reduction = 32     # input_dim/output_dim
 
         # Network
