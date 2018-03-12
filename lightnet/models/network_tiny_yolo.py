@@ -58,7 +58,7 @@ class TinyYolo(lnn.Darknet):
             ('9_convbatch',     lnn.layer.Conv2dBatchLeaky(128, 256, 3, 1, 1)),
             ('10_max',          nn.MaxPool2d(2, 2)),
             ('11_convbatch',    lnn.layer.Conv2dBatchLeaky(256, 512, 3, 1, 1)),
-            ('12_max',          nn.MaxPool2d(2, 1)),
+            ('12_max',          lnn.PaddedMaxPool2d(2, 1, (0,1,0,1))),
             ('13_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 1024, 3, 1, 1)),
             ('14_convbatch',    lnn.layer.Conv2dBatchLeaky(1024, 1024, 3, 1, 1)),
             ('15_conv',         nn.Conv2d(1024, self.num_anchors*(5+self.num_classes), 1, 1, 0)),
