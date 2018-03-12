@@ -8,5 +8,6 @@ Take a look at the code to learn how to use this library, or just use these mode
 
 
 from .dataset_darknet import *
+from .network_darknet19 import *
 from .network_yolo import *
 from .network_tiny_yolo import *

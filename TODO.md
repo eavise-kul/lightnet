@@ -27,6 +27,7 @@ Data subpackage
   - [X] Improve bbox_to_brambox _(gpu/pytorch)_
   - [X] FIX preprocessing and random resizing with multiple workers
   - [X] Clean up dataset and preprocessing
+  - [ ] Explicit BGR2RGB transform for cv2
 
 ## Engine
 Engine subpackage
@@ -44,6 +45,8 @@ Model implementations subpackage
   - [X] Add tiny-yolo
   - [X] Create darknet dataset
   - [X] Write documentation
+  - [X] Add Darknet19
+  - [ ] Add Mobilenet YOLO
 
 ## Varia
 Various bits and bops

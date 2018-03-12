@@ -35,11 +35,13 @@ import lightnet
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     ]
 
+todo_include_todos = True
 napoleon_use_ivar = True
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['torch', 'torchvision', 'visdom']
