@@ -123,7 +123,7 @@ class Conv2dBatchLeaky(nn.Module):
         self.leaky_slope = leaky_slope
 
         # Layer
-        self.layer = nn.Sequential(
+        self.layers = nn.Sequential(
             nn.Conv2d(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding, bias=False),
             nn.BatchNorm2d(self.out_channels),
             nn.LeakyReLU(self.leaky_slope, inplace=True)
@@ -134,5 +134,5 @@ class Conv2dBatchLeaky(nn.Module):
         return s.format(name=self.__class__.__name__, **self.__dict__)
 
     def forward(self, x):
-        x = self.layer(x)
+        x = self.layers(x)
         return x

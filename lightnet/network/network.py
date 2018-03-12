@@ -142,6 +142,29 @@ class Darknet(nn.Module):
                 log(Loglvl.DEBUG, 'Saving weights to darknet file')
                 self._save_darknet_weights(weights_file)
 
+    def update_weights(self, weights_file):
+        """ Pytorch weight files does not allow for partial loading of a network.
+        This update function gets around it by updating the current state_dict of the network
+        with the state_dict of the pytorch ``weights_file`` given.
+        """
+        old_state = self.state_dict()
+        new_state = torch.load(weights_file, lambda storage, loc: storage)
+
+        # Changed in layer.py: self.layer -> self.layers
+        warned = False
+        for key in list(new_state['weights'].keys()):
+            if '.layer.' in key:
+                if not warned:
+                    log(Loglvl.WARN, 'Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
+                    warned = True
+                new_key = key.replace('.layer.', '.layers.')
+                new_state['weights'][new_key] = new_state['weights'].pop(key)
+
+        new_dict = {k: v for k,v in new_state['weights'].items() if k in old_state}
+        old_state.update(new_dict)
+        self.load_state_dict(old_state)
+        self.seen = new_state['seen']
+
     def _load_darknet_weights(self, weights_file):
         weights = WeightLoader(weights_file)
         self.header = weights.header
@@ -172,6 +195,17 @@ class Darknet(nn.Module):
     def _load_pickle_weights(self, weights_file):
         state = torch.load(weights_file, lambda storage, loc: storage)
         self.seen = state['seen']
+
+        # Changed in layer.py: self.layer -> self.layers
+        warned = False
+        for key in list(state['weights'].keys()):
+            if '.layer.' in key:
+                if not warned:
+                    log(Loglvl.WARN, 'Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
+                    warned = True
+                new_key = key.replace('.layer.', '.layers.')
+                state['weights'][new_key] = state['weights'].pop(key)
+
         self.load_state_dict(state['weights'])
 
     def _save_pickle_weights(self, weights_file):
