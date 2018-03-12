@@ -61,21 +61,21 @@ class WeightLoader:
     def _load_convbatch(self, model):
         num_b = model.layers[1].bias.numel()
         model.layers[1].bias.data.copy_(torch.from_numpy(self.buf[self.start:self.start+num_b])
-                                             .view_as(model.layer[1].bias.data))
+                                             .view_as(model.layers[1].bias.data))
         self.start += num_b
         model.layers[1].weight.data.copy_(torch.from_numpy(self.buf[self.start:self.start+num_b])
-                                               .view_as(model.layer[1].weight.data))
+                                               .view_as(model.layers[1].weight.data))
         self.start += num_b
         model.layers[1].running_mean.copy_(torch.from_numpy(self.buf[self.start:self.start+num_b])
-                                                .view_as(model.layer[1].running_mean))
+                                                .view_as(model.layers[1].running_mean))
         self.start += num_b
         model.layers[1].running_var.copy_(torch.from_numpy(self.buf[self.start:self.start+num_b])
-                                               .view_as(model.layer[1].running_var))
+                                               .view_as(model.layers[1].running_var))
         self.start += num_b
 
         num_w = model.layers[0].weight.numel()
         model.layers[0].weight.data.copy_(torch.from_numpy(self.buf[self.start:self.start+num_w])
-                                               .view_as(model.layer[0].weight.data))
+                                               .view_as(model.layers[0].weight.data))
         self.start += num_w 
 
     def _load_fc(self, model):
