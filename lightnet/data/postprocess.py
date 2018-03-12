@@ -5,6 +5,7 @@
 #
 
 import torch
+import numpy as np
 from torch.autograd import Variable
 from brambox.boxes.detections.detection import *
 
@@ -121,6 +122,7 @@ class GetBoundingBoxes:
         Return:
           (tensor): Pruned boxes
         """
+
         if boxes.numel() == 0:
             return boxes
 
