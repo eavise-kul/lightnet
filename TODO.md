@@ -46,7 +46,7 @@ Model implementations subpackage
   - [X] Create darknet dataset
   - [X] Write documentation
   - [X] Add Darknet19
-  - [ ] Add Mobilenet YOLO
+  - [X] Add Mobilenet YOLO
 
 ## Varia
 Various bits and bops
