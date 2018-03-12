@@ -71,12 +71,12 @@ class Engine:
     def __call__(self):
         """ Start the training cycle. """
         self.start()
+        self._update_rates()
         if self.test_rate is not None:
             last_test = self.batch - (self.batch % self.test_rate)
 
         log(Loglvl.DEBUG, 'Start training')
         self.network.train()
-        self._update_rates()
         while True:
             loader = self.training_dataloader
             for idx, data in enumerate(loader):
@@ -101,6 +101,11 @@ class Engine:
                     self.test()
                     log(Loglvl.DEBUG, 'Done testing')
                     self.network.train()
+
+                # Check if we need to stop training
+                if self.quit() or self.sigint:
+                    log(Loglvl.VERBOSE, 'Reached quitting criteria')
+                    return
 
                 # Automatically update registered rates
                 self._update_rates()

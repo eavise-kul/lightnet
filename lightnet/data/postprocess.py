@@ -231,7 +231,9 @@ class ReverseLetterbox(BaseTransform):
             scale = im_h/net_h
         pad = int((net_w - im_w/scale) / 2), int((net_h - im_h/scale) / 2)
 
-        if len(boxes) == 0:
+        if isinstance(boxes, Detection):
+            return cls._transform([boxes], scale, pad)[0]
+        elif len(boxes) == 0:
             return boxes
         elif isinstance(boxes[0], Detection):
             return cls._transform(boxes, scale, pad)
