@@ -90,11 +90,9 @@ class Reorg(torch.nn.Module):
         super(Reorg, self).__init__()
 
         self.stride = stride
-        self.output = None
 
     def forward(self, x):
         x = ReorgFunction(self.stride)(x)
-        self.output = x.clone()
         return x
 #class Reorg(nn.Module):
 #    """ This layer reorganizes a tensor according to a stride.
@@ -108,7 +106,6 @@ class Reorg(torch.nn.Module):
 #        if not isinstance(stride, (tuple, int)):
 #            log(Loglvl.ERROR, f'stride is not a tuple or int [{type(stride)}]', TypeError)
 #        self.stride = stride
-#        self.output = None
 #
 #    def __repr__(self):
 #        return f'{self.__class__.__name__} (stride={self.stride})'
@@ -135,7 +132,6 @@ class Reorg(torch.nn.Module):
 #        x = x.view(B, C, H//hs*W//ws, hs*ws).transpose(2,3).contiguous()
 #        x = x.view(B, C, hs*ws, H//hs, W//ws).transpose(1,2).contiguous()
 #        x = x.view(B, hs*ws*C, H//hs, W//ws)
-#        self.output = x.clone()
 #        return x
 
 
@@ -177,7 +173,6 @@ class Conv2dBatchLeaky(nn.Module):
         self.stride = stride
         self.padding = padding
         self.leaky_slope = leaky_slope
-        self.output = None
 
         # Layer
         self.layers = nn.Sequential(
@@ -192,7 +187,6 @@ class Conv2dBatchLeaky(nn.Module):
 
     def forward(self, x):
         x = self.layers(x)
-        self.output = x.clone()
         return x
 
 
