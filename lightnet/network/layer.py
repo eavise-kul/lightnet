@@ -13,11 +13,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
-from .reorg._ext import reorg_layer
 
 from ..logger import *
 
-__all__ = ['PaddedMaxPool2d', 'Reorg', 'GlobalAvgPool2d', 'Conv2dBatchLeaky']
+__all__ = ['PaddedMaxPool2d', 'Reorg', 'GlobalAvgPool2d', 'Conv2dBatchLeaky', 'Conv2dBatchReLU', 'Conv2dDepthWise']
 
 
 class PaddedMaxPool2d(nn.Module):
@@ -44,95 +43,48 @@ class PaddedMaxPool2d(nn.Module):
         return x
 
 
-class ReorgFunction(Function):
+class Reorg(nn.Module):
+    """ This layer reorganizes a tensor according to a stride.
+    The dimensions 2,3 will be sliced by the stride and then stacked in dimension 1. (input must have 4 dimensions)
+
+    Args:
+        stride (int): stride to divide the input tensor
+    """
     def __init__(self, stride=2):
-        self.stride = stride
-
-    def forward(self, x):
-        stride = self.stride
-
-        bsize, c, h, w = x.size()
-        out_w, out_h, out_c = int(w / stride), int(h / stride), c * (stride * stride)  # noqa
-        out = torch.FloatTensor(bsize, out_c, out_h, out_w)
-
-        if x.is_cuda:
-            out = out.cuda()
-            reorg_layer.reorg_cuda(x, w, h, c, bsize,
-                                   stride, 0, out)
-        else:
-            reorg_layer.reorg_cpu(x, w, h, c, bsize,
-                                  stride, 0, out)
-
-        return out
-
-    def backward(self, grad_top):
-        stride = self.stride
-        bsize, c, h, w = grad_top.size()
-
-        out_w, out_h, out_c = w * stride, h * stride, c / (stride * stride)
-        grad_bottom = torch.FloatTensor(bsize, int(out_c), out_h, out_w)
-
-        # rev_stride = 1. / stride    # reverse
-        if grad_top.is_cuda:
-            grad_bottom = grad_bottom.cuda()
-            reorg_layer.reorg_cuda(grad_top, w, h, c, bsize,
-                                   stride, 1, grad_bottom)
-        else:
-            reorg_layer.reorg_cpu(grad_top, w, h, c, bsize,
-                                  stride, 1, grad_bottom)
-
-        return grad_bottom
-
-
-class Reorg(torch.nn.Module):
-
-    def __init__(self, stride):
         super(Reorg, self).__init__()
-
+        if not isinstance(stride, int):
+            log(Loglvl.ERROR, f'stride is not an int [{type(stride)}]', TypeError)
         self.stride = stride
+        self.darknet = True
+
+    def __repr__(self):
+        return f'{self.__class__.__name__} (stride={self.stride}, darknet_compatible_mode={self.darknet})'
 
     def forward(self, x):
-        x = ReorgFunction(self.stride)(x)
+        assert(x.data.dim() == 4)
+        B = x.data.size(0)
+        C = x.data.size(1)
+        H = x.data.size(2)
+        W = x.data.size(3)
+
+        if H % self.stride != 0:
+            log(Loglvl.ERROR, f'Dimension mismatch: {H} is not divisible by {self.stride}', ValueError)
+        if W % self.stride != 0:
+            log(Loglvl.ERROR, f'Dimension mismatch: {W} is not divisible by {self.stride}', ValueError)
+
+        # darknet compatible version from: https://github.com/thtrieu/darkflow/issues/173#issuecomment-296048648
+        if self.darknet:
+            x = x.view(B, C//(self.stride**2), H, self.stride, W, self.stride).contiguous()
+            x = x.permute(0, 3, 5, 1, 2, 4).contiguous()
+            x = x.view(B, -1, H//self.stride, W//self.stride)
+        else:
+            ws, hs = self.stride, self.stride
+            x = x.view(B, C, H//hs, hs, W//ws, ws).transpose(3,4).contiguous()
+            x = x.view(B, C, H//hs*W//ws, hs*ws).transpose(2,3).contiguous()
+            x = x.view(B, C, hs*ws, H//hs, W//ws).transpose(1,2).contiguous()
+            x = x.view(B, hs*ws*C, H//hs, W//ws)
+
         return x
-#class Reorg(nn.Module):
-#    """ This layer reorganizes a tensor according to a stride.
-#    The dimensions 2,3 will be sliced by the stride and then stacked in dimension 1. (input must have 4 dimensions)
-#
-#    Args:
-#        stride (int or tuple): stride to divide the input tensor
-#    """
-#    def __init__(self, stride=2):
-#        super(Reorg, self).__init__()
-#        if not isinstance(stride, (tuple, int)):
-#            log(Loglvl.ERROR, f'stride is not a tuple or int [{type(stride)}]', TypeError)
-#        self.stride = stride
-#
-#    def __repr__(self):
-#        return f'{self.__class__.__name__} (stride={self.stride})'
-#
-#    def forward(self, x):
-#        assert(x.data.dim() == 4)
-#        B = x.data.size(0)
-#        C = x.data.size(1)
-#        H = x.data.size(2)
-#        W = x.data.size(3)
-#
-#        if isinstance(self.stride, int):
-#            ws = self.stride
-#            hs = self.stride
-#        else:
-#            ws = self.stride[0]
-#            hs = self.stride[1]
-#        if H % hs != 0:
-#            log(Loglvl.ERROR, f'Dimension mismatch: {H} is not divisible by {hs}', ValueError)
-#        if W % ws != 0:
-#            log(Loglvl.ERROR, f'Dimension mismatch: {W} is not divisible by {ws}', ValueError)
-#
-#        x = x.view(B, C, H//hs, hs, W//ws, ws).transpose(3,4).contiguous()
-#        x = x.view(B, C, H//hs*W//ws, hs*ws).transpose(2,3).contiguous()
-#        x = x.view(B, C, hs*ws, H//hs, W//ws).transpose(1,2).contiguous()
-#        x = x.view(B, hs*ws*C, H//hs, W//ws)
-#        return x
 
 
 class GlobalAvgPool2d(nn.Module):

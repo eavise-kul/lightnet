@@ -1,3 +1,4 @@
+import time
 import unittest
 import torch
 from lightnet.network.layer import *
@@ -90,7 +91,9 @@ class TestReorg(unittest.TestCase):
         correct given a tensor with known input dimensions.
         Test CPU implementation
         """
+        #t1 = time.time()
         output = self.reorg.forward(self.input)
+        #print(f'CPU: {time.time()-t1}')
         self.assertEqual(output.size(), torch.Size([1, 32, 4, 4]))
 
     def test_dimensions_forward_cuda(self):
@@ -99,7 +102,10 @@ class TestReorg(unittest.TestCase):
         Test CUDA implementation
         """
         self.input = self.input.cuda()
+        #t1 = time.time()
         output = self.reorg.forward(self.input)
+        #torch.cuda.synchronize()
+        #print(f'GPU: {time.time()-t1}')
         self.assertEqual(output.size(), torch.Size([1, 32, 4, 4]))
 
     def test_forward_cpu(self):
@@ -120,9 +126,6 @@ class TestReorg(unittest.TestCase):
         output = self.reorg.forward(self.input)
         equal_elements = torch.eq(output.data.cpu(), reorg_forward_expected_output.view(1, 32, 4, 4))
         self.assertTrue(equal_elements.all())
-
-
-    # TODO: add test cases for backward
 
 if __name__ == '__main__':
     unittest.main()
