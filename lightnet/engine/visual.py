@@ -20,11 +20,12 @@ class LinePlotter:
         env (str, optional): Name of the environment to plot into; Default **main**
         name (str, optional): Name of the trace to draw by default; Default **None**
         opts (dict, optional): Dictionary with default options; Default **{}**
+
+    Note:
+        If the visdom argument is None, this plotter will do nothing.
+        This can be used to disable using the visdom plotter, without having to check for it in the application code.
     """
     def __init__(self, visdom, window=None, env=None, name=None, opts={}):
-        if not visdom.check_connection():
-            log(Loglvl.ERROR, 'No connection with visdom server', ConnectionError)
-
         self.vis = visdom
         self.win = window
         self.env = env
@@ -34,6 +35,11 @@ class LinePlotter:
         self.traces = []
         if name is not None:
             self.traces.append(name)
+
+        if self.vis is None:
+            return 
+        if not self.vis.check_connection():
+            log(Loglvl.ERROR, 'No connection with visdom server', ConnectionError)
 
     def __call__(self, y, x=None, opts={}, name=None, update='append'):
         """ Add point(s) to a trace or draw a new trace in the window.
@@ -49,6 +55,9 @@ class LinePlotter:
             If opts is set to ``None``, no options will be passed (not even the default ones).
             This is sometimes necessary, like when you want to remove a trace.
         """
+        if self.vis is None:
+            return
+
         if name is None:
             name = self.name
         if name is not None and name not in self.traces:
@@ -71,6 +80,9 @@ class LinePlotter:
         Args:
             name (str, optional): Name of the trace to clear; Default **all**
         """
+        if self.vis is None:
+            return
+
         if name is not None:
             self.vis.line(None, win=self.win, env=self.env, name=name, update='remove')
         else:
@@ -79,5 +91,8 @@ class LinePlotter:
 
     def close(self):
         """ Close the visdom window. """
+        if self.vis is None:
+            return
+
         if self.vis.win_exists(self.win, self.env):
             self.vis.close(self.win, self.env)
