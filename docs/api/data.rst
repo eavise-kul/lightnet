@@ -34,8 +34,8 @@ You can also call the ``apply()`` method on the classes to run the transformatio
 .. autoclass:: lightnet.data.ReverseLetterbox
    :members: apply
 
-Dataset
--------
+Data loading
+------------
 .. autoclass:: lightnet.data.BramboxData
    :members:
 .. autoclass:: lightnet.data.DataLoader

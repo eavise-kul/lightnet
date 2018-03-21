@@ -48,7 +48,7 @@ autodoc_mock_imports = ['torch', 'torchvision', 'visdom']
 intersphinx_mapping = {
     'pytorch': ('http://pytorch.org/docs/master/', None),
     'python': ('https://docs.python.org/3.6', None),
-    #'brambox': ('https://eavise.gitlab.io/brambox', None)
+    'brambox': ('https://eavise.gitlab.io/brambox', None),
     }
 
 # Add any paths that contain templates here, relative to this directory.

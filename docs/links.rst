@@ -4,7 +4,7 @@
 .. _darknet: https://www.pjreddie.com/darknet/
 .. _pytorch-yolo2: https://github.com/marvis/pytorch-yolo2/
 .. _visdom: https://github.com/facebookresearch/visdom/
-.. _brambox: https://gitlab.com/EAVISE/brambox/
+.. _brambox: https://eavise.gitlab.io/brambox
 
 
 .. DIRECTIVES

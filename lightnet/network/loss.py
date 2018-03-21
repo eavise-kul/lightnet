@@ -40,7 +40,7 @@ class RegionLoss:
         
         Args:
             output (torch.autograd.Variable): Output from the network
-            target (brambox.Annotation or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see :class:`lightnet.data.BramboxToTensor`)
+            target (brambox.boxes.annotations.Annotation or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see :class:`lightnet.data.BramboxToTensor`)
         """
         # Parameters
         nB = output.data.size(0)

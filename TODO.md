@@ -37,7 +37,7 @@ Engine subpackage
   - [X] Rework visualisation concept
   - [X] Make visdom completely optional _(fix imports)_
   - [X] Rework entire engine class
-  - [ ] Expose _log.open_file_
+  - [ ] Rework logging mechanism to use standard python logger
 
 ## Models
 Model implementations subpackage
@@ -55,8 +55,11 @@ Various bits and bops
   - [X] Add requirements.txt
   - [X] Write logger documentation
   - [X] Add logger file print
-  - [ ] Add brambox intersphinx mapping
-  - [ ] Add _how_to_use_ guide
+  - [X] Add brambox intersphinx mapping
+  - [ ] Add _how to_ guide
+  - [ ] Add _examples_ guide
+  - [ ] Rewrite _score_ guide with new numbers
+  - [ ] Rewrite _speed_ guide with new numbers
 
 ## Examples and Scripts
 Everything about creating examples and scripts to show off the library
@@ -72,5 +75,5 @@ Everything about creating examples and scripts to show off the library
   - [X] Test yolo-voc engine training
   - [X] Compare accuracy yolo-voc trained weights
   - [ ] Compare speed yolo-voc training
-  - [ ] Change training examples to use new engine
+  - [ ] Rework examples to work with new lightnet API
 

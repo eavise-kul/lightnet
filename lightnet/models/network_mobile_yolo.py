@@ -36,7 +36,6 @@ class MobileYolo(lnn.Darknet):
         When changing the ``alpha`` value, you are changing the network architecture.
         This means you cannot use weights from this network with a different alpha value.
 
-    .. _Yolo v2: https://github.com/pjreddie/darknet/blob/master/cfg/yolo-voc.2.0.cfg
     .. _Mobilenets: https://arxiv.org/pdf/1704.04861.pdf
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, alpha=1.0, input_channels=3, anchors=dict(num=5, values=[1.08,1.19, 3.42,4.41, 6.63,11.38, 9.42,5.11, 16.62,10.52])):

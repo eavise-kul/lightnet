@@ -2,17 +2,20 @@ Network
 =======
 .. automodule:: lightnet.network
 
-Darknet networks
-----------------
-.. autoclass:: Darknet
+Layers
+------
+.. automodule:: lightnet.network.layer
    :members:
 
-.. autoclass:: RegionLoss
+Loss
+----
+.. autoclass:: lightnet.network.RegionLoss
    :members: __call__
 
-Darknet layers
---------------
-.. automodule:: lightnet.network.layer
+
+Miscelaneous
+------------
+.. autoclass:: lightnet.network.Darknet
    :members:
 
 
