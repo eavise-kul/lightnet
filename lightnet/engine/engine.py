@@ -24,8 +24,9 @@ class Engine:
        :dedent: 4
 
     Args:
-        network (lightnet.network.Darknet): Lightnet network to train
-        optimizer (torch.optim): Optimizer for the network
+        network (lightnet.network.Darknet, optional): Lightnet network to train
+        optimizer (torch.optim, optional): Optimizer for the network
+        dataloader (lightnet.data.DataLoader or torch.utils.data.DataLoader, optional): Dataloader for the training data
         **kwargs (dict, optional): Keywords arguments that will be set as attributes of the engine
 
     Attributes:
@@ -43,9 +44,21 @@ class Engine:
     max_batches = None
     test_rate = None
 
-    def __init__(self, network, optimizer, **kwargs):
-        self.network = network
-        self.optimizer = optimizer
+    def __init__(self, network, optimizer, dataloader, **kwargs):
+        if network is not None:
+            self.network = network
+        else:
+            log(Loglvl.WARN, 'No network given, make sure to have a self.network property for this engine to work with.')
+
+        if optimizer is not None:
+            self.optimizer = optimizer
+        else:
+            log(Loglvl.WARN, 'No optimizer given, make sure to have a self.optimizer property for this engine to work with.')
+
+        if dataloader is not None:
+            self.dataloader = dataloader
+        else:
+            log(Loglvl.WARN, 'No dataloader given, make sure to have a self.dataloader property for this engine to work with.')
 
         # Rates
         self.__lr = self.optimizer.param_groups[0]['lr']
@@ -75,10 +88,10 @@ class Engine:
         if self.test_rate is not None:
             last_test = self.batch - (self.batch % self.test_rate)
 
-        log(Loglvl.DEBUG, 'Start training')
+        log(Loglvl.VERBOSE, 'Start training')
         self.network.train()
         while True:
-            loader = self.training_dataloader
+            loader = self.dataloader
             for idx, data in enumerate(loader):
                 # Forward and backward on (mini-)batches
                 self.process_batch(data)
@@ -95,7 +108,7 @@ class Engine:
 
                 # Check if we need to perform testing
                 if self.test_rate is not None and self.batch - last_test >= self.test_rate:
-                    log(Loglvl.DEBUG, 'Start testing')
+                    log(Loglvl.VERBOSE, 'Start testing')
                     last_test += self.test_rate
                     self.network.eval()
                     self.test()
