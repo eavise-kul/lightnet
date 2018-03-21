@@ -27,7 +27,7 @@ Data subpackage
   - [X] Improve bbox_to_brambox _(gpu/pytorch)_
   - [X] FIX preprocessing and random resizing with multiple workers
   - [X] Clean up dataset and preprocessing
-  - [ ] Explicit BGR2RGB transform for cv2
+  - [X] Explicit BGR2RGB transform for cv2
 
 ## Engine
 Engine subpackage

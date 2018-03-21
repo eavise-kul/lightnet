@@ -310,6 +310,12 @@ class HSVShift(BaseTransform):
         hue (Number): Random number between -hue,hue is used to shift the hue
         saturation (Number): Random number between 1,saturation is used to shift the saturation; 50% chance to get 1/dSaturation in stead of dSaturation
         value (Number): Random number between 1,value is used to shift the value; 50% chance to get 1/dValue in stead of dValue
+
+    Warning:
+        If you use OpenCV as your image processing library, make sure the image is RGB before using this transform.
+        By default OpenCV uses BGR, so you must use `cvtColor`_ function to transform it to RGB.
+
+    .. _cvtColor: https://docs.opencv.org/master/d7/d1b/group__imgproc__misc.html#ga397ae87e1288a81d2363b61574eb8cab
     """
     def __init__(self, hue, saturation, value):
         self.hue = hue
@@ -360,7 +366,7 @@ class HSVShift(BaseTransform):
     @staticmethod
     def _tf_cv(img, dh, ds, dv):
         """ Random hsv shift """
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
 
         def change_hue(x):
             x += int(dh*x)
