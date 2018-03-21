@@ -42,6 +42,7 @@ class Letterbox(BaseMultiTransform):
         self.dataset = dataset
         self.pad = None
         self.scale = None
+        self.fill_color = 127
 
     def __call__(self, data):
         if data is None:
@@ -84,10 +85,12 @@ class Letterbox(BaseMultiTransform):
             return img
 
         # Padding
+        img_np = np.array(img)
+        channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
         pad_w = (net_w - im_w) / 2
         pad_h = (net_h - im_h) / 2
         self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = ImageOps.expand(img, border=self.pad)
+        img = ImageOps.expand(img, border=self.pad, fill=(self.fill_color,)*channels)
         return img
 
     def _tf_cv(self, img):
@@ -117,10 +120,11 @@ class Letterbox(BaseMultiTransform):
             return img
 
         # Padding
+        channels = img.shape[2] if len(img_np.shape) > 2 else 1
         pad_w = (net_w - im_w) / 2
         pad_h = (net_h - im_h) / 2
         self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=0)
+        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=(self.fill_color,)*channels)
         return img
 
     def _tf_anno(self, annos):
@@ -153,6 +157,7 @@ class RandomCrop(BaseMultiTransform):
         self.jitter = jitter
         self.crop_anno = crop_anno
         self.crop_modifier = bbb.CropModifier(float('Inf'), intersection_threshold)
+        self.fill_color = 127
 
     def __call__(self, data):
         if data is None:
@@ -170,8 +175,16 @@ class RandomCrop(BaseMultiTransform):
         """ Take random crop from image """
         im_w, im_h = img.size
         crop = self._get_crop(im_w, im_h)
+        crop_w = crop[2] - crop[0]
+        crop_h = crop[3] - crop[1]
+        img_np = np.array(img)
+        channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
 
-        return img.crop((crop[0], crop[1], crop[2]-1, crop[3]-1))
+        img = img.crop((max(0, crop[0]), max(0, crop[1]), min(im_w, crop[2]-1), min(im_h, crop[3]-1)))
+        img_crop = Image.new(img.mode, (crop_w, crop_h), color=(self.fill_color,)*channels)
+        img_crop.paste(img, (max(0, -crop[0]), max(0, -crop[1])))
+
+        return img_crop
 
     def _tf_cv(self, img):
         """ Take random crop from image """
@@ -180,7 +193,7 @@ class RandomCrop(BaseMultiTransform):
 
         crop_w = crop[2] - crop[0]
         crop_h = crop[3] - crop[1]
-        img_crop = np.zeros((crop_h, crop_w) + img.shape[2:], dtype=img.dtype)
+        img_crop = np.ones((crop_h, crop_w) + img.shape[2:], dtype=img.dtype) * self.fill_color
 
         src_x1 = max(0, crop[0])
         src_x2 = min(crop[2], im_w)
