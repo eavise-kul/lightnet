@@ -56,7 +56,7 @@ Various bits and bops
   - [X] Write logger documentation
   - [X] Add logger file print
   - [X] Add brambox intersphinx mapping
-  - [ ] Add _how to_ guide
+  - [X] Add _how to_ guide
   - [ ] Add _examples_ guide
   - [ ] Rewrite _score_ guide with new numbers
   - [ ] Rewrite _speed_ guide with new numbers
