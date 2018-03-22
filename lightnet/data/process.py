@@ -4,8 +4,6 @@
 #   Copyright EAVISE
 #
 
-from ..logger import *
-
 
 class BaseTransform:
     """ Base transform class for the pre- and post-processing functions.

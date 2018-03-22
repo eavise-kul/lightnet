@@ -37,7 +37,7 @@ Engine subpackage
   - [X] Rework visualisation concept
   - [X] Make visdom completely optional _(fix imports)_
   - [X] Rework entire engine class
-  - [ ] Rework logging mechanism to use standard python logger
+  - [X] Rework logging mechanism to use standard python logger
 
 ## Models
 Model implementations subpackage

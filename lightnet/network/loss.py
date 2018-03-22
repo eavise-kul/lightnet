@@ -10,7 +10,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from ..util import bbox_iou, bbox_multi_ious
-from ..logger import *
 
 __all__ = ['RegionLoss']
 

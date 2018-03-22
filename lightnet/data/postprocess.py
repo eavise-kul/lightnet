@@ -4,15 +4,16 @@
 #   Copyright EAVISE
 #
 
+import logging
 import torch
 import numpy as np
 from torch.autograd import Variable
 from brambox.boxes.detections.detection import *
 
-from ..logger import *
 from .process import *
 
 __all__ = ['GetBoundingBoxes', 'TensorToBrambox', 'ReverseLetterbox']
+log = logging.getLogger(__name__)
 
 
 class GetBoundingBoxes:
@@ -171,7 +172,7 @@ class TensorToBrambox(BaseTransform):
         self.network_size = network_size
         self.class_label_map = class_label_map
         if class_label_map is None:
-            log(Loglvl.WARN, 'No class_label_map given. The indexes will be used as class_labels.')
+            log.warn('No class_label_map given. The indexes will be used as class_labels.')
 
     @classmethod
     def apply(cls, boxes, network_size, class_label_map=None):

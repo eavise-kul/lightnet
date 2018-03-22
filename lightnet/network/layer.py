@@ -9,14 +9,15 @@
    If an int is given, both the width and height are set to this value.
 """
 
+import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 
-from ..logger import *
 
 __all__ = ['PaddedMaxPool2d', 'Reorg', 'GlobalAvgPool2d', 'Conv2dBatchLeaky', 'Conv2dBatchReLU', 'Conv2dDepthWise']
+log = logging.getLogger(__name__)
 
 
 class PaddedMaxPool2d(nn.Module):
@@ -53,7 +54,8 @@ class Reorg(nn.Module):
     def __init__(self, stride=2):
         super(Reorg, self).__init__()
         if not isinstance(stride, int):
-            log(Loglvl.ERROR, f'stride is not an int [{type(stride)}]', TypeError)
+            log.error(f'stride is not an int [{type(stride)}]')
+            raise TypeError
         self.stride = stride
         self.darknet = True
 
@@ -68,9 +70,11 @@ class Reorg(nn.Module):
         W = x.data.size(3)
 
         if H % self.stride != 0:
-            log(Loglvl.ERROR, f'Dimension mismatch: {H} is not divisible by {self.stride}', ValueError)
+            log.error(f'Dimension mismatch: {H} is not divisible by {self.stride}')
+            raise ValueError
         if W % self.stride != 0:
-            log(Loglvl.ERROR, f'Dimension mismatch: {W} is not divisible by {self.stride}', ValueError)
+            log.error(f'Dimension mismatch: {W} is not divisible by {self.stride}')
+            raise ValueError
 
         # darknet compatible version from: https://github.com/thtrieu/darkflow/issues/173#issuecomment-296048648
         if self.darknet:

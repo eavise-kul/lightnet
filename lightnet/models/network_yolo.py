@@ -95,7 +95,6 @@ class Yolo(lnn.Darknet):
         self.load_weights(weights_file)
         self.loss = lnn.RegionLoss(self) 
         self.postprocess = lnd.GetBoundingBoxes(self, conf_thresh, nms_thresh)
-        self.output = None
 
     def _forward(self, x):
         outputs = []
@@ -106,6 +105,5 @@ class Yolo(lnn.Darknet):
         outputs.append(self.layers[2](outputs[0]))
         # Route : layers=-1,-4
         out = self.layers[3](torch.cat((outputs[2], outputs[1]), 1))
-        self.output = out.clone()
 
         return out

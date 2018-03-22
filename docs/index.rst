@@ -8,7 +8,7 @@
 Lightnet documentation
 ======================
 Lightnet is a library for pytorch_, that makes it easier to create CNN's.
-It was mainly created to implement the darknet_ networks in python.
+It was mainly created to implement darknet_ networks in python.
 
 .. toctree::
    :glob:
@@ -25,7 +25,7 @@ It was mainly created to implement the darknet_ networks in python.
    lightnet.data <api/data>
    lightnet.engine <api/engine>
    lightnet.models <api/models>
-   lightnet.logger <api/logger>
+   lightnet.log <api/log>
 
 
 Indices and tables

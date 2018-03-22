@@ -3,12 +3,13 @@
 #   Copyright EAVISE
 #   
 
+import logging
 import numpy as np
 import brambox.boxes as bbb
 
-from ..logger import *
 
 __all__ = ['LinePlotter']
+log = logging.getLogger(__name__)
 
 
 class LinePlotter:
@@ -39,7 +40,8 @@ class LinePlotter:
         if self.vis is None:
             return 
         if not self.vis.check_connection():
-            log(Loglvl.ERROR, 'No connection with visdom server', ConnectionError)
+            log.error('No connection with visdom server')
+            self.vis = None
 
     def __call__(self, y, x=None, opts={}, name=None, update='append'):
         """ Add point(s) to a trace or draw a new trace in the window.
@@ -69,10 +71,10 @@ class LinePlotter:
             if 'legend' not in opts:
                 opts['legend'] = [name]
             self.vis.line(y,x, self.win, self.env, opts, name=name)
-            log(Loglvl.DEBUG, f'Created new visdom window [{self.win}]')
+            log.debug(f'Created new visdom window [{self.win}]')
         else:
             self.vis.line(y,x, self.win, self.env, opts, update, name)
-            log(Loglvl.DEBUG, f'Updated visdom window [{self.win}]')
+            log.debug(f'Updated visdom window [{self.win}]')
 
     def clear(self, name=None):
         """ Clear the traces that were used with this lineplotter.

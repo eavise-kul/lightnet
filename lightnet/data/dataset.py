@@ -6,6 +6,7 @@
 import os
 import copy
 import random
+import logging
 from PIL import Image
 import torch
 import torch.multiprocessing as multiprocessing
@@ -15,9 +16,9 @@ from torch.utils.data.dataloader import DataLoader as torchDataLoader
 from torch.utils.data.dataloader import default_collate
 import brambox.boxes as bbb
 
-from ..logger import *
 
 __all__ = ['BramboxData', 'DataLoader', 'list_collate']
+log = logging.getLogger(__name__)
 
 
 class BramboxData(Dataset):
@@ -49,18 +50,19 @@ class BramboxData(Dataset):
 
         # Add class_ids
         if class_label_map is None:
-            log(Loglvl.WARN, f'No class_label_map given, annotations wont have a class_id values for eg. loss function')
+            log.warn(f'No class_label_map given, annotations wont have a class_id values for eg. loss function')
         for k,annos in self.annos.items():
             for a in annos:
                 if class_label_map is not None:
                     try:
                         a.class_id = class_label_map.index(a.class_label)
                     except ValueError:
-                        log(Loglvl.ERROR, f'{a.class_label} is not found in the class_label_map', ValueError)
+                        log.error(f'{a.class_label} is not found in the class_label_map')
+                        raise
                 else:
                     a.class_id = 0
 
-        log(Loglvl.VERBOSE, f'Dataset loaded: {len(self.keys)} images')
+        log.info(f'Dataset loaded: {len(self.keys)} images')
 
     def __len__(self):
         return len(self.keys)
@@ -71,7 +73,8 @@ class BramboxData(Dataset):
             self._input_dim = index[0]
             index = index[1]
         if index >= len(self):
-            log(Loglvl.ERROR, f'list index out of range [{index}/{len(self)-1}]', IndexError)
+            log.error(f'list index out of range [{index}/{len(self)-1}]')
+            raise IndexError
 
         # Load
         img = Image.open(self.id(self.keys[index]))
@@ -172,7 +175,7 @@ class BatchSampler(torchBatchSampler):
     def __set_input_dim(self):
         """ This function randomly changes the the input dimension of the dataset. """
         if self.new_input_dim is not None:
-            log(Loglvl.VERBOSE, f'Resizing network {self.new_input_dim[:2]}')
+            log.info(f'Resizing network {self.new_input_dim[:2]}')
             self.input_dim = (self.new_input_dim[0], self.new_input_dim[1])
             self.new_input_dim = None
 

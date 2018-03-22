@@ -3,14 +3,15 @@
 #   Copyright EAVISE
 #
 
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
 
-from ..logger import *
 from . import layer as lnl
 
 __all__ = ['WeightLoader', 'WeightSaver']
+log = logging.getLogger(__name__)
 
 
 class WeightLoader:
@@ -19,16 +20,16 @@ class WeightLoader:
         with open(filename, 'rb') as fp:
             self.header = np.fromfile(fp, count=3, dtype=np.int32).tolist()
             ver_num = self.header[0]*100+self.header[1]*10+self.header[2]
-            log(Loglvl.DEBUG, f'Loading weight file: version {self.header[0]}.{self.header[1]}.{self.header[2]}')
+            log.debug(f'Loading weight file: version {self.header[0]}.{self.header[1]}.{self.header[2]}')
 
             if ver_num <= 19:
-                log(Loglvl.WARN, 'Weight file uses sizeof to compute variable size, which might lead to undefined behaviour. (choosing int=int32, float=float32)')
+                log.warn('Weight file uses sizeof to compute variable size, which might lead to undefined behaviour. (choosing int=int32, float=float32)')
                 self.seen = int(np.fromfile(fp, count=1, dtype=np.int32)[0])
             elif ver_num <= 29:
-                log(Loglvl.WARN, 'Weight file uses sizeof to compute variable size, which might lead to undefined behaviour. (choosing int=int32, float=float32, size_t=int64)')
+                log.warn('Weight file uses sizeof to compute variable size, which might lead to undefined behaviour. (choosing int=int32, float=float32, size_t=int64)')
                 self.seen = int(np.fromfile(fp, count=1, dtype=np.int64)[0])
             else:
-                log(Loglvl.ERROR, 'New weight file syntax! Loading of weights might not work properly. Please submit an issue with the weight file version number. [Run with Loglvl.DEBUG]')
+                log.error('New weight file syntax! Loading of weights might not work properly. Please submit an issue with the weight file version number. [Run with DEBUG logging level]')
                 self.seen = int(np.fromfile(fp, count=1, dtype=np.int64)[0])
             
             self.buf = np.fromfile(fp, dtype = np.float32)
@@ -45,7 +46,7 @@ class WeightLoader:
         elif type(layer) == nn.Linear:
             self._load_fc(layer)
         else:
-            log(Loglvl.ERROR, f'The layer you are trying to load is not supported [{type(layer)}]', NotImplementedError)
+            raise NotImplementedError(f'The layer you are trying to load is not supported [{type(layer)}]')
 
     def _load_conv(self, model):
         num_b = model.bias.numel()
@@ -101,18 +102,18 @@ class WeightSaver:
         elif ver_num <= 29:
             self.seen = np.int64(seen)
         else:
-            log(Loglvl.ERROR, 'New weight file syntax! Saving of weights might not work properly. Please submit an issue with the weight file version number. [Run with Loglvl.DEBUG]')
+            log.error('New weight file syntax! Saving of weights might not work properly. Please submit an issue with the weight file version number. [Run with DEBUG logging level]')
             self.seen = np.int64(seen)
 
     def write_file(self, filename):
         """ Save the accumulated weights to a darknet weightfile """
-        log(Loglvl.DEBUG, f'Writing weight file: version {self.header[0]}.{self.header[1]}.{self.header[2]}')
+        log.debug(f'Writing weight file: version {self.header[0]}.{self.header[1]}.{self.header[2]}')
         with open(filename, 'wb') as fp:
             self.header.tofile(fp)
             self.seen.tofile(fp)
             for np_arr in self.weights:
                 np_arr.tofile(fp)
-        log(Loglvl.VERBOSE, f'Weight file saved as {filename}')
+        log.info(f'Weight file saved as {filename}')
 
     def save_layer(self, layer):
         """ save weights for a layer """
@@ -123,7 +124,7 @@ class WeightSaver:
         elif type(layer) == nn.Linear:
             self._save_fc(layer)
         else:
-            log(Loglvl.ERROR, f'The layer you are trying to save is not supported [{type(layer)}]', NotImplementedError)
+            raise NotImplementedError(f'The layer you are trying to save is not supported [{type(layer)}]')
 
     def _save_conv(self, model):
         self.weights.append(model.bias.cpu().data.numpy())

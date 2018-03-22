@@ -3,15 +3,16 @@
 #   Copyright EAVISE
 #
 
-from statistics import mean
-import signal
 import sys
+import logging
+import signal
+from statistics import mean
 import torch
 
 import lightnet as ln
-from ..logger import *
 
 __all__ = ['Engine']
+log = logging.getLogger(__name__)
 
 
 class Engine:
@@ -48,17 +49,17 @@ class Engine:
         if network is not None:
             self.network = network
         else:
-            log(Loglvl.WARN, 'No network given, make sure to have a self.network property for this engine to work with.')
+            log.warn('No network given, make sure to have a self.network property for this engine to work with.')
 
         if optimizer is not None:
             self.optimizer = optimizer
         else:
-            log(Loglvl.WARN, 'No optimizer given, make sure to have a self.optimizer property for this engine to work with.')
+            log.warn('No optimizer given, make sure to have a self.optimizer property for this engine to work with.')
 
         if dataloader is not None:
             self.dataloader = dataloader
         else:
-            log(Loglvl.WARN, 'No dataloader given, make sure to have a self.dataloader property for this engine to work with.')
+            log.warn('No dataloader given, make sure to have a self.dataloader property for this engine to work with.')
 
         # Rates
         self.__lr = self.optimizer.param_groups[0]['lr']
@@ -69,17 +70,14 @@ class Engine:
         signal.signal(signal.SIGINT, self.__sigint_handler)
 
         # Logging
-        self.__log = ln.logger.Logger()
-        self.__log.color = False
-        self.__log.level = 0
-        self.__log.lvl_msg = ['[TRAIN]   ', '[TEST]    ']
+        self.__log = ln.logger
 
         # Set attributes
         for key in kwargs:
             if not hasattr(self, key) or key in self.__allowed_overwrite:
                 setattr(self, key, kwargs[key])
             else:
-                log(Loglvl.WARN, f'{key} attribute already exists on engine. Keeping original value [{getattr(self, key)}]')
+                log.warn(f'{key} attribute already exists on engine. Keeping original value [{getattr(self, key)}]')
     
     def __call__(self):
         """ Start the training cycle. """
@@ -88,7 +86,7 @@ class Engine:
         if self.test_rate is not None:
             last_test = self.batch - (self.batch % self.test_rate)
 
-        log(Loglvl.VERBOSE, 'Start training')
+        log.info('Start training')
         self.network.train()
         while True:
             loader = self.dataloader
@@ -103,21 +101,21 @@ class Engine:
 
                 # Check if we need to stop training
                 if self.quit() or self.sigint:
-                    log(Loglvl.VERBOSE, 'Reached quitting criteria')
+                    log.info('Reached quitting criteria')
                     return
 
                 # Check if we need to perform testing
                 if self.test_rate is not None and self.batch - last_test >= self.test_rate:
-                    log(Loglvl.VERBOSE, 'Start testing')
+                    log.info('Start testing')
                     last_test += self.test_rate
                     self.network.eval()
                     self.test()
-                    log(Loglvl.DEBUG, 'Done testing')
+                    log.debug('Done testing')
                     self.network.train()
 
                 # Check if we need to stop training
                 if self.quit() or self.sigint:
-                    log(Loglvl.VERBOSE, 'Reached quitting criteria')
+                    log.info('Reached quitting criteria')
                     return
 
                 # Automatically update registered rates
@@ -165,15 +163,15 @@ class Engine:
 
     def log(self, msg):
         """ Log messages about training and testing.
-        This function will automatically prepend the messages with **[TRAIN]** or **[TEST]**.
+        This function will automatically prepend the messages with **TRAIN** or **TEST**.
 
         Args:
             msg (str): message to be printed
         """
         if self.network.training:
-            self.__log(0, msg)
+            self.__log.train(msg)
         else:
-            self.__log(1, msg)
+            self.__log.test(msg)
 
     def add_rate(self, name, steps, values, default=None):
         """ Add a rate to the engine.
@@ -194,15 +192,15 @@ class Engine:
         if default is not None or not hasattr(self, name):
             setattr(self, name, default)
         if name in self.__rates:
-            log(Loglvl.WARN, f'{name} rate was already used, overwriting...')
+            log.warn(f'{name} rate was already used, overwriting...')
 
         if len(steps) > len(values):
             diff = len(steps) - len(values)
             values = values + diff * [values[-1]]
-            log(Loglvl.WARN, f'{name} has more steps than values, extending values to {values}')
+            log.warn(f'{name} has more steps than values, extending values to {values}')
         elif len(steps) < len(values):
             values = values[:len(steps)]
-            log(Loglvl.WARN, f'{name} has more values than steps, shortening values to {values}')
+            log.warn(f'{name} has more values than steps, shortening values to {values}')
 
         self.__rates[name] = (steps, values)
 
@@ -219,7 +217,7 @@ class Engine:
                     break
 
             if new_rate is not None and new_rate != getattr(self, key):
-                log(Loglvl.VERBOSE, f'Adjusting {key} [{new_rate}]')
+                log.info(f'Adjusting {key} [{new_rate}]')
                 setattr(self, key, new_rate)
 
     def start(self):
@@ -230,17 +228,19 @@ class Engine:
 
     def process_batch(self, data):
         """ This function should contain the code to process the forward and backward pass of one (mini-)batch. """
-        log(Loglvl.ERROR, 'process_batch() function is not implemented', NotImplementedError)
+        log.error('process_batch() function is not implemented')
+        raise NotImplementedError
 
     def train_batch(self):
         """ This function should contain the code to update the weights of the network. |br|
         Statistical computations, performing backups at regular intervals, etc. also happen here.
         """
-        log(Loglvl.ERROR, 'train_batch() function is not implemented', NotImplementedError)
+        log.error('train_batch() function is not implemented')
+        raise NotImplementedError
 
     def test(self):
         """ This function should contain the code to perform an evaluation on your test-set. """
-        log(Loglvl.WARN, 'test() function is not implemented')
+        log.warn('test() function is not implemented')
 
     def quit(self):
         """ This function gets called after every training epoch and decides if the training cycle continues.
@@ -261,5 +261,5 @@ class Engine:
 
     def __sigint_handler(self, signal, frame):
         if not self.sigint:
-            log(Loglvl.DEBUG, 'SIGINT caught. Waiting for gracefull exit')
+            log.debug('SIGINT caught. Waiting for gracefull exit')
             self.sigint = True

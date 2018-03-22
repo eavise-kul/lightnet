@@ -5,13 +5,14 @@
 
 import os
 import collections
+import logging
 import torch
 import torch.nn as nn
 
-from ..logger import *
 from .weight import *
 
 __all__ = ['Darknet']
+log = logging.getLogger(__name__)
 
 class Darknet(nn.Module):
     """ This class provides an abstraction layer on top of the ``pytorch Module``
@@ -47,16 +48,17 @@ class Darknet(nn.Module):
         self.seen = 0
 
     def _forward(self, x):
-        log(Loglvl.DEBUG, 'Running default forward functions')
+        log.debug('Running default forward functions')
         if isinstance(self.layers, nn.Sequential):
             return self.layers(x)
         elif isinstance(self.layers, nn.ModuleList):
-            log(Loglvl.WARN, 'No _forward function defined, looping sequentially over modulelist')
+            log.warn('No _forward function defined, looping sequentially over modulelist')
             for _,module in enumerate(self.layers):
                 x = module(x)
             return x
         else:
-            log(Loglvl.Error, f'No _forward function defined and no default behaviour for this type of layers [{type(self.layers)}]', NotImplementedError)
+            log.error(f'No _forward function defined and no default behaviour for this type of layers [{type(self.layers)}]')
+            raise NotImplementedError
 
     def forward(self, x, target=None):
         """ This default forward function will compute the output of the network as ``self._forward(x)``.
@@ -120,10 +122,10 @@ class Darknet(nn.Module):
         """
         if weights_file is not None:
             if os.path.splitext(weights_file)[1] == '.pt':
-                log(Loglvl.VERBOSE, 'Loading weights from pytorch file')
+                log.info('Loading weights from pytorch file')
                 self._load_pickle_weights(weights_file)
             else:
-                log(Loglvl.VERBOSE, 'Loading weights from darknet file')
+                log.info('Loading weights from darknet file')
                 self._load_darknet_weights(weights_file)
 
     def save_weights(self, weights_file):
@@ -136,10 +138,10 @@ class Darknet(nn.Module):
         """
         if weights_file is not None:
             if os.path.splitext(weights_file)[1] == '.pt':
-                log(Loglvl.DEBUG, 'Saving weights to pytorch file')
+                log.debug('Saving weights to pytorch file')
                 self._save_pickle_weights(weights_file)
             else:
-                log(Loglvl.DEBUG, 'Saving weights to darknet file')
+                log.debug('Saving weights to darknet file')
                 self._save_darknet_weights(weights_file)
 
     def update_weights(self, weights_file):
@@ -155,7 +157,7 @@ class Darknet(nn.Module):
         for key in list(new_state['weights'].keys()):
             if '.layer.' in key:
                 if not warned:
-                    log(Loglvl.WARN, 'Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
+                    log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
                     warned = True
                 new_key = key.replace('.layer.', '.layers.')
                 new_state['weights'][new_key] = new_state['weights'].pop(key)
@@ -173,12 +175,12 @@ class Darknet(nn.Module):
         for module in self.modules_recurse():
             try:
                 weights.load_layer(module)
-                log(Loglvl.VERBOSE, f'Layer loaded: {module}')
+                log.info(f'Layer loaded: {module}')
                 if weights.start >= weights.size:
-                    log(Loglvl.DEBUG, f'Finished loading weights [{weights.start}/{weights.size} weights]')
+                    log.debug(f'Finished loading weights [{weights.start}/{weights.size} weights]')
                     break
             except NotImplementedError:
-                log(Loglvl.VERBOSE, f'Layer skipped: {module.__class__.__name__}')
+                log.info(f'Layer skipped: {module.__class__.__name__}')
 
     def _save_darknet_weights(self, weights_file):
         weights = WeightSaver(self.header, self.seen)
@@ -186,9 +188,9 @@ class Darknet(nn.Module):
         for module in self.modules_recurse():
             try:
                 weights.save_layer(module)
-                log(Loglvl.VERBOSE, f'Layer saved: {module}')
+                log.info(f'Layer saved: {module}')
             except NotImplementedError:
-                log(Loglvl.VERBOSE, f'Layer skipped: {module.__class__.__name__}')
+                log.info(f'Layer skipped: {module.__class__.__name__}')
 
         weights.write_file(weights_file)
 
@@ -201,7 +203,7 @@ class Darknet(nn.Module):
         for key in list(state['weights'].keys()):
             if '.layer.' in key:
                 if not warned:
-                    log(Loglvl.WARN, 'Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
+                    log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
                     warned = True
                 new_key = key.replace('.layer.', '.layers.')
                 state['weights'][new_key] = state['weights'].pop(key)
@@ -214,4 +216,4 @@ class Darknet(nn.Module):
             'weights': self.state_dict()
         }
         torch.save(state, weights_file)
-        log(Loglvl.VERBOSE, f'Weight file saved as {weights_file}')
+        log.info(f'Weight file saved as {weights_file}')
