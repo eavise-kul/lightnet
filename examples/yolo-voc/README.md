@@ -23,12 +23,14 @@ We need to have the right labels for training and testing the network.
 While brambox (and thus lightnet) can work with Pascal VOC annotations,
 we still need to group the data in a training and testing set.
 Because we are converting this anyway, we take the opportunity to convert the annotations to a pickle format,
-which will be faster to parse whilst training/testing.
+which will be faster to parse whilst training/testing.  
+You can check whether to annotation conversion was succesfull, by running the __bbox_view.py__ script from brambox.
 ```bash
 # Change the 'ROOT' variable in labels.py to point to the root directory that contains VOCdevkit
 ./labels.py
+bbox_view.py -lx .jpg anno_pickle $ROOT_FOLDER/train.pkl $ROOT_FOLDER/VOCdevkit
+bbox_view.py -lx .jpg anno_pickle $ROOT_FOLDER/test.pkl $ROOT_FOLDER/VOCdevkit
 ```
-You can check whether to annotation conversion was succesfull, by running the __visual_anno.py__ script.
 
 > Note that there is no validation set.
 > We perform the same training cycle as darknet, and thus have no testing whilst training the network.
@@ -37,7 +39,7 @@ You can check whether to annotation conversion was succesfull, by running the __
 
 
 ## Get weights
-For training, we use weights that are pretrained on imagenet.
+For training, we use weights that are pretrained on ImageNet.
 ```bash
 wget https://pjreddie.com/media/files/darknet19_448.conv.23
 ```
@@ -47,11 +49,8 @@ wget https://pjreddie.com/media/files/darknet19_448.conv.23
 Use the __train.py__ script to train the model. You can use _train.py --help_ for an explanation of the arguments and flags.
 ```bash
 # Adapt the model parameters inside of train.py to suite your needs
-./train.py -cv darknet19_448.conv.23 data/train.pkl
+./train.py -cv darknet19_448.conv.23
 ```
-> You cannot train with multiple workers (yet).
-> There is a small problem with how workers are implemented and the need for randomly resizing the input.
-> I hope to fix this issue soon, you can track this [issue](https://github.com/pytorch/pytorch/issues/4382) on the pytorch github repo.
 
 
 ## Test model
@@ -61,5 +60,5 @@ Use the __test.py__ script to test the model. You can again use _test.py --help_
 pip install tqdm 
 
 # Adapt the model parameters inside of test.py to suite your needs
-./test.py -cv backup/weight_40000.pt data/test.pkl
+./test.py -cv backup/weight_30000.pt
 ```

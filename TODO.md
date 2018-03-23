@@ -24,31 +24,42 @@ Data subpackage
   - [X] Write documentation
   - [X] Dataset always works with brambox objects
   - [X] Improve non-maximum suppression _(gpu/pytorch)_
-  - [ ] Improve bbox_to_brambox _(gpu/pytorch)_
+  - [X] Improve bbox_to_brambox _(gpu/pytorch)_
+  - [X] FIX preprocessing and random resizing with multiple workers
+  - [X] Clean up dataset and preprocessing
+  - [X] Explicit BGR2RGB transform for cv2
 
 ## Engine
 Engine subpackage
   - [X] Create base engine class
   - [X] Test base engine
   - [X] Engine rates
-  - [ ] Rework visualisation concept
-  - [ ] Expose __log.open_file
+  - [X] Rework visualisation concept
+  - [X] Make visdom completely optional _(fix imports)_
+  - [X] Rework entire engine class
+  - [X] Rework logging mechanism to use standard python logger
 
 ## Models
 Model implementations subpackage
   - [X] Add yolo-voc
-  - [ ] Add tiny-yolo
+  - [X] Add tiny-yolo
   - [X] Create darknet dataset
   - [X] Write documentation
+  - [X] Add Darknet19
+  - [X] Add Mobilenet YOLO
 
 ## Varia
 Various bits and bops
   - [X] Update README: credits to marvis
-  - [ ] Update README: how to use
   - [X] Refactor organisation of the package
   - [X] Add requirements.txt
   - [X] Write logger documentation
   - [X] Add logger file print
+  - [X] Add brambox intersphinx mapping
+  - [X] Add _how to_ guide
+  - [X] Add _examples_ guide
+  - [X] Rewrite _score_ guide with new numbers
+  - [X] Rewrite _speed_ guide with new numbers
 
 ## Examples and Scripts
 Everything about creating examples and scripts to show off the library
@@ -62,6 +73,7 @@ Everything about creating examples and scripts to show off the library
   - [X] Add yolo-voc training with darknet engine
   - [X] Test yolo-voc training
   - [X] Test yolo-voc engine training
-  - [ ] Compare speed yolo-voc training
   - [X] Compare accuracy yolo-voc trained weights
+  - [X] Compare speed yolo-voc training
+  - [X] Rework examples to work with new lightnet API
 

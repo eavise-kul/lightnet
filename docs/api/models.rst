@@ -2,14 +2,16 @@ Models
 ======
 .. automodule:: lightnet.models
 
-Darknet specific
-----------------
-.. autoclass:: lightnet.models.DarknetData
-   :members:
-
 Networks
 --------
-.. autoclass:: lightnet.models.YoloVoc
+.. autoclass:: lightnet.models.Darknet19
+.. autoclass:: lightnet.models.Yolo
+.. autoclass:: lightnet.models.TinyYolo
+.. autoclass:: lightnet.models.MobileNetYolo
+
+Data
+----
+.. autoclass:: lightnet.models.DarknetData
    :members:
 
 

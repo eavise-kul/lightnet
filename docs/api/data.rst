@@ -4,24 +4,42 @@ Data
 
 Preprocessing
 -------------
-These classes work just like :mod:`torchvision transforms <pytorch:torchvision>`. First, you create an object, and the you call the object with the image or annotation object as parameter.
+These classes perform data augmentation and conversion on your input.
+They work just like the :mod:`torchvision transforms <pytorch:torchvision>`. |br|
+First you create an object and then you call the object with the image or annotation object as parameter.
+You can also call the ``apply()`` method on the classes to run the transformation once.
 
 .. autoclass:: lightnet.data.Letterbox
+   :members: apply
 .. autoclass:: lightnet.data.RandomCrop
+   :members: apply
 .. autoclass:: lightnet.data.RandomFlip
+   :members: apply
 .. autoclass:: lightnet.data.HSVShift
-.. autoclass:: lightnet.data.AnnoToTensor
+   :members: apply
+.. autoclass:: lightnet.data.BramboxToTensor
+   :members: apply
 
 Postprocessing
 --------------
-These classes and functions help to parse the output of a network to understandable data structures.
+These classes parse the output of your networks to understandable data structures.
+They work just like the :mod:`torchvision transforms <pytorch:torchvision>`. |br|
+First you create an object and then you call the object with the image object as parameter.
+You can also call the ``apply()`` method on the classes to run the transformation once.
 
-.. autoclass:: lightnet.data.BBoxConverter
-.. autofunction:: lightnet.data.bbox_to_brambox
+.. autoclass:: lightnet.data.GetBoundingBoxes
+   :members: apply
+.. autoclass:: lightnet.data.TensorToBrambox
+   :members: apply
+.. autoclass:: lightnet.data.ReverseLetterbox
+   :members: apply
 
-Dataset
--------
+Data loading
+------------
 .. autoclass:: lightnet.data.BramboxData
+   :members:
+.. autoclass:: lightnet.data.DataLoader
+   :members:
 .. autofunction:: lightnet.data.list_collate
 
 

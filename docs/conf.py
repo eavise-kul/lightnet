@@ -24,7 +24,6 @@ import sphinx_rtd_theme
 sys.path.insert(0, os.path.abspath('../'))
 import lightnet
 
-
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -36,16 +35,21 @@ import lightnet
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
     ]
 
+todo_include_todos = True
 napoleon_use_ivar = True
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['torch', 'torchvision', 'visdom']
 intersphinx_mapping = {
     'pytorch': ('http://pytorch.org/docs/master/', None),
+    'python': ('https://docs.python.org/3.6', None),
+    'brambox': ('https://eavise.gitlab.io/brambox', None),
     }
 
 # Add any paths that contain templates here, relative to this directory.

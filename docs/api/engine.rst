@@ -9,8 +9,10 @@ Engine
 
 Visualisation
 -------------
-.. autoclass:: Visualisation
+.. autoclass:: LinePlotter
    :members:
+   :special-members: __call__
+
 
 
 .. include:: ../links.rst

@@ -3,20 +3,21 @@
 #   Copyright EAVISE
 #
 
-from statistics import mean
-import signal
 import sys
+import logging
+import signal
+from statistics import mean
 import torch
 
 import lightnet as ln
-from ..logger import *
 
 __all__ = ['Engine']
+log = logging.getLogger(__name__)
 
 
 class Engine:
-    """ This class removes the boilerplate code needed for writing the training code.
-    Here is the code that runs when the engine is called
+    """ This class removes the boilerplate code needed for writing your training cycle. |br|
+    Here is the code that runs when the engine is called:
     
     .. literalinclude:: /../lightnet/engine/engine.py
        :language: python
@@ -24,149 +25,105 @@ class Engine:
        :dedent: 4
 
     Args:
-        network (lightnet.network.Darknet): Lightnet network to train
-        optimizer (torch.optim): Optimizer for the network
-        trainset (torch.utils.data.Dataset): Dataset with training images and annotations
-        testset (torch.utils.data.Dataset, optional): Dataset with images and annotation to test; Default **None**
-        cuda (Boolean, optional): Whether to use cuda; Default **False**
-        visdom (dict, optional): Set this dict with options for starting up visdom. If set to None, visualisation with visdom is disabled; Default **None**
-        **kwargs (dict, optional): Extra arguments that are set as attributes to the engine
+        network (lightnet.network.Darknet, optional): Lightnet network to train
+        optimizer (torch.optim, optional): Optimizer for the network
+        dataloader (lightnet.data.DataLoader or torch.utils.data.DataLoader, optional): Dataloader for the training data
+        **kwargs (dict, optional): Keywords arguments that will be set as attributes of the engine
 
     Attributes:
         self.network: Lightnet network
         self.optimizer: Torch optimizer
-        self.trainset: Torch dataset for training
-        self.testset: Torch dataset for testing; Default **None**
-        self.cuda: Boolean indicating whether to use cuda
-        self.batch_size: Number indicating batch_size
-        self.batch_subdivisions: How to subdivide batch
-        self.max_batch: Maximum number of batches to process
-        self.test_rate: How often to run test
-        self.visdom: Visdom object used to plot data
-        self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send.
-
-        self.batch (computed): Current batch number
-        self.mini_batch_size (computed): Size of one mini-batch, according to batch_size and batch_subdivisions
-        self.learning_rate (computed): Property to set and get learning rate of the optimizer
-
-    Note:
-        Some preset values of the engine can be overwritten with kwargs.
-            - batch_size: size of one batch
-            - batch_subdivisions: number of subdivisions needed for one batch
-            - max_batch: maximum number of batches to train for
-            - test_rate: how often to run testset
+        self.batch_size: Number indicating batch_size; Default **1**
+        self.mini_batch_size: Size of a mini_batch; Default **1**
+        self.max_batches: Maximum number of batches to process; Default **None**
+        self.test_rate: How often to run test; Default **None**
+        self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send; Default **False**
     """
+    __allowed_overwrite = ['batch_size', 'mini_batch_size', 'max_batches', 'test_rate']
+    batch_size = 1
+    mini_batch_size = 1
+    max_batches = None
+    test_rate = None
 
-    __allowed = ('batch_size', 'batch_subdivisions', 'max_batch', 'test_rate')
+    def __init__(self, network, optimizer, dataloader, **kwargs):
+        if network is not None:
+            self.network = network
+        else:
+            log.warn('No network given, make sure to have a self.network property for this engine to work with.')
 
-    def __init__(self, network, optimizer, trainset, testset=None, cuda=False, visdom=None, **kwargs):
-        self.network = network
-        self.optimizer = optimizer
-        self.trainset = trainset
-        self.testset = testset
-        self.cuda = cuda
+        if optimizer is not None:
+            self.optimizer = optimizer
+        else:
+            log.warn('No optimizer given, make sure to have a self.optimizer property for this engine to work with.')
 
+        if dataloader is not None:
+            self.dataloader = dataloader
+        else:
+            log.warn('No dataloader given, make sure to have a self.dataloader property for this engine to work with.')
+
+        # Rates
         self.__lr = self.optimizer.param_groups[0]['lr']
         self.__rates = {}
 
+        # Sigint handling
         self.sigint = False
         signal.signal(signal.SIGINT, self.__sigint_handler)
 
-        self.__log = ln.logger.Logger()
-        self.__log.color = False
-        self.__log.level = 0
-        self.__log.lvl_msg = ['[TRAIN]   ', '[TEST]    ']
+        # Logging
+        self.__log = ln.logger
 
-        if visdom is not None:
-            from .visual import Visualisation
-            self.__vis = Visualisation(visdom)
-            self.visdom = self.__vis.vis
-        else:
-            self.__vis = None
-            self.visdom = None
-    
-        self.batch_size = 64
-        self.batch_subdivisions = 8
-        self.max_batch = None
-        self.test_rate = 50
-
-        for key,val in kwargs.items():
-            if not hasattr(self, key):
-                setattr(self, key, val)
-            elif key in self.__class__.__allowed:
-                log(Loglvl.DEBUG, f'Attribute [{key}] already exists, overwriting with kwarg value [{val}]')
-                setattr(self, key, val)
+        # Set attributes
+        for key in kwargs:
+            if not hasattr(self, key) or key in self.__allowed_overwrite:
+                setattr(self, key, kwargs[key])
             else:
-                log(Loglvl.WARN, f'Attribute [{key}] already exists, keeping old value [{getattr(self, key)}]')
+                log.warn(f'{key} attribute already exists on engine. Keeping original value [{getattr(self, key)}]')
     
     def __call__(self):
         """ Start the training cycle. """
         self.start()
+        self._update_rates()
+        if self.test_rate is not None:
+            last_test = self.batch - (self.batch % self.test_rate)
 
-        last_test = self.batch - (self.batch % self.test_rate)
+        log.info('Start training')
+        self.network.train()
         while True:
-            log(Loglvl.DEBUG, 'Starting train epoch')
-            self.network.train()
-            self.train()
+            loader = self.dataloader
+            for idx, data in enumerate(loader):
+                # Forward and backward on (mini-)batches
+                self.process_batch(data)
+                if (idx + 1) % self.batch_subdivisions != 0:
+                    continue
 
-            self.update_rates()
+                # Optimizer step
+                self.train_batch()
 
-            if self.quit() or self.sigint:
-                log(Loglvl.VERBOSE, 'Reached quitting criteria')
-                break
+                # Check if we need to stop training
+                if self.quit() or self.sigint:
+                    log.info('Reached quitting criteria')
+                    return
 
-            if self.testset is not None and self.batch - last_test >= self.test_rate:
-                log(Loglvl.DEBUG, 'Starting test epoch')
-                last_test += self.test_rate
-                self.network.eval()
-                self.test()
+                # Check if we need to perform testing
+                if self.test_rate is not None and self.batch - last_test >= self.test_rate:
+                    log.info('Start testing')
+                    last_test += self.test_rate
+                    self.network.eval()
+                    self.test()
+                    log.debug('Done testing')
+                    self.network.train()
 
-    def log(self, msg):
-        """ Log messages about training and testing.
-        This function will automatically prepend the messages with **[TRAIN]** or **[TEST]**.
+                # Check if we need to stop training
+                if self.quit() or self.sigint:
+                    log.info('Reached quitting criteria')
+                    return
 
-        Args:
-            msg (str): message to be printed
-        """
-        if self.network.training:
-            self.__log(0, msg)
-        else:
-            self.__log(1, msg)
+                # Automatically update registered rates
+                self._update_rates()
 
-    def visual(self, **kwargs):
-        """ visualisation wrapper function.
-        This function will call the visdom functions on the right windows and titles.
-
-        Args:
-            kwargs (dict): Call this functions with key-value pairs representing the arguments of the functions of :class:`~lightnet.engine.Visualisation`
-
-        Note:
-            The keyword arguments should have all parameters that the underlining functions from :class:`~lightnet.engine.Visualisation` requires.
-            This function will automatically infer the correct function, from the arguments passed.
-            Some parameters (eg. batch number) will be automatically computed from the engine data. |br|
-            Besides the parameters of the function, you can also pass an **opts** keyword argument.
-            This keyword needs to be a dictionary, containing extra options that are passed along to visdom_.
-        """
-        if self.__vis is not None:
-            if self.network.training:
-                win = 'Train'
-            else:
-                win = 'Test'
-
-            if 'opts' in kwargs:
-                options = kwargs['opts']
-            else:
-                options = {}
-
-            if 'pr' in kwargs:
-                if not 'title' in options:
-                    self.__vis.pr(kwargs['pr'], f'{win}_pr', title=f'PR-curve [{self.batch}]', **options)
-                else:
-                    self.__vis.pr(kwargs['pr'], f'{win}_pr', **options)
-            elif 'loss' in kwargs:
-                self.__vis.loss(kwargs['loss'], self.batch, f'{win}_loss', kwargs['name'], title=f'{win} loss', **options)
-            else:
-                log(Loglvl.WARN, 'Could not find out what visualisation function to use.')
+                # Not enough mini-batches left to have an entire batch
+                if (len(loader) - idx) <= self.batch_subdivisions:
+                    break
 
     @property
     def batch(self):
@@ -178,13 +135,13 @@ class Engine:
         return self.network.seen // self.batch_size
 
     @property
-    def mini_batch_size(self):
-        """ Get size of one mini-batch.
-        
+    def batch_subdivisions(self):
+        """ Get number of mini-batches per batch.
+
         Return:
-            int: Computed as self.batch_size // self.batch_subdivisions
+            int: Computed as self.batch_size // self.mini_batch_size
         """
-        return self.batch_size // self.batch_subdivisions
+        return self.batch_size // self.mini_batch_size
 
     @property
     def learning_rate(self):
@@ -204,8 +161,21 @@ class Engine:
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
 
+    def log(self, msg):
+        """ Log messages about training and testing.
+        This function will automatically prepend the messages with **TRAIN** or **TEST**.
+
+        Args:
+            msg (str): message to be printed
+        """
+        if self.network.training:
+            self.__log.train(msg)
+        else:
+            self.__log.test(msg)
+
     def add_rate(self, name, steps, values, default=None):
-        """ Add a rate to the engine. Rates are values that change according to the current batch number.
+        """ Add a rate to the engine.
+        Rates are object attributes that automatically change according to the current batch number.
 
         Args:
             name (str): Name that will be used for the attribute. You can access the value with self.name
@@ -216,28 +186,27 @@ class Engine:
         Example:
             >>> import lightnet as ln
             >>> eng = ln.engine.Engine(...)
-            >>> eng.add_rate('learning_rate', [100, 500, 35000], [.001, .0001, .00001], .0001)
-            >>> eng.add_rate('test_rate', [1000, 5000], [100, 500]) # test_rate already has default value of 50
+            >>> eng.add_rate('test_rate', [1000, 5000], [100, 500], 50)
+            >>> eng.add_rate('learning_rate', [100, 1000, 10000], [.01, .001, .0001]) # Learning rate already has a value
         """
         if default is not None or not hasattr(self, name):
             setattr(self, name, default)
         if name in self.__rates:
-            log(Loglvl.WARN, f'{name} rate was already used, overwriting...')
+            log.warn(f'{name} rate was already used, overwriting...')
 
         if len(steps) > len(values):
             diff = len(steps) - len(values)
             values = values + diff * [values[-1]]
-            log(Loglvl.WARN, f'{name} has more steps than values, extending values to {values}')
+            log.warn(f'{name} has more steps than values, extending values to {values}')
         elif len(steps) < len(values):
             values = values[:len(steps)]
-            log(Loglvl.WARN, f'{name} has more values than steps, shortening values to {values}')
+            log.warn(f'{name} has more values than steps, shortening values to {values}')
 
         self.__rates[name] = (steps, values)
 
-    def update_rates(self):
-        """ Update rates according to batch size.
-        This function gets automatically called every epoch, but to be entirely correct,
-        you should also call this function every batch in your training cycle.
+    def _update_rates(self):
+        """ Update rates according to batch size. |br|
+        This function gets automatically called every batch, and should generally not be called by the user.
         """
         for key, (steps,values) in self.__rates.items():
             new_rate = None
@@ -248,45 +217,49 @@ class Engine:
                     break
 
             if new_rate is not None and new_rate != getattr(self, key):
-                log(Loglvl.VERBOSE, f'Adjusting {key} [{new_rate}]')
+                log.info(f'Adjusting {key} [{new_rate}]')
                 setattr(self, key, new_rate)
 
-    def train(self):
-        """ Training loop code.
-
-        Args:
-            idx (int): Mini-batch number
-            data: Return Value from the trainset; usually a tuple (data, target)
+    def start(self):
+        """ First function that gets called when starting the engine. |br|
+            Use it to create your dataloader, set the correct starting values for your rates, etc.
         """
+        pass
+
+    def process_batch(self, data):
+        """ This function should contain the code to process the forward and backward pass of one (mini-)batch. """
+        log.error('process_batch() function is not implemented')
+        raise NotImplementedError
+
+    def train_batch(self):
+        """ This function should contain the code to update the weights of the network. |br|
+        Statistical computations, performing backups at regular intervals, etc. also happen here.
+        """
+        log.error('train_batch() function is not implemented')
         raise NotImplementedError
 
     def test(self):
-        """ Test loop code.
-
-        Args:
-            idx (int): Mini-batch number
-            data: Return value from the testset; usually a tuple (data, target)
-        """
-        raise NotImplementedError
-
-    def start(self):
-        """ First function that gets called when starting the engine.
-            Use it to set correct starting values for learning rate, test rate, etc.
-        """
-        pass
+        """ This function should contain the code to perform an evaluation on your test-set. """
+        log.warn('test() function is not implemented')
 
     def quit(self):
         """ This function gets called after every training epoch and decides if the training cycle continues.
 
         Return:
             Boolean: Whether are not to stop the training cycle
+
+        Note:
+            This function gets called before checking the ``self.sigint`` attribute.
+            This means you can also check this attribute in this function. |br|
+            If it evaluates to **True**, you know the program will exit after this function and you can thus
+            perform the necessary actions (eg. save final weights).
         """
-        if self.max_batch is not None:
-            return self.batch >= self.max_batch
+        if self.max_batches is not None:
+            return self.batch >= self.max_batches
         else:
             return False
 
     def __sigint_handler(self, signal, frame):
         if not self.sigint:
-            log(Loglvl.DEBUG, 'SIGINT caught. Waiting for gracefull exit')
+            log.debug('SIGINT caught. Waiting for gracefull exit')
             self.sigint = True

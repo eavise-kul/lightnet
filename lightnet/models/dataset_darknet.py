@@ -15,6 +15,7 @@ __all__ = ['DarknetData']
 class DarknetData(lnd.BramboxData):
     """ Dataset that works with darknet files and performs the same data augmentations.
     You must use this dataset with the :meth:`~lightnet.data.list_collate` function in a dataloader.
+    If you enable the data augmentation you must also use the :class:`~lightnet.data.DataLoader` class as dataloader.
         
     Args:
         data_file (str): File containing path to image files (relative from where command is run)
@@ -39,7 +40,7 @@ class DarknetData(lnd.BramboxData):
         self.anno_paths = [os.path.splitext(p)[0]+'.txt' for p in self.img_paths]
         identify = lambda name : self.img_paths[self.anno_paths.index(name)]
         
-        lb  = lnd.Letterbox(self)
+        lb  = lnd.Letterbox(dataset=self)
         rf  = lnd.RandomFlip(flip)
         rc  = lnd.RandomCrop(jitter, True)
         hsv = lnd.HSVShift(hue, saturation, value)
@@ -53,6 +54,6 @@ class DarknetData(lnd.BramboxData):
         
         first_img = Image.open(self.img_paths[0])
         w, h = first_img.size
-        kwargs = { 'image_width': w, 'image_height':h, 'class_label_map': class_label_map }
+        kwargs = { 'image_width': w, 'image_height':h }
 
-        super(DarknetData, self).__init__(anno_format, self.anno_paths, identify, img_tf, anno_tf, **kwargs)
+        super(DarknetData, self).__init__(anno_format, self.anno_paths, input_dimension, class_label_map,  identify, img_tf, anno_tf, **kwargs)

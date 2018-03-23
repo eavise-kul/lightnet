@@ -6,6 +6,8 @@ lightnet/version.py
 __pycache__/
 *.py[cod]
 *.egg-info
+*.so
+*.o
 
 build/
 develop-eggs/

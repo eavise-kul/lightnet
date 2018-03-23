@@ -10,7 +10,7 @@ def get_version():
         f.write('#\n')
         f.write('#   Lightnet version: Automatically generated version file\n')
         f.write('#\n\n')
-        f.write(f'__version__ = "{version}"')
+        f.write(f'__version__ = "{version}"\n')
     
     return version
 
@@ -20,6 +20,7 @@ setup.setup(name='lightnet',
             description='Building blocks for recreating darknet networks in pytorch',
             long_description=open('README.md').read(),
             packages=find_packages(),
+            test_suite='test',
             install_requires=[
                 'numpy',
                 'Pillow',

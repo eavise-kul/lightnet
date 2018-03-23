@@ -4,23 +4,31 @@
 #   Copyright EAVISE
 #
 
+import logging
 import torch
+import numpy as np
 from torch.autograd import Variable
 from brambox.boxes.detections.detection import *
 
-from ..logger import *
-from ..util import *
+from .process import *
 
-__all__ = ['BBoxConverter', 'bbox_to_brambox']
+__all__ = ['GetBoundingBoxes', 'TensorToBrambox', 'ReverseLetterbox']
+log = logging.getLogger(__name__)
 
 
-class BBoxConverter:
-    """ Convert output from darknet networks to bounding boxes.
+class GetBoundingBoxes:
+    """ Convert output from darknet networks to bounding box tensor.
         
     Args:
         network (lightnet.network.Darknet): Network the converter will be used with
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
         nms_thresh(Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
+
+    Returns:
+        (Batch x Boxes x 6 tensor): **[x_center, y_center, width, height, confidence, class_id]** for every bounding box
+
+    Note:
+        The output tensor uses relative values for its coordinates.
     """
     def __init__(self, network, conf_thresh, nms_thresh):
         self.conf_thresh = conf_thresh
@@ -35,11 +43,16 @@ class BBoxConverter:
             
             network_output (torch.autograd.Variable): Output tensor from the lightnet network
         """
-        boxes = self._get_region_boxes(network_output.data)
+        boxes = self._get_boxes(network_output.data)
         boxes = [self._nms(torch.Tensor(box)) for box in boxes]
         return boxes
 
-    def _get_region_boxes(self, output):
+    @classmethod
+    def apply(cls, network_output, network, conf_thresh, nms_thresh):
+        obj = cls(network, conf_thresh, nms_thresh)
+        return obj(network_output)
+
+    def _get_boxes(self, output):
         """ Returns array of detections for every image in batch """
         # Check dimensions
         if output.dim() == 3:
@@ -101,14 +114,16 @@ class BBoxConverter:
         return boxes
 
     def _nms(self, boxes):
-        '''Non maximum suppression.
+        """ Non maximum suppression.
+        Source: https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
 
         Args:
           boxes (tensor): Bounding boxes from get_detections
 
         Return:
-          (tensor) Pruned boxes
-        '''
+          (tensor): Pruned boxes
+        """
+
         if boxes.numel() == 0:
             return boxes
 
@@ -151,51 +166,94 @@ class BBoxConverter:
         return boxes[torch.LongTensor(keep)]
 
 
-def bbox_to_brambox(boxes, net_size, img_size=None, class_label_map=None):
-    """ Convert bounding box array to brambox detection object.
-        
-    Args:
-        boxes (tensor): Detection boxes
-        net_size (tuple): Input size of the network (width, height)
-        img_size (tuple, optional) Size of the image (width, height); Default **net_size**
-        class_label_map (list, optional): class label map to convert class names to an index; Default **None**
+class TensorToBrambox(BaseTransform):
+    """ Converts a tensor to a list of brambox objects. """
+    def __init__(self, network_size, class_label_map=None):
+        self.network_size = network_size
+        self.class_label_map = class_label_map
+        if class_label_map is None:
+            log.warn('No class_label_map given. The indexes will be used as class_labels.')
 
-    Warning:
-        If no class_label_map is given, this function will convert the class_index to a string and use that as class_label.
-    """
-    net_w, net_h = net_size[:2]
-    if img_size is not None:
-        im_w, im_h = img_size
+    @classmethod
+    def apply(cls, boxes, network_size, class_label_map=None):
+        if torch.is_tensor(boxes):
+            if boxes.dim() == 0:
+                return []
+            else:
+                return cls._convert(boxes, network_size[0], network_size[1], class_label_map)
+        else:
+            converted_boxes = []
+            for box in boxes:
+                if box.dim() == 0:
+                    converted_boxes.append([])
+                else:
+                    converted_boxes.append(cls._convert(box, network_size[0], network_size[1], class_label_map))
+            return converted_boxes
+
+    @staticmethod
+    def _convert(boxes, width, height, class_label_map):
+        boxes[:,0:3:2].mul_(width)
+        boxes[:,0] -= boxes[:,2] / 2
+        boxes[:,1:4:2].mul_(height)
+        boxes[:,1] -= boxes[:,3] / 2
+
+        brambox = []
+        for box in boxes:
+            det = Detection()
+            det.x_top_left = box[0]
+            det.y_top_left = box[1]
+            det.width = box[2]
+            det.height = box[3]
+            det.confidence = box[4]
+            if class_label_map is not None:  
+                det.class_label = class_label_map[int(box[5])]
+            else:
+                det.class_label = str(int(box[5]))
+
+            brambox.append(det)
+                
+        return brambox
+    
+
+class ReverseLetterbox(BaseTransform):
+    """ Performs a reverse letterbox operation on the bounding boxes. """
+    def __init__(self, network_size, image_size):
+        self.network_size = network_size
+        self.image_size = image_size
+
+    @classmethod
+    def apply(cls, boxes, network_size, image_size):
+        im_w, im_h = image_size[:2]
+        net_w, net_h = network_size[:2]
 
         if im_w == net_w and im_h == net_h:
             scale = 1
         elif im_w / net_w >= im_h / net_h:
-            scale = net_w/im_w
+            scale = im_w/net_w
         else:
-            scale = net_h/im_h
+            scale = im_h/net_h
+        pad = int((net_w - im_w/scale) / 2), int((net_h - im_h/scale) / 2)
 
-        pad = int((net_w-im_w*scale)/2), int((net_h-im_h*scale)/2)
-    else:
-        scale = 1
-        pad = (0,0)
-
-    dets = []
-    for box in boxes:
-        det = Detection()
-        det.x_top_left = (box[0] - box[2]/2) * net_w
-        det.y_top_left = (box[1] - box[3]/2) * net_h
-        det.width = box[2] * net_w
-        det.height = box[3] * net_h
-        det.confidence = box[4]
-        if class_label_map is not None:
-            det.class_label = class_label_map[int(box[5])]
+        if isinstance(boxes, Detection):
+            return cls._transform([boxes], scale, pad)[0]
+        elif len(boxes) == 0:
+            return boxes
+        elif isinstance(boxes[0], Detection):
+            return cls._transform(boxes, scale, pad)
         else:
-            det.class_label = str(int(box[5]))
+            converted_boxes = []
+            for b in boxes:
+                converted_boxes.append(cls._transform(b, scale, pad))
+            return converted_boxes
 
-        det.x_top_left -= pad[0]
-        det.y_top_left -= pad[1]
-        det.rescale(1/scale)
+    @staticmethod
+    def _transform(boxes, scale, pad):
+        for box in boxes:
+            box.x_top_left -= pad[0]
+            box.y_top_left -= pad[1]
 
-        dets.append(det)
-
-    return dets
+            box.x_top_left *= scale
+            box.y_top_left *= scale
+            box.width *= scale
+            box.height *= scale
+        return boxes

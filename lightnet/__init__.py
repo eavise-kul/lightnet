@@ -7,7 +7,7 @@ __all__ = ['network', 'data', 'engine', 'models']
 
 
 from .version import __version__
-from .logger import *
+from .log import *
 
 from . import network
 from . import data

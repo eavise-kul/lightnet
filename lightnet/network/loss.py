@@ -10,7 +10,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from ..util import bbox_iou, bbox_multi_ious
-from ..logger import *
 
 __all__ = ['RegionLoss']
 
@@ -40,7 +39,7 @@ class RegionLoss:
         
         Args:
             output (torch.autograd.Variable): Output from the network
-            target (brambox.Annotation or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see lightnet.data.AnnoToTensor)
+            target (brambox.boxes.annotations.Annotation or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see :class:`lightnet.data.BramboxToTensor`)
         """
         # Parameters
         nB = output.data.size(0)
@@ -296,14 +295,17 @@ class RegionLoss:
                 pred_conf = pred_confs[b*nAnchors+best_n*nPixels+gj*nW+gi]
                 iou = bbox_iou(gt_box, pred_box)
 
-                coord_mask[b][best_n][0][gj*nW+gi] = 1
-                cls_mask[b][best_n][gj*nW+gi] = 1
-                conf_mask[b][best_n][gj*nW+gi] = self.object_scale
-                tcoord[b][best_n][0][gj*nW+gi] = gx - gi
-                tcoord[b][best_n][1][gj*nW+gi] = gy - gj
-                tcoord[b][best_n][2][gj*nW+gi] = math.log(gw/self.anchors[self.anchor_step*best_n])
-                tcoord[b][best_n][3][gj*nW+gi] = math.log(gh/self.anchors[self.anchor_step*best_n+1])
-                tconf[b][best_n][gj*nW+gi] = iou
-                tcls[b][best_n][gj*nW+gi] = anno.class_id
+                if anno.ignore:
+                    conf_mask[b][best_n][gj*nW+gi] = 0
+                else:
+                    coord_mask[b][best_n][0][gj*nW+gi] = 1
+                    cls_mask[b][best_n][gj*nW+gi] = 1
+                    conf_mask[b][best_n][gj*nW+gi] = self.object_scale
+                    tcoord[b][best_n][0][gj*nW+gi] = gx - gi
+                    tcoord[b][best_n][1][gj*nW+gi] = gy - gj
+                    tcoord[b][best_n][2][gj*nW+gi] = math.log(gw/self.anchors[self.anchor_step*best_n])
+                    tcoord[b][best_n][3][gj*nW+gi] = math.log(gh/self.anchors[self.anchor_step*best_n+1])
+                    tconf[b][best_n][gj*nW+gi] = iou
+                    tcls[b][best_n][gj*nW+gi] = anno.class_id
 
         return coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls
