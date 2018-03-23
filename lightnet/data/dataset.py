@@ -107,29 +107,42 @@ class DataLoader(torchDataLoader):
     """ Lightnet dataloader that enables on the fly resizing of the images.
     See :class:`torch.utils.data.DataLoader` for more information on the arguments.
     """
-    def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None, num_workers=0, collate_fn=default_collate, pin_memory=False, drop_last=False):
-        self.dataset = dataset
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.collate_fn = collate_fn
-        self.pin_memory = pin_memory
-        self.drop_last = drop_last
+    def __init__(self, *args, **kwargs):
+        super(DataLoader, self).__init__(*args, **kwargs)
+        shuffle = False
+        sampler = None
+        batch_sampler = None
+        if len(args) > 5:
+            shuffle = args[2]
+            sampler = args[3]
+            batch_sampler = args[4]
+        elif len(args) > 4:
+            shuffle = args[2]
+            sampler = args[3]
+            if 'batch_sampler' in kwargs:
+                batch_sampler = kwargs['batch_sampler']
+        elif len(args) > 3:
+            shuffle = args[2]
+            if 'sampler' in kwargs:
+                sampler = kwargs['sampler']
+            if 'batch_sampler' in kwargs:
+                batch_sampler = kwargs['batch_sampler']
+        else:
+            if 'shuffle' in kwargs:
+                shuffle = kwargs['shuffle']
+            if 'sampler' in kwargs:
+                sampler = kwargs['sampler']
+            if 'batch_sampler' in kwargs:
+                batch_sampler = kwargs['batch_sampler']
 
-        if batch_sampler is not None:
-            if batch_size > 1 or shuffle or sampler is not None or drop_last:
-                raise ValueError('batch_sampler is mutually exclusive with '
-                                 'batch_size, shuffle, sampler, and drop_last')
-
-        if sampler is not None and shuffle:
-            raise ValueError('sampler is mutually exclusive with shuffle')
-
+        # Use custom BatchSampler
         if batch_sampler is None:
             if sampler is None:
                 if shuffle:
-                    sampler = torch.utils.data.sampler.RandomSampler(dataset)
+                    sampler = torch.utils.data.sampler.RandomSampler(self.dataset)
                 else:
-                    sampler = torch.utils.data.sampler.SequentialSampler(dataset)
-            batch_sampler = BatchSampler(sampler, batch_size, drop_last, input_dimension=dataset.input_dim)
+                    sampler = torch.utils.data.sampler.SequentialSampler(self.dataset)
+            batch_sampler = BatchSampler(sampler, self.batch_size, self.drop_last, input_dimension=self.dataset.input_dim)
 
         self.sampler = sampler
         self.batch_sampler = batch_sampler
