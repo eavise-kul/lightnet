@@ -58,7 +58,7 @@ Various bits and bops
   - [X] Add brambox intersphinx mapping
   - [X] Add _how to_ guide
   - [X] Add _examples_ guide
-  - [ ] Rewrite _score_ guide with new numbers
+  - [X] Rewrite _score_ guide with new numbers
   - [ ] Rewrite _speed_ guide with new numbers
 
 ## Examples and Scripts
