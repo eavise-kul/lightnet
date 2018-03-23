@@ -39,6 +39,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
     ]
 
 todo_include_todos = True

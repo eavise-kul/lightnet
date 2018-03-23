@@ -59,7 +59,7 @@ Various bits and bops
   - [X] Add _how to_ guide
   - [X] Add _examples_ guide
   - [X] Rewrite _score_ guide with new numbers
-  - [ ] Rewrite _speed_ guide with new numbers
+  - [X] Rewrite _speed_ guide with new numbers
 
 ## Examples and Scripts
 Everything about creating examples and scripts to show off the library
@@ -74,6 +74,6 @@ Everything about creating examples and scripts to show off the library
   - [X] Test yolo-voc training
   - [X] Test yolo-voc engine training
   - [X] Compare accuracy yolo-voc trained weights
-  - [ ] Compare speed yolo-voc training
+  - [X] Compare speed yolo-voc training
   - [X] Rework examples to work with new lightnet API
 
