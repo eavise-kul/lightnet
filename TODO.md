@@ -75,5 +75,5 @@ Everything about creating examples and scripts to show off the library
   - [X] Test yolo-voc engine training
   - [X] Compare accuracy yolo-voc trained weights
   - [ ] Compare speed yolo-voc training
-  - [ ] Rework examples to work with new lightnet API
+  - [X] Rework examples to work with new lightnet API
 

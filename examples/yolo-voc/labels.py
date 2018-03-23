@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 #
-#   Parse annotations for VOCdevkit
 #   Copyright EAVISE
+#   Example: Transform annotations for VOCdevkit to the brambox pickle format
 #
 
 import sys
 import xml.etree.ElementTree as ET
 import brambox.boxes as bbb
 
-DEBUG = True
-ROOT = 'data'
+DEBUG = True        # Enable some debug prints with extra information
+ROOT = 'data'       # Root folder where the VOCdevkit is located
 
 TRAINSET = [
     ('2012', 'train'),
