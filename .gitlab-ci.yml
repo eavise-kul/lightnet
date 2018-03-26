@@ -1,0 +1,13 @@
+image: python:3.6.3-jessie
+
+pages:
+  only:
+    - tags
+  script:
+    - pip install -r develop.txt
+    - pip install .
+    - cd docs; make html; cd ..
+    - mv docs/.build/html public/
+  artifacts:
+    paths:
+      - public
