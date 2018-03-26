@@ -15,7 +15,7 @@ __all__ = ['MobileNetYolo']
 
 
 class MobileNetYolo(lnn.Darknet):
-    """ `Yolo v2`_ implementation with pytorch with a `Mobilenets`_ backend.
+    """ `Yolo v2`_ implementation with pytorch with a `mobilenets`_ backend.
     This network uses :class:`~lightnet.network.RegionLoss` as its loss function
     and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
 
@@ -35,8 +35,6 @@ class MobileNetYolo(lnn.Darknet):
     Warning:
         When changing the ``alpha`` value, you are changing the network architecture.
         This means you cannot use weights from this network with a different alpha value.
-
-    .. _Mobilenets: https://arxiv.org/pdf/1704.04861.pdf
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, alpha=1.0, input_channels=3, anchors=dict(num=5, values=[1.08,1.19, 3.42,4.41, 6.63,11.38, 9.42,5.11, 16.62,10.52])):
         """ Network initialisation """

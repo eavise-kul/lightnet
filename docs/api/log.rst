@@ -29,15 +29,15 @@ The second method is by using the :func:`lightnet.logger.setConsoleLevel` functi
   import logging
 
   # This line will log all messages to a file.
-  # Note that this also saves messages from other packages using the logging module
+  # Note: that this also saves messages from other packages using the logging module
   logging.basicConfig(filename='file.log', filemode='w')      
 
   # This line will only log TRAIN and TEST level messages to a file
-  # Note this logfile will only consider messages from 'lightnet.*' loggers
+  # Note: this logfile will only consider messages from 'lightnet.*' loggers
   filehandler = ln.logger.setLogFile('file.log', filemode='w')
 
   # This line enables all messages from lightnet to be printed on the console
-  # Note that messages that were printed before this line (eg. upon loading the package) will not be printed
+  # Note: messages that were printed before this line (eg. upon loading the package) will not be printed
   ln.logger.setConsoleLevel(logging.NOTSET)
 
   # Use this function to enable/disable colored terminal output
