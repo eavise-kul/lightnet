@@ -31,7 +31,7 @@ class Yolo(lnn.Darknet):
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes`
 
-    .. _Yolo v2: https://github.com/pjreddie/darknet/blob/master/cfg/yolo-voc.cfg
+    .. _Yolo v2: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/yolo-voc.cfg
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3, anchors=dict(num=5, values=[1.3221,1.73145,3.19275,4.00944,5.05587,8.09892,9.47112,4.84053,11.2364,10.0071])):
         """ Network initialisation """

@@ -29,6 +29,6 @@ Lightnet   30000    73.5    Trained and tested in lightnet
 
 
 .. include:: ../links.rst
-.. _darknet config: https://github.com/pjreddie/darknet/blob/master/cfg/yolo-voc.2.0.cfg
+.. _darknet config: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/yolo-voc.2.0.cfg
 .. _darknet weight file: https://pjreddie.com/media/files/yolo-voc.weights
 .. _lightnet weight file: htpps://gitlab.com/EAVISE/lightnet/tree/master/examples/yolo-voc/lightnet_weights.pt

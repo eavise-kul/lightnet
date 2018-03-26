@@ -33,7 +33,7 @@ class TinyYolo(lnn.Darknet):
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes`
 
-    .. _Tiny Yolo v2: https://github.com/pjreddie/darknet/blob/master/cfg/tiny-yolo-voc.cfg
+    .. _Tiny Yolo v2: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/tiny-yolo-voc.cfg
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3, anchors=dict(num=5, values=[1.08,1.19, 3.42,4.41, 6.63,11.38, 9.42,5.11, 16.62,10.52])):
         """ Network initialisation """
