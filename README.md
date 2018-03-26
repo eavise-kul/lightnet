@@ -18,11 +18,14 @@ pip install -r requirements.txt
 # If you want to develop Lightnet
 pip install -r develop.txt
 ```
+> This project is python 3.6 and higher so on some systems you might want to use 'pip3.6' instead of 'pip'
 
 ## How to use
-Run `make html` in the _docs_ folder. You can now access the API documentation of this project, by opening _docs/.build/html/index.html_ with your favourite browser.  
+[Click Here](https://eavise.gitlab.io/lightnet) for the API documentation and guides on how to use this library.  
 The _examples_ folder contains code snippets to train and test networks with lightnet. For examples on how to implement your own networks, you can take a look at the files in _lightnet/models_.
->To be able to generate the documentation, you need to install Sphinx and some other dependencies.  
+>If you are using a different version than the latest,
+>you can generate the documentation yourself by running `make clean html` in the _docs_ folder.
+>This does require some dependencies, like Sphinx.
 >The easiest way to install them is by using the __-r develop.txt__ option when installing lightnet.
 
 ## Credits
@@ -32,3 +35,4 @@ This library would not have been possible without the great work of the followin
   - [marvis](https://github.com/marvis/pytorch-yolo2) for his implementation of YOLO in pytorch. I took a lot of parts from this repository, and tweaked them to my needs.
   - [longcw](https://github.com/longcw/yolo2-pytorch) for his implementation of YOLO in pytorch. I used his code to get a correct region loss.
   - [The PyTorch team](http://pytorch.org) for creating a clear and powerfull library for deep learning.
+  - [Andrew G. Howard et al](https://goo.gl/jM15AT) for their work on efficient MobileNets.
