@@ -106,6 +106,9 @@ class BramboxData(Dataset):
 class DataLoader(torchDataLoader):
     """ Lightnet dataloader that enables on the fly resizing of the images.
     See :class:`torch.utils.data.DataLoader` for more information on the arguments.
+
+    Note:
+        This dataloader only works with :class:`lightnet.data.BramboxData` based datasets.
     """
     def __init__(self, *args, **kwargs):
         super(DataLoader, self).__init__(*args, **kwargs)
