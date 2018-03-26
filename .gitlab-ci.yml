@@ -4,10 +4,9 @@ pages:
   only:
     - tags
   script:
-    - pip install -r develop.txt
     - pip install http://download.pytorch.org/whl/cu80/torch-0.3.1-cp36-cp36m-linux_x86_64.whl 
     - pip install torchvision
-    - pip install .
+    - pip install -r develop.txt
     - cd docs; make html; cd ..
     - mv docs/.build/html public/
   artifacts:
