@@ -4,6 +4,7 @@
 #   Example: Transform annotations for VOCdevkit to the brambox pickle format
 #
 
+import os
 import sys
 import xml.etree.ElementTree as ET
 import brambox.boxes as bbb
@@ -25,7 +26,7 @@ TESTSET = [
 def identify(xml_file):
     root = ET.parse(xml_file).getroot()
     folder = root.find('folder').text
-    filename = root.find('filename').text
+    filename = os.path.splitext(root.find('filename').text)[0]
     return f'{folder}/JPEGImages/{filename}'
 
 
