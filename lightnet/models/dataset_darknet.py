@@ -28,8 +28,8 @@ class DarknetData(lnd.BramboxData):
         value (Number, optional): Determines value (exposure) shift; Default **1.5**
         class_label_map (list, optional): class label map to convert class names to an index; Default **None**
 
-    Return:
-        (tuple): image_tensor, list of brambox boxes
+    Returns:
+        tuple: image_tensor, list of brambox boxes
     """
     def __init__(self, data_file, augment=True, input_dimension=(416,416), jitter=.2, flip=.5, hue=.1, saturation=1.5, value=1.5, class_label_map=None):
         with open(data_file, 'r') as f:

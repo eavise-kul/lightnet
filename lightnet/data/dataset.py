@@ -33,6 +33,9 @@ class BramboxData(Dataset):
         img_transform (torchvision.transforms.Compose): Transforms to perform on the images
         anno_transform (torchvision.transforms.Compose): Transforms to perform on the annotations
         kwargs (dict): Keyword arguments that are passed to the brambox parser
+
+    Returns:
+        tuple: image_tensor, list of brambox boxes
     """
     def __init__(self, anno_format, anno_filename, input_dimension, class_label_map=None, identify=None, img_transform=None, anno_transform=None, **kwargs):
         super(BramboxData, self).__init__()

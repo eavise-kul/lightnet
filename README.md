@@ -32,7 +32,7 @@ The _examples_ folder contains code snippets to train and test networks with lig
 Credits where credits are due.  
 This library would not have been possible without the great work of the following people:
   - [pjreddie et al.](https://github.com/pjreddie/darknet) for their work on the original YOLO networks
+  - [The PyTorch team](http://pytorch.org) for creating a clear and powerfull library for deep learning.
   - [marvis](https://github.com/marvis/pytorch-yolo2) for his implementation of YOLO in pytorch. I took a lot of parts from this repository, and tweaked them to my needs.
   - [longcw](https://github.com/longcw/yolo2-pytorch) for his implementation of YOLO in pytorch. I used his code to get a correct region loss.
-  - [The PyTorch team](http://pytorch.org) for creating a clear and powerfull library for deep learning.
   - [Andrew G. Howard et al](https://goo.gl/jM15AT) for their work on efficient MobileNets.
