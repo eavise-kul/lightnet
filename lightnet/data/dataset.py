@@ -1,7 +1,7 @@
 #
 #   Lightnet dataset that works with brambox annotations
 #   Copyright EAVISE
-#   
+#
 
 import os
 import copy
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class BramboxData(Dataset):
     """ Dataset for any brambox parsable annotation format.
-        
+
     Args:
         anno_format (brambox.boxes.format): Annotation format
         anno_filename (list or str): Annotation filename, list of filenames or expandable sequence
@@ -168,7 +168,7 @@ class DataLoader(torchDataLoader):
             self.batch_sampler.new_input_dim = value
         else:
             if isinstance(value, int):
-                size = (random.randint(0,9) + 10) * value 
+                size = (random.randint(0,9) + 10) * value
                 size = (size, size)
             else:
                 size = ((random.randint(0,9) + 10) * value[0], (random.randint(0,9) + 10) * value[1])

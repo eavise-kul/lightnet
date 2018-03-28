@@ -16,7 +16,7 @@ __all__ = ['RegionLoss']
 
 class RegionLoss:
     """ Computes region loss from darknet network output and target annotation.
-    
+
     Args:
         network (lightnet.network.Darknet): Network that will be optimised with this loss function
     """
@@ -36,7 +36,7 @@ class RegionLoss:
 
     def __call__(self, output, target):
         """ Compute Region loss.
-        
+
         Args:
             output (torch.autograd.Variable): Output from the network
             target (brambox.boxes.annotations.Annotation or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see :class:`lightnet.data.BramboxToTensor`)
@@ -106,7 +106,7 @@ class RegionLoss:
         if nC > 1:
             tcls  = Variable(tcls, requires_grad=False)
             cls_mask = Variable(cls_mask, requires_grad=False)
-            cls      = cls[cls_mask].view(-1, nC)  
+            cls      = cls[cls_mask].view(-1, nC)
 
         # Compute losses
         mse = nn.MSELoss(size_average=False)
@@ -142,7 +142,7 @@ class RegionLoss:
         conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
         coord_mask = torch.zeros(nB, nA, 1, nH*nW)
         cls_mask   = torch.zeros(nB, nA, nH*nW).byte()
-        tcoord     = torch.zeros(nB, nA, 4, nH*nW) 
+        tcoord     = torch.zeros(nB, nA, 4, nH*nW)
         tconf      = torch.zeros(nB, nA, nH*nW)
         tcls       = torch.zeros(nB, nA, nH*nW)
 
@@ -233,7 +233,7 @@ class RegionLoss:
         conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
         coord_mask = torch.zeros(nB, nA, 1, nH*nW)
         cls_mask   = torch.zeros(nB, nA, nH*nW).byte()
-        tcoord     = torch.zeros(nB, nA, 4, nH*nW) 
+        tcoord     = torch.zeros(nB, nA, 4, nH*nW)
         tconf      = torch.zeros(nB, nA, nH*nW)
         tcls       = torch.zeros(nB, nA, nH*nW)
 
