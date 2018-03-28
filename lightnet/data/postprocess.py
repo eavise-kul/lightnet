@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 class GetBoundingBoxes:
     """ Convert output from darknet networks to bounding box tensor.
-        
+
     Args:
         network (lightnet.network.Darknet): Network the converter will be used with
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
@@ -40,7 +40,7 @@ class GetBoundingBoxes:
 
     def __call__(self, network_output):
         """ Compute bounding boxes after thresholding and nms
-            
+
             network_output (torch.autograd.Variable): Output tensor from the lightnet network
         """
         boxes = self._get_boxes(network_output.data)
@@ -129,7 +129,7 @@ class GetBoundingBoxes:
 
         a = boxes[:,:2]
         b = boxes[:,2:4]
-        bboxes = torch.cat([a-b/2,a+b/2], 1) 
+        bboxes = torch.cat([a-b/2,a+b/2], 1)
         scores = boxes[:,4]
 
         x1 = bboxes[:,0]
@@ -205,15 +205,15 @@ class TensorToBrambox(BaseTransform):
             det.width = box[2]
             det.height = box[3]
             det.confidence = box[4]
-            if class_label_map is not None:  
+            if class_label_map is not None:
                 det.class_label = class_label_map[int(box[5])]
             else:
                 det.class_label = str(int(box[5]))
 
             brambox.append(det)
-                
+
         return brambox
-    
+
 
 class ReverseLetterbox(BaseTransform):
     """ Performs a reverse letterbox operation on the bounding boxes. """

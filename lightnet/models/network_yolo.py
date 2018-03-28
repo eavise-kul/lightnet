@@ -94,12 +94,12 @@ class Yolo(lnn.Darknet):
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
 
         self.load_weights(weights_file)
-        self.loss = lnn.RegionLoss(self) 
+        self.loss = lnn.RegionLoss(self)
         self.postprocess = lnd.GetBoundingBoxes(self, conf_thresh, nms_thresh)
 
     def _forward(self, x):
         outputs = []
-    
+
         outputs.append(self.layers[0](x))
         outputs.append(self.layers[1](outputs[0]))
         # Route : layers=-9
