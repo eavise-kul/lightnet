@@ -37,11 +37,12 @@ class TinyYolo(lnn.Darknet):
                 anchors=dict(num=5, values=[1.08,1.19, 3.42,4.41, 6.63,11.38, 9.42,5.11, 16.62,10.52])):
         """ Network initialisation """
         super(TinyYolo, self).__init__()
+        if not 'num' in anchors or not 'values' in anchors:
+            raise TypeError('Incorrect anchors parameter [dict(num=..., values=[...])]')
 
         # Parameters
         self.num_classes = num_classes
-        self.num_anchors = anchors['num']
-        self.anchors = anchors['values']
+        self.anchors = anchors
         self.reduction = 32     # input_dim/output_dim
 
         # Network
@@ -60,10 +61,10 @@ class TinyYolo(lnn.Darknet):
             ('12_max',          lnn.layer.PaddedMaxPool2d(2, 1, (0,1,0,1))),
             ('13_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 1024, 3, 1, 1)),
             ('14_convbatch',    lnn.layer.Conv2dBatchLeaky(1024, 1024, 3, 1, 1)),
-            ('15_conv',         nn.Conv2d(1024, self.num_anchors*(5+self.num_classes), 1, 1, 0)),
+            ('15_conv',         nn.Conv2d(1024, self.anchors['num']*(5+self.num_classes), 1, 1, 0)),
         ])
         self.layers = nn.Sequential(layer_list)
 
         self.load_weights(weights_file)
-        self.loss = lnn.RegionLoss(self) 
-        self.postprocess = lnd.GetBoundingBoxes(self, conf_thresh, nms_thresh)
+        self.loss = lnn.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
+        self.postprocess = lnd.GetBoundingBoxes(self, self.num_classes, self.anchors, conf_thresh, nms_thresh)
