@@ -4,7 +4,6 @@
 #
 
 import math
-import warnings
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -19,7 +18,6 @@ class RegionLoss:
     """ Computes region loss from darknet network output and target annotation.
 
     Args:
-        network (lightnet.network.Darknet): Network that will be optimised with this loss function (optional) if not specified, then `num_classes` and `anchors` must be given.
         num_classes (int): number of categories
         anchors (dict): dict representing anchor boxes (see :class:`lightnet.network.Darknet`)
         coord_scale (float): weight of bounding box coordinates
@@ -27,39 +25,15 @@ class RegionLoss:
         object_scale (float): weight of regions with target boxes
         class_scale (float): weight of categorical predictions
         thresh (float): minimum iou for a predicted box to be assigned to a target
-
+        seen (int): How many images the network has already been trained on.
     """
-    def __init__(self, network=None, num_classes=None, anchors=None,
-                 coord_scale=1.0, noobject_scale=1.0, object_scale=5.0,
-                 class_scale=1.0, thresh=0.6):
-        self.net = network
-
-        if network is not None:
-            if num_classes is not None:
-                warnings.warn(
-                    'num_classes is ignored because network was specified',
-                    UserWarning)
-            if anchors is not None:
-                warnings.warn(
-                    'anchors is ignored because network was specified',
-                    UserWarning)
-
-            self.num_classes = network.num_classes
-            self.anchors = network.anchors
-            self.num_anchors = network.num_anchors
-            self.anchor_step = len(self.anchors) // self.num_anchors
-            self.reduction = network.reduction
-        else:
-            if num_classes is None:
-                raise ValueError('Must specify num_classes if network is None')
-            if anchors is None:
-                raise ValueError('Must specify anchors if network is None')
-
-            self.num_classes = num_classes
-            self.anchors = anchors['values']
-            self.num_anchors = anchors['num']
-            self.anchor_step = len(self.anchors) // self.num_anchors
-            self.reduction = 32             # input_dim/output_dim
+    def __init__(self, num_classes, anchors, reduction=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6):
+        self.num_classes = num_classes
+        self.anchors = anchors['values']
+        self.num_anchors = anchors['num']
+        self.anchor_step = len(self.anchors) // self.num_anchors
+        self.reduction = reduction      # input_dim/output_dim
+        self.seen = seen
 
         self.coord_scale = coord_scale
         self.noobject_scale = noobject_scale
@@ -73,7 +47,7 @@ class RegionLoss:
         Args:
             output (torch.autograd.Variable): Output from the network
             target (brambox.boxes.annotations.Annotation or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see :class:`lightnet.data.BramboxToTensor`)
-            seen (int): if specified, overrides the `seen` attribute read from `self.net` (default None)
+            seen (int, optional): How many images the network has already been trained on; Default **Add batch_size to previous seen value**
         """
         # Parameters
         nB = output.data.size(0)
@@ -84,6 +58,10 @@ class RegionLoss:
         cuda = output.is_cuda
         if isinstance(target, Variable):
             target = target.data
+        if seen is not None:
+            self.seen = seen
+        else:
+            self.seen += nB
 
         # Get x,y,w,h,conf,cls
         output = output.view(nB, nA, -1, nH*nW)
@@ -118,7 +96,7 @@ class RegionLoss:
         pred_confs = conf.data.view(-1).cpu()
 
         # Get target values
-        coord_mask,conf_mask,cls_mask,tcoord,tconf,tcls = self.build_targets(pred_boxes,pred_confs,target,nH,nW, seen=seen)
+        coord_mask,conf_mask,cls_mask,tcoord,tconf,tcls = self.build_targets(pred_boxes,pred_confs,target,nH,nW)
         coord_mask = coord_mask.expand_as(tcoord)
         if nC > 1:
             tcls = tcls.view(-1)[cls_mask].long()
@@ -155,14 +133,14 @@ class RegionLoss:
 
         return self.loss_tot
 
-    def build_targets(self, pred_boxes, pred_confs, ground_truth, nH, nW, seen=None):
+    def build_targets(self, pred_boxes, pred_confs, ground_truth, nH, nW):
         """ Compare prediction boxes and targets, convert targets to network output tensors """
         if torch.is_tensor(ground_truth):
-            return self.__build_targets_tensor(pred_boxes, pred_confs, ground_truth, nH, nW, seen=seen)
+            return self.__build_targets_tensor(pred_boxes, pred_confs, ground_truth, nH, nW)
         else:
-            return self.__build_targets_brambox(pred_boxes, pred_confs, ground_truth, nH, nW, seen=seen)
+            return self.__build_targets_brambox(pred_boxes, pred_confs, ground_truth, nH, nW)
 
-    def __build_targets_tensor(self, pred_boxes, pred_confs, ground_truth, nH, nW, seen=None):
+    def __build_targets_tensor(self, pred_boxes, pred_confs, ground_truth, nH, nW):
         """ Compare prediction boxes and ground truths, convert ground truths to network output tensors """
         # Parameters
         nB = ground_truth.size(0)
@@ -170,11 +148,6 @@ class RegionLoss:
         nA = self.num_anchors
         nAnchors = nA*nH*nW
         nPixels  = nH*nW
-
-        if seen is None:
-            seen = self.net.seen + nB
-        else:
-            seen = seen + nB
 
         # Tensors
         conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
@@ -184,7 +157,7 @@ class RegionLoss:
         tconf      = torch.zeros(nB, nA, nH*nW)
         tcls       = torch.zeros(nB, nA, nH*nW)
 
-        if seen < 12800:
+        if self.seen < 12800:
             coord_mask.fill_(1)
             if self.anchor_step == 4:
                 tcoord[:,:,0] = torch.Tensor(self.anchors[2::self.anchor_step]).view(1,nA,1,1).repeat(nB,1,1,nH*nW)
@@ -258,18 +231,13 @@ class RegionLoss:
 
         return coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls
 
-    def __build_targets_brambox(self, pred_boxes, pred_confs, ground_truth, nH, nW, seen=None):
+    def __build_targets_brambox(self, pred_boxes, pred_confs, ground_truth, nH, nW):
         """ Compare prediction boxes and ground truths, convert ground truths to network output tensors """
         # Parameters
         nB = len(ground_truth)
         nA = self.num_anchors
         nAnchors = nA*nH*nW
         nPixels  = nH*nW
-
-        if seen is None:
-            seen = self.net.seen + nB
-        else:
-            seen = seen + nB
 
         # Tensors
         conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
@@ -279,7 +247,7 @@ class RegionLoss:
         tconf      = torch.zeros(nB, nA, nH*nW)
         tcls       = torch.zeros(nB, nA, nH*nW)
 
-        if seen < 12800:
+        if self.seen < 12800:
             coord_mask.fill_(1)
             if self.anchor_step == 4:
                 tcoord[:,:,0] = torch.Tensor(self.anchors[2::self.anchor_step]).view(1,nA,1,1).repeat(nB,1,1,nH*nW)
