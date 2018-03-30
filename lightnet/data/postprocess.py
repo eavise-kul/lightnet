@@ -20,7 +20,8 @@ class GetBoundingBoxes:
     """ Convert output from darknet networks to bounding box tensor.
 
     Args:
-        network (lightnet.network.Darknet): Network the converter will be used with
+        num_classes (int): number of categories
+        anchors (dict): dict representing anchor boxes (see :class:`lightnet.network.Darknet`)
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
         nms_thresh(Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
 
@@ -30,13 +31,13 @@ class GetBoundingBoxes:
     Note:
         The output tensor uses relative values for its coordinates.
     """
-    def __init__(self, network, conf_thresh, nms_thresh):
+    def __init__(self, num_classes, anchors, conf_thresh, nms_thresh):
+        self.num_classes = num_classes
+        self.anchors = anchors['values']
+        self.num_anchors = anchors['num']
+        self.anchor_step = len(self.anchors) // self.num_anchors
         self.conf_thresh = conf_thresh
         self.nms_thresh = nms_thresh
-        self.num_classes = network.num_classes
-        self.anchors = network.anchors
-        self.num_anchors = network.num_anchors
-        self.anchor_step = len(self.anchors) // self.num_anchors
 
     def __call__(self, network_output):
         """ Compute bounding boxes after thresholding and nms
@@ -48,7 +49,7 @@ class GetBoundingBoxes:
         return boxes
 
     @classmethod
-    def apply(cls, network_output, network, conf_thresh, nms_thresh):
+    def apply(cls, network_output, num_classes, anchors, conf_thresh, nms_thresh):
         obj = cls(network, conf_thresh, nms_thresh)
         return obj(network_output)
 
