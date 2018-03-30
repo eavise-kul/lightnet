@@ -14,7 +14,7 @@ from ..util import bbox_iou, bbox_multi_ious
 __all__ = ['RegionLoss']
 
 
-class RegionLoss:
+class RegionLoss(nn.modules.loss._Loss):
     """ Computes region loss from darknet network output and target annotation.
 
     Args:
@@ -28,6 +28,7 @@ class RegionLoss:
         seen (int): How many images the network has already been trained on.
     """
     def __init__(self, num_classes, anchors, reduction=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6):
+        super().__init__()
         self.num_classes = num_classes
         self.anchors = anchors['values']
         self.num_anchors = anchors['num']
@@ -41,7 +42,7 @@ class RegionLoss:
         self.class_scale = class_scale
         self.thresh = thresh
 
-    def __call__(self, output, target, seen=None):
+    def forward(self, output, target, seen=None):
         """ Compute Region loss.
 
         Args:
