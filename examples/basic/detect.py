@@ -26,9 +26,9 @@ NMS_THRESH = .4
 # Functions
 def create_network():
     """ Create the lightnet network """
-    net = ln.models.Yolo(CLASSES, args.weight)
+    net = ln.models.Yolo(CLASSES, args.weight, CONF_THRESH, NMS_THRESH)
     net.postprocess = tf.Compose([
-        ln.data.GetBoundingBoxes(net, CONF_THRESH, NMS_THRESH),
+        net.postprocess,
         ln.data.TensorToBrambox(network_size=NETWORK_SIZE, class_label_map=LABELS),
     ])
 
