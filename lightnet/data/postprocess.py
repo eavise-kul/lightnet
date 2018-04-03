@@ -20,7 +20,8 @@ class GetBoundingBoxes:
     """ Convert output from darknet networks to bounding box tensor.
 
     Args:
-        network (lightnet.network.Darknet): Network the converter will be used with
+        num_classes (int): number of categories
+        anchors (list): 2D list representing anchor boxes (see :class:`lightnet.network.Darknet`)
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
         nms_thresh(Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
 
@@ -30,13 +31,13 @@ class GetBoundingBoxes:
     Note:
         The output tensor uses relative values for its coordinates.
     """
-    def __init__(self, network, conf_thresh, nms_thresh):
+    def __init__(self, num_classes, anchors, conf_thresh, nms_thresh):
+        self.num_classes = num_classes
+        self.num_anchors = len(anchors)
+        self.anchor_step = len(anchors[0])
+        self.anchors = torch.Tensor(anchors)
         self.conf_thresh = conf_thresh
         self.nms_thresh = nms_thresh
-        self.num_classes = network.num_classes
-        self.anchors = network.anchors
-        self.num_anchors = network.num_anchors
-        self.anchor_step = len(self.anchors) // self.num_anchors
 
     def __call__(self, network_output):
         """ Compute bounding boxes after thresholding and nms
@@ -48,7 +49,7 @@ class GetBoundingBoxes:
         return boxes
 
     @classmethod
-    def apply(cls, network_output, network, conf_thresh, nms_thresh):
+    def apply(cls, network_output, num_classes, anchors, conf_thresh, nms_thresh):
         obj = cls(network, conf_thresh, nms_thresh)
         return obj(network_output)
 
@@ -67,8 +68,8 @@ class GetBoundingBoxes:
         # Compute xc,yc, w,h, box_score on Tensor
         lin_x = torch.linspace(0, w-1, w).repeat(h,1).view(h*w)
         lin_y = torch.linspace(0, h-1, h).repeat(w,1).t().contiguous().view(h*w)
-        anchor_w = torch.Tensor(self.anchors[::2]).view(1, self.num_anchors, 1)
-        anchor_h = torch.Tensor(self.anchors[1::2]).view(1, self.num_anchors, 1)
+        anchor_w = self.anchors[:,0].contiguous().view(1, self.num_anchors, 1)
+        anchor_h = self.anchors[:,1].contiguous().view(1, self.num_anchors, 1)
         if cuda:
             lin_x = lin_x.cuda()
             lin_y = lin_y.cuda()

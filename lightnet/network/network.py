@@ -128,6 +128,9 @@ class Darknet(nn.Module):
                 log.info('Loading weights from darknet file')
                 self._load_darknet_weights(weights_file)
 
+            if hasattr(self.loss, 'seen'):
+                self.loss.seen = self.seen
+
     def save_weights(self, weights_file):
         """ This function will save the weights to a file.
         If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_. 
@@ -153,19 +156,19 @@ class Darknet(nn.Module):
         new_state = torch.load(weights_file, lambda storage, loc: storage)
 
         # Changed in layer.py: self.layer -> self.layers
-        warned = False
         for key in list(new_state['weights'].keys()):
             if '.layer.' in key:
-                if not warned:
-                    log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
-                    warned = True
+                log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
                 new_key = key.replace('.layer.', '.layers.')
                 new_state['weights'][new_key] = new_state['weights'].pop(key)
 
         new_dict = {k: v for k,v in new_state['weights'].items() if k in old_state}
         old_state.update(new_dict)
         self.load_state_dict(old_state)
+
         self.seen = new_state['seen']
+        if hasattr(self.loss, 'seen'):
+            self.loss.seen = self.seen
 
     def _load_darknet_weights(self, weights_file):
         weights = WeightLoader(weights_file)
@@ -199,12 +202,9 @@ class Darknet(nn.Module):
         self.seen = state['seen']
 
         # Changed in layer.py: self.layer -> self.layers
-        warned = False
         for key in list(state['weights'].keys()):
             if '.layer.' in key:
-                if not warned:
-                    log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
-                    warned = True
+                log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
                 new_key = key.replace('.layer.', '.layers.')
                 state['weights'][new_key] = state['weights'].pop(key)
 
