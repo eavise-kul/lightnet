@@ -19,7 +19,7 @@ class RegionLoss(nn.modules.loss._Loss):
 
     Args:
         num_classes (int): number of categories
-        anchors (dict): dict representing anchor boxes (see :class:`lightnet.network.Darknet`)
+        anchors (list): 2D list representing anchor boxes (see :class:`lightnet.network.Darknet`)
         coord_scale (float): weight of bounding box coordinates
         noobject_scale (float): weight of regions without target boxes
         object_scale (float): weight of regions with target boxes
@@ -30,9 +30,9 @@ class RegionLoss(nn.modules.loss._Loss):
     def __init__(self, num_classes, anchors, reduction=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6):
         super().__init__()
         self.num_classes = num_classes
-        self.anchors = anchors['values']
-        self.num_anchors = anchors['num']
-        self.anchor_step = len(self.anchors) // self.num_anchors
+        self.num_anchors = len(anchors)
+        self.anchor_step = len(anchors[0])
+        self.anchors = torch.Tensor(anchors)
         self.reduction = reduction      # input_dim/output_dim
         self.seen = seen
 
@@ -77,8 +77,8 @@ class RegionLoss(nn.modules.loss._Loss):
         pred_boxes = torch.FloatTensor(nB*nA*nH*nW, 4)
         lin_x = torch.linspace(0, nW-1, nW).repeat(nH,1).view(nH*nW)
         lin_y = torch.linspace(0, nH-1, nH).repeat(nW,1).t().contiguous().view(nH*nW)
-        anchor_w = torch.Tensor(self.anchors[::self.anchor_step]).view(nA, 1)
-        anchor_h = torch.Tensor(self.anchors[1::self.anchor_step]).view(nA, 1)
+        anchor_w = self.anchors[:,0].contiguous().view(nA, 1)
+        anchor_h = self.anchors[:,1].contiguous().view(nA, 1)
         if cuda:
             pred_boxes = pred_boxes.cuda()
             lin_x = lin_x.cuda()
@@ -161,8 +161,8 @@ class RegionLoss(nn.modules.loss._Loss):
         if self.seen < 12800:
             coord_mask.fill_(1)
             if self.anchor_step == 4:
-                tcoord[:,:,0] = torch.Tensor(self.anchors[2::self.anchor_step]).view(1,nA,1,1).repeat(nB,1,1,nH*nW)
-                tcoord[:,:,1] = torch.Tensor(self.anchors[3::self.anchor_step]).view(1,nA,1,1).repeat(nB,1,1,nH*nW)
+                tcoord[:,:,0] = self.anchors[:,2].contiguous().view(1,nA,1,1).repeat(nB,1,1,nH*nW)
+                tcoord[:,:,1] = self.anchors[:,3].contiguous().view(1,nA,1,1).repeat(nB,1,1,nH*nW)
             else:
                 tcoord[:,:,0].fill_(0.5)
                 tcoord[:,:,1].fill_(0.5)
@@ -199,13 +199,13 @@ class RegionLoss(nn.modules.loss._Loss):
                 gj = min(nH-1, max(0, int(gy)))
                 gt_box = [0, 0, gw, gh]
                 for n in range(nA):
-                    aw = self.anchors[self.anchor_step*n]
-                    ah = self.anchors[self.anchor_step*n+1]
+                    aw = self.anchors[n,0]
+                    ah = self.anchors[n,1]
                     anchor_box = [0, 0, aw, ah]
                     iou  = bbox_iou(anchor_box, gt_box)
                     if self.anchor_step == 4:
-                        ax = self.anchors[self.anchor_step*n+2]
-                        ay = self.anchors[self.anchor_step*n+3]
+                        ax = self.anchors[n,2]
+                        ay = self.anchors[n,3]
                         dist = pow(((gi+ax) - gx), 2) + pow(((gj+ay) - gy), 2)
                     if iou > best_iou:
                         best_iou = iou
@@ -225,8 +225,8 @@ class RegionLoss(nn.modules.loss._Loss):
                 conf_mask[b][best_n][gj*nW+gi] = self.object_scale
                 tcoord[b][best_n][0][gj*nW+gi] = gx - gi
                 tcoord[b][best_n][1][gj*nW+gi] = gy - gj
-                tcoord[b][best_n][2][gj*nW+gi] = math.log(gw/self.anchors[self.anchor_step*best_n])
-                tcoord[b][best_n][3][gj*nW+gi] = math.log(gh/self.anchors[self.anchor_step*best_n+1])
+                tcoord[b][best_n][2][gj*nW+gi] = math.log(gw/self.anchors[best_n, 0])
+                tcoord[b][best_n][3][gj*nW+gi] = math.log(gh/self.anchors[best_n, 1])
                 tconf[b][best_n][gj*nW+gi] = iou
                 tcls[b][best_n][gj*nW+gi] = ground_truth[b][t][0]
 
@@ -251,8 +251,8 @@ class RegionLoss(nn.modules.loss._Loss):
         if self.seen < 12800:
             coord_mask.fill_(1)
             if self.anchor_step == 4:
-                tcoord[:,:,0] = torch.Tensor(self.anchors[2::self.anchor_step]).view(1,nA,1,1).repeat(nB,1,1,nH*nW)
-                tcoord[:,:,1] = torch.Tensor(self.anchors[3::self.anchor_step]).view(1,nA,1,1).repeat(nB,1,1,nH*nW)
+                tcoord[:,:,0] = self.anchors[:,2].contiguous().view(1,nA,1,1).repeat(nB,1,1,nH*nW)
+                tcoord[:,:,1] = self.anchors[:,3].contiguous().view(1,nA,1,1).repeat(nB,1,1,nH*nW)
             else:
                 tcoord[:,:,0].fill_(0.5)
                 tcoord[:,:,1].fill_(0.5)
@@ -285,13 +285,13 @@ class RegionLoss(nn.modules.loss._Loss):
                 gj = min(nH-1, max(0, int(gy)))
                 gt_box = [0, 0, gw, gh]
                 for n in range(nA):
-                    aw = self.anchors[self.anchor_step*n]
-                    ah = self.anchors[self.anchor_step*n+1]
+                    aw = self.anchors[n,0]
+                    ah = self.anchors[n,1]
                     anchor_box = [0, 0, aw, ah]
                     iou  = bbox_iou(anchor_box, gt_box)
                     if self.anchor_step == 4:
-                        ax = self.anchors[self.anchor_step*n+2]
-                        ay = self.anchors[self.anchor_step*n+3]
+                        ax = self.anchors[n,2]
+                        ay = self.anchors[n,3]
                         dist = pow(((gi+ax) - gx), 2) + pow(((gj+ay) - gy), 2)
                     if iou > best_iou:
                         best_iou = iou
@@ -314,8 +314,8 @@ class RegionLoss(nn.modules.loss._Loss):
                     conf_mask[b][best_n][gj*nW+gi] = self.object_scale
                     tcoord[b][best_n][0][gj*nW+gi] = gx - gi
                     tcoord[b][best_n][1][gj*nW+gi] = gy - gj
-                    tcoord[b][best_n][2][gj*nW+gi] = math.log(gw/self.anchors[self.anchor_step*best_n])
-                    tcoord[b][best_n][3][gj*nW+gi] = math.log(gh/self.anchors[self.anchor_step*best_n+1])
+                    tcoord[b][best_n][2][gj*nW+gi] = math.log(gw/self.anchors[best_n, 0])
+                    tcoord[b][best_n][3][gj*nW+gi] = math.log(gh/self.anchors[best_n, 1])
                     tconf[b][best_n][gj*nW+gi] = iou
                     tcls[b][best_n][gj*nW+gi] = anno.class_id
 

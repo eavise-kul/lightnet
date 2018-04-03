@@ -21,7 +21,7 @@ class GetBoundingBoxes:
 
     Args:
         num_classes (int): number of categories
-        anchors (dict): dict representing anchor boxes (see :class:`lightnet.network.Darknet`)
+        anchors (list): 2D list representing anchor boxes (see :class:`lightnet.network.Darknet`)
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
         nms_thresh(Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
 
@@ -33,9 +33,9 @@ class GetBoundingBoxes:
     """
     def __init__(self, num_classes, anchors, conf_thresh, nms_thresh):
         self.num_classes = num_classes
-        self.anchors = anchors['values']
-        self.num_anchors = anchors['num']
-        self.anchor_step = len(self.anchors) // self.num_anchors
+        self.num_anchors = len(anchors)
+        self.anchor_step = len(anchors[0])
+        self.anchors = torch.Tensor(anchors)
         self.conf_thresh = conf_thresh
         self.nms_thresh = nms_thresh
 
@@ -68,8 +68,8 @@ class GetBoundingBoxes:
         # Compute xc,yc, w,h, box_score on Tensor
         lin_x = torch.linspace(0, w-1, w).repeat(h,1).view(h*w)
         lin_y = torch.linspace(0, h-1, h).repeat(w,1).t().contiguous().view(h*w)
-        anchor_w = torch.Tensor(self.anchors[::2]).view(1, self.num_anchors, 1)
-        anchor_h = torch.Tensor(self.anchors[1::2]).view(1, self.num_anchors, 1)
+        anchor_w = self.anchors[:,0].contiguous().view(1, self.num_anchors, 1)
+        anchor_h = self.anchors[:,1].contiguous().view(1, self.num_anchors, 1)
         if cuda:
             lin_x = lin_x.cuda()
             lin_y = lin_y.cuda()

@@ -4,7 +4,7 @@
 #
 
 import os
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 import torch
 import torch.nn as nn
 
@@ -26,7 +26,7 @@ class MobileNetYolo(lnn.Darknet):
         nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
         alpha (Number, optional): Number between [0-1] that controls the number of filters of the mobilenet convolutions; Default **1**
         input_channels (Number, optional): Number of input channels; Default **3**
-        anchors (dict, optional): Dictionary containing `num` and `values` properties with anchor values; Default **Yolo v2 anchors**
+        anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
 
     Attributes:
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
@@ -37,11 +37,11 @@ class MobileNetYolo(lnn.Darknet):
         This means you cannot use weights from this network with a different alpha value.
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, alpha=1.0, input_channels=3,
-                anchors=dict(num=5, values=[1.3221,1.73145,3.19275,4.00944,5.05587,8.09892,9.47112,4.84053,11.2364,10.0071])):
+                anchors=[(1.3221,1.73145), (3.19275,4.00944), (5.05587,8.09892), (9.47112,4.84053), (11.2364,10.0071)]):
         """ Network initialisation """
         super(MobileNetYolo, self).__init__()
-        if not 'num' in anchors or not 'values' in anchors:
-            raise TypeError('Incorrect anchors parameter [dict(num=..., values=[...])]')
+        if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
+            raise TypeError('Anchors need to be a 2D list of numbers')
 
         # Parameters
         self.num_classes = num_classes
@@ -80,7 +80,7 @@ class MobileNetYolo(lnn.Darknet):
             # Sequence 3 : input = sequence2 + sequence1
             OrderedDict([
                 ('16_convbatch',    lnn.layer.Conv2dBatchLeaky((4*64)+int(alpha*1024), 1024, 3, 1, 1)),
-                ('17_conv',         nn.Conv2d(1024, self.anchors['num']*(5+self.num_classes), 1, 1, 0)),
+                ('17_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
             ])
         ]
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
