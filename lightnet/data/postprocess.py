@@ -123,6 +123,12 @@ class GetBoundingBoxes:
             score_thresh = cls_max > self.conf_thresh
             score_thresh_flat = score_thresh.view(-1)
 
+            if score_thresh.sum() == 0:
+                boxes = []
+                for i in range(batch):
+                    boxes.append(torch.Tensor([]))
+                return boxes
+
             # Mask select boxes > conf_thresh
             coords = output.transpose(2, 3)[..., 0:4]
             coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
