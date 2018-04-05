@@ -6,7 +6,6 @@
 
 import logging
 import torch
-import numpy as np
 from torch.autograd import Variable
 from brambox.boxes.detections.detection import *
 
@@ -39,13 +38,20 @@ class GetBoundingBoxes:
         self.conf_thresh = conf_thresh
         self.nms_thresh = nms_thresh
 
+        self.mode = 0
+
     def __call__(self, network_output):
         """ Compute bounding boxes after thresholding and nms
 
             network_output (torch.autograd.Variable): Output tensor from the lightnet network
         """
-        boxes = self._get_boxes(network_output.data)
-        boxes = [self._nms(torch.Tensor(box)) for box in boxes]
+        if self.mode == 0:
+            boxes = self._get_boxes(network_output.data)
+            boxes = [self._nms(torch.Tensor(box)) for box in boxes]
+        else:
+            boxes = self._get_boxes(network_output.data)
+            boxes = [self._nms(box) for box in boxes]
+
         return boxes
 
     @classmethod
@@ -92,25 +98,50 @@ class GetBoundingBoxes:
             cls_max = output[:,:,4,:]
             cls_max_idx = torch.zeros_like(cls_max)
 
-        # Save detection if conf*class_conf is higher than threshold
-        output = output.cpu()
-        cls_max = cls_max.cpu()
-        cls_max_idx = cls_max_idx.cpu()
-        boxes = []
-        for b in range(batch):
-            box_batch = []
-            for a in range(self.num_anchors):
-                for i in range(h*w):
-                    if cls_max[b,a,i] > self.conf_thresh:
-                        box_batch.append([
-                            output[b,a,0,i],
-                            output[b,a,1,i],
-                            output[b,a,2,i],
-                            output[b,a,3,i],
-                            cls_max[b,a,i],
-                            cls_max_idx[b,a,i]
-                            ])
-            boxes.append(box_batch)
+        if self.mode == 0:
+            # Save detection if conf*class_conf is higher than threshold
+            output = output.cpu()
+            cls_max = cls_max.cpu()
+            cls_max_idx = cls_max_idx.cpu()
+            boxes = []
+            for b in range(batch):
+                box_batch = []
+                for a in range(self.num_anchors):
+                    for i in range(h*w):
+                        if cls_max[b,a,i] > self.conf_thresh:
+                            box_batch.append([
+                                output[b,a,0,i],
+                                output[b,a,1,i],
+                                output[b,a,2,i],
+                                output[b,a,3,i],
+                                cls_max[b,a,i],
+                                cls_max_idx[b,a,i]
+                                ])
+                boxes.append(box_batch)
+        else:
+            # Get boxes > conf_thresh
+            score_thresh = cls_max > self.conf_thresh
+            score_thresh_flat = score_thresh.view(-1)
+
+            # Mask select boxes > conf_thresh
+            coords = output.transpose(2, 3)[..., 0:4]
+            coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
+            scores = cls_max[score_thresh]
+            idx = cls_max_idx[score_thresh]
+            detections = torch.cat([coords, scores[:, None], idx[:, None]], dim=1)
+
+            # Get indexes of splits between images of batch
+            max_det_per_batch = self.num_anchors * h * w
+            slices = [slice(max_det_per_batch * i, max_det_per_batch * (i+1)) for i in range(batch)]
+            det_per_batch = torch.IntTensor([score_thresh_flat[s].int().sum() for s in slices])
+            split_idx = torch.cumsum(det_per_batch, dim=0)
+
+            # Group detections per image of batch
+            boxes = []
+            start = 0
+            for end in split_idx:
+                boxes.append(detections[start: end])
+                start = end
 
         return boxes
 
@@ -124,9 +155,9 @@ class GetBoundingBoxes:
         Return:
           (tensor): Pruned boxes
         """
-
         if boxes.numel() == 0:
             return boxes
+        cuda = boxes.is_cuda
 
         a = boxes[:,:2]
         b = boxes[:,2:4]
@@ -164,7 +195,11 @@ class GetBoundingBoxes:
             if ids.numel() == 0:
                 break
             order = order[ids+1]
-        return boxes[torch.LongTensor(keep)]
+
+        keep = torch.LongTensor(keep)
+        if cuda:
+            keep = keep.cuda()
+        return boxes[keep]
 
 
 class TensorToBrambox(BaseTransform):
