@@ -38,6 +38,7 @@ class GetBoundingBoxes:
         self.conf_thresh = conf_thresh
         self.nms_thresh = nms_thresh
 
+        self.nms_class = True
         self.mode = 0
 
     def __call__(self, network_output):
@@ -45,11 +46,14 @@ class GetBoundingBoxes:
 
             network_output (torch.autograd.Variable): Output tensor from the lightnet network
         """
+        if isinstance(network_output, Variable):
+            network_output = network_output.data
+
         if self.mode == 0:
-            boxes = self._get_boxes(network_output.data)
-            boxes = [self._nms(torch.Tensor(box)) for box in boxes]
+            boxes = self._get_boxes(network_output)
+            boxes = [self._nms_old(torch.Tensor(box)) for box in boxes]
         else:
-            boxes = self._get_boxes(network_output.data)
+            boxes = self._get_boxes(network_output)
             boxes = [self._nms(box) for box in boxes]
 
         return boxes
@@ -151,7 +155,7 @@ class GetBoundingBoxes:
 
         return boxes
 
-    def _nms(self, boxes):
+    def _nms_old(self, boxes):
         """ Non maximum suppression.
         Source: https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
 
@@ -206,6 +210,48 @@ class GetBoundingBoxes:
         if cuda:
             keep = keep.cuda()
         return boxes[keep]
+
+    def _nms(self, boxes):
+        """ Non maximum suppression.
+
+        Args:
+          boxes (tensor): Bounding boxes of one image
+
+        Return:
+          (tensor): Pruned boxes
+        """
+        if boxes.numel() == 0:
+            return boxes
+
+        a = boxes[:,:2]
+        b = boxes[:,2:4]
+        bboxes = torch.cat([a-b/2,a+b/2], 1)
+        scores = boxes[:,4]
+        classes = boxes[:,5]
+
+        # Sort coordinates by descending score
+        scores, order = scores.sort(0, descending=True)
+        x1, y1, x2, y2 = bboxes[order].split(1,1)
+
+        # Compute dx and dy between each pair of boxes (these mat contain every pair twice...)
+        dx = (x2.min(x2.t()) - x1.max(x1.t())).clamp_(min=0)
+        dy = (y2.min(y2.t()) - y1.max(y1.t())).clamp_(min=0)
+        
+        # Compute iou
+        intersections = dx * dy
+        areas = (x2-x1) * (y2-y1)
+        unions = (areas + areas.t()) - intersections
+        ious = intersections / unions
+
+        # Filter based on iou (and class)
+        conflicting = (ious > self.nms_thresh).triu(1)
+
+        if self.nms_class:
+            same_class = (classes.unsqueeze(0) == classes.unsqueeze(1))
+            conflicting = (conflicting & same_class)
+
+        keep = (conflicting.sum(0) == 0)    # Unlike numpy, pytorch cannot perform any() along a certain axis
+        return boxes[order][keep[:,None].expand_as(boxes)].view(-1,6).contiguous()
 
 
 class TensorToBrambox(BaseTransform):
