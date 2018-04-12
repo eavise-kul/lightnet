@@ -12,8 +12,8 @@ import torch
 import numpy as np
 from PIL import Image, ImageOps
 import brambox.boxes as bbb
+from .process import BaseTransform, BaseMultiTransform
 
-from .process import *
 log = logging.getLogger(__name__)
 
 try:

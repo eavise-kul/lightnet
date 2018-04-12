@@ -8,5 +8,6 @@ It also has functionality to create datasets from images and annotations that ar
 
 
 from .dataset import *
+from .process import *
 from .preprocess import *
 from .postprocess import *

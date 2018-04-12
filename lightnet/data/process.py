@@ -4,6 +4,8 @@
 #   Copyright EAVISE
 #
 
+__all__ = ['Compose']
+
 
 class BaseTransform:
     """ Base transform class for the pre- and post-processing functions.
@@ -51,3 +53,10 @@ class BaseMultiTransform:
 
         res_target = obj(target)
         return res_data, res_target
+
+
+class Compose(list):
+    def __call__(self, data):
+        for tf in self:
+            data = tf(data)
+        return data

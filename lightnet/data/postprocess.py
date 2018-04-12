@@ -8,123 +8,99 @@ import logging
 import torch
 from torch.autograd import Variable
 from brambox.boxes.detections.detection import *
+from .process import BaseTransform
 
-from .process import *
-
-__all__ = ['GetBoundingBoxes', 'TensorToBrambox', 'ReverseLetterbox']
+__all__ = ['GetBoundingBoxes', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
 log = logging.getLogger(__name__)
 
 
-class GetBoundingBoxes:
+class GetBoundingBoxes(BaseTransform):
     """ Convert output from darknet networks to bounding box tensor.
 
     Args:
         num_classes (int): number of categories
         anchors (list): 2D list representing anchor boxes (see :class:`lightnet.network.Darknet`)
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
-        nms_thresh(Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
 
     Returns:
-        (Batch x Boxes x 6 tensor): **[x_center, y_center, width, height, confidence, class_id]** for every bounding box
+        (list [Batch x Tensor [Boxes x 6]]): **[x_center, y_center, width, height, confidence, class_id]** for every bounding box
 
     Note:
         The output tensor uses relative values for its coordinates.
     """
-    def __init__(self, num_classes, anchors, conf_thresh, nms_thresh):
+    def __init__(self, num_classes, anchors, conf_thresh):
         self.num_classes = num_classes
-        self.num_anchors = len(anchors)
-        self.anchor_step = len(anchors[0])
-        self.anchors = torch.Tensor(anchors)
+        self.anchors = anchors
         self.conf_thresh = conf_thresh
-        self.nms_thresh = nms_thresh
 
-        self.nms_class = True
-        self.mode = 0
+        self.mode = 1
 
-    def __call__(self, network_output):
-        """ Compute bounding boxes after thresholding and nms
-
-            network_output (torch.autograd.Variable): Output tensor from the lightnet network
-        """
+    @classmethod
+    def apply(cls, network_output, num_classes, anchors, conf_thresh, mode = 1):
+        num_anchors = len(anchors)
+        anchor_step = len(anchors[0])
+        anchors = torch.Tensor(anchors)
         if isinstance(network_output, Variable):
             network_output = network_output.data
 
-        if self.mode == 0:
-            boxes = self._get_boxes(network_output)
-            boxes = [self._nms_old(torch.Tensor(box)) for box in boxes]
-        else:
-            boxes = self._get_boxes(network_output)
-            boxes = [self._nms(box) for box in boxes]
-
-        return boxes
-
-    @classmethod
-    def apply(cls, network_output, num_classes, anchors, conf_thresh, nms_thresh):
-        obj = cls(network, conf_thresh, nms_thresh)
-        return obj(network_output)
-
-    def _get_boxes(self, output):
-        """ Returns array of detections for every image in batch """
         # Check dimensions
-        if output.dim() == 3:
-            output.unsqueeze_(0)
+        if network_output.dim() == 3:
+            network_output.unsqueeze_(0)
 
         # Variables
-        cuda = output.is_cuda
-        batch = output.size(0)
-        h = output.size(2)
-        w = output.size(3)
+        cuda = network_output.is_cuda
+        batch = network_output.size(0)
+        h = network_output.size(2)
+        w = network_output.size(3)
 
         # Compute xc,yc, w,h, box_score on Tensor
         lin_x = torch.linspace(0, w-1, w).repeat(h,1).view(h*w)
         lin_y = torch.linspace(0, h-1, h).repeat(w,1).t().contiguous().view(h*w)
-        anchor_w = self.anchors[:,0].contiguous().view(1, self.num_anchors, 1)
-        anchor_h = self.anchors[:,1].contiguous().view(1, self.num_anchors, 1)
+        anchor_w = anchors[:,0].contiguous().view(1, num_anchors, 1)
+        anchor_h = anchors[:,1].contiguous().view(1, num_anchors, 1)
         if cuda:
             lin_x = lin_x.cuda()
             lin_y = lin_y.cuda()
             anchor_w = anchor_w.cuda()
             anchor_h = anchor_h.cuda()
 
-        output = output.view(batch, self.num_anchors, -1, h*w)  # -1 == 5+num_classes (we can drop feature maps if 1 class)
-        output[:,:,0,:].sigmoid_().add_(lin_x).div_(w)          # X center
-        output[:,:,1,:].sigmoid_().add_(lin_y).div_(h)          # Y center
-        output[:,:,2,:].exp_().mul_(anchor_w).div_(w)           # Width
-        output[:,:,3,:].exp_().mul_(anchor_h).div_(h)           # Height
-        output[:,:,4,:].sigmoid_()                              # Box score
+        network_output = network_output.view(batch, num_anchors, -1, h*w)  # -1 == 5+num_classes (we can drop feature maps if 1 class)
+        network_output[:,:,0,:].sigmoid_().add_(lin_x).div_(w)          # X center
+        network_output[:,:,1,:].sigmoid_().add_(lin_y).div_(h)          # Y center
+        network_output[:,:,2,:].exp_().mul_(anchor_w).div_(w)           # Width
+        network_output[:,:,3,:].exp_().mul_(anchor_h).div_(h)           # Height
+        network_output[:,:,4,:].sigmoid_()                              # Box score
 
         # Compute class_score
-        if self.num_classes > 1:
-            cls_scores = torch.nn.functional.softmax(Variable(output[:,:,5:,:], volatile=True), 2).data
+        if num_classes > 1:
+            cls_scores = torch.nn.functional.softmax(Variable(network_output[:,:,5:,:], volatile=True), 2).data
             cls_max, cls_max_idx = torch.max(cls_scores, 2)
-            cls_max.mul_(output[:,:,4,:])
+            cls_max.mul_(network_output[:,:,4,:])
         else:
-            cls_max = output[:,:,4,:]
+            cls_max = network_output[:,:,4,:]
             cls_max_idx = torch.zeros_like(cls_max)
 
-        if self.mode == 0:
-            # Save detection if conf*class_conf is higher than threshold
-            output = output.cpu()
+        if mode == 0:
+            network_output = network_output.cpu()
             cls_max = cls_max.cpu()
             cls_max_idx = cls_max_idx.cpu()
             boxes = []
             for b in range(batch):
                 box_batch = []
-                for a in range(self.num_anchors):
+                for a in range(num_anchors):
                     for i in range(h*w):
-                        if cls_max[b,a,i] > self.conf_thresh:
+                        if cls_max[b,a,i] > conf_thresh:
                             box_batch.append([
-                                output[b,a,0,i],
-                                output[b,a,1,i],
-                                output[b,a,2,i],
-                                output[b,a,3,i],
+                                network_output[b,a,0,i],
+                                network_output[b,a,1,i],
+                                network_output[b,a,2,i],
+                                network_output[b,a,3,i],
                                 cls_max[b,a,i],
                                 cls_max_idx[b,a,i]
                                 ])
-                boxes.append(box_batch)
+                boxes.append(torch.Tensor(box_batch))
         else:
-            # Get boxes > conf_thresh
-            score_thresh = cls_max > self.conf_thresh
+            score_thresh = cls_max > conf_thresh
             score_thresh_flat = score_thresh.view(-1)
 
             if score_thresh.sum() == 0:
@@ -134,14 +110,14 @@ class GetBoundingBoxes:
                 return boxes
 
             # Mask select boxes > conf_thresh
-            coords = output.transpose(2, 3)[..., 0:4]
+            coords = network_output.transpose(2, 3)[..., 0:4]
             coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
             scores = cls_max[score_thresh]
             idx = cls_max_idx[score_thresh]
             detections = torch.cat([coords, scores[:, None], idx[:, None]], dim=1)
 
             # Get indexes of splits between images of batch
-            max_det_per_batch = self.num_anchors * h * w
+            max_det_per_batch = num_anchors * h * w
             slices = [slice(max_det_per_batch * i, max_det_per_batch * (i+1)) for i in range(batch)]
             det_per_batch = torch.IntTensor([score_thresh_flat[s].int().sum() for s in slices])
             split_idx = torch.cumsum(det_per_batch, dim=0)
@@ -155,7 +131,40 @@ class GetBoundingBoxes:
 
         return boxes
 
-    def _nms_old(self, boxes):
+
+class NonMaxSupression(BaseTransform):
+    """ Performs nms on the bounding boxes, filtering boxes with a high overlap
+
+    Args:
+        nms_thresh (Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
+        class_nms (Boolean, optional): Whether to perform nms per class; Default **True**
+        fast (Boolean, optional): This flag can be used to select a much faster variant on the algorithm, that suppresses slightly more boxes; Default **False**
+
+    Returns:
+        (list [Batch x Tensor [Boxes x 6]]): **[x_center, y_center, width, height, confidence, class_id]** for every bounding box
+
+    Note:
+        This post-processing function expects the input to be bounding boxes,
+        like the ones created by :class:`lightnet.data.GetBoundingBoxes`.  
+        Its output is also using relative coordinates.
+    """
+    def __init__(self, nms_thresh, class_nms = True, fast = False):
+        self.nms_thresh = nms_thresh
+        self.class_nms = class_nms
+        self.fast = fast
+
+        self.mode = 1
+
+    @classmethod
+    def apply(cls, boxes, nms_thresh, class_nms = True, fast = False, mode = 1):
+        if mode == 0:
+            boxes = [cls._nms_old(box, nms_thresh) for box in boxes]
+        else:
+            boxes = [cls._nms(box, nms_thresh, class_nms, fast) for box in boxes]
+        return boxes
+
+    @staticmethod
+    def _nms_old(boxes, nms_thresh):
         """ Non maximum suppression.
         Source: https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
 
@@ -201,7 +210,7 @@ class GetBoundingBoxes:
 
             iou = inter / (areas[i] + areas[order[1:]] - inter)
 
-            ids = (iou<=self.nms_thresh).nonzero().squeeze()
+            ids = (iou<=nms_thresh).nonzero().squeeze()
             if ids.numel() == 0:
                 break
             order = order[ids+1]
@@ -211,7 +220,8 @@ class GetBoundingBoxes:
             keep = keep.cuda()
         return boxes[keep]
 
-    def _nms(self, boxes):
+    @staticmethod
+    def _nms(boxes, nms_thresh, class_nms, fast):
         """ Non maximum suppression.
 
         Args:
@@ -244,17 +254,18 @@ class GetBoundingBoxes:
         ious = intersections / unions
 
         # Filter based on iou (and class)
-        conflicting = (ious > self.nms_thresh).triu(1)
+        conflicting = (ious > nms_thresh).triu(1)
 
-        if self.nms_class:
+        if class_nms:
             same_class = (classes.unsqueeze(0) == classes.unsqueeze(1))
             conflicting = (conflicting & same_class)
 
         keep = conflicting.sum(0)
-        l = len(keep) - 1
-        for i in range(1, l):
-            if keep[i] > 0:
-                keep -= conflicting[i]
+        if not fast:
+            l = len(keep) - 1
+            for i in range(1, l):
+                if keep[i] > 0:
+                    keep -= conflicting[i]
 
         keep = (keep == 0)
         return boxes[order][keep[:,None].expand_as(boxes)].view(-1,6).contiguous()

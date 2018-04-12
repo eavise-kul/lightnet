@@ -29,7 +29,7 @@ class TinyYolo(lnn.Darknet):
 
     Attributes:
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
-        self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes`
+        self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
 
     .. _Tiny Yolo v2: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/tiny-yolo-voc.cfg
     """
@@ -67,4 +67,7 @@ class TinyYolo(lnn.Darknet):
 
         self.load_weights(weights_file)
         self.loss = lnn.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
-        self.postprocess = lnd.GetBoundingBoxes(self, self.num_classes, self.anchors, conf_thresh, nms_thresh)
+        self.postprocess = lnd.Compose([
+            lnd.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
+            lnd.NonMaxSupression(nms_thresh)
+        ])

@@ -30,7 +30,7 @@ class MobileNetYolo(lnn.Darknet):
 
     Attributes:
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
-        self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes`
+        self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
 
     Warning:
         When changing the ``alpha`` value, you are changing the network architecture.
@@ -87,7 +87,10 @@ class MobileNetYolo(lnn.Darknet):
 
         self.load_weights(weights_file)
         self.loss = lnn.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
-        self.postprocess = lnd.GetBoundingBoxes(self, self.num_classes, self.anchors, conf_thresh, nms_thresh)
+        self.postprocess = lnd.Compose([
+            lnd.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
+            lnd.NonMaxSupression(nms_thresh)
+        ])
 
     def _forward(self, x):
         outputs = []
