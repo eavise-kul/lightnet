@@ -75,6 +75,7 @@ class GetBoundingBoxes(BaseTransform):
         if num_classes > 1:
             cls_scores = torch.nn.functional.softmax(Variable(network_output[:,:,5:,:], volatile=True), 2).data
             cls_max, cls_max_idx = torch.max(cls_scores, 2)
+            cls_max_idx = cls_max_idx.float()
             cls_max.mul_(network_output[:,:,4,:])
         else:
             cls_max = network_output[:,:,4,:]
@@ -232,6 +233,7 @@ class NonMaxSupression(BaseTransform):
         """
         if boxes.numel() == 0:
             return boxes
+        cuda = boxes.is_cuda
 
         a = boxes[:,:2]
         b = boxes[:,2:4]
@@ -261,11 +263,17 @@ class NonMaxSupression(BaseTransform):
             conflicting = (conflicting & same_class)
 
         keep = conflicting.sum(0)
-        if not fast:
+        if not fast:        # How can we optimize this part!?
+            keep = keep.cpu()
+            conflicting = conflicting.cpu()
+
             l = len(keep) - 1
             for i in range(1, l):
                 if keep[i] > 0:
                     keep -= conflicting[i]
+
+            if cuda:
+                keep = keep.cuda()
 
         keep = (keep == 0)
         return boxes[order][keep[:,None].expand_as(boxes)].view(-1,6).contiguous()
