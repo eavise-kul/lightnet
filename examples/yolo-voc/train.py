@@ -88,10 +88,7 @@ class VOCTrainingEngine(ln.engine.Engine):
 
         log.debug('Creating network')
         net = ln.models.Yolo(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
-        net.postprocess = tf.Compose([
-            net.postprocess,
-            ln.data.TensorToBrambox(NETWORK_SIZE, LABELS),
-        ])
+        net.postprocess.append(ln.data.TensorToBrambox(NETWORK_SIZE, LABELS))
         if self.cuda:
             net.cuda()
 

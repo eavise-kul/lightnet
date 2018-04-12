@@ -60,10 +60,7 @@ class CustomDataset(ln.data.BramboxData):
 def test(arguments):
     log.debug('Creating network')
     net = ln.models.Yolo(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
-    net.postprocess = tf.Compose([
-        net.postprocess,
-        ln.data.TensorToBrambox(NETWORK_SIZE, LABELS),
-    ])
+    net.postprocess.append(ln.data.TensorToBrambox(NETWORK_SIZE, LABELS))
     net.eval()
     if arguments.cuda:
         net.cuda()
