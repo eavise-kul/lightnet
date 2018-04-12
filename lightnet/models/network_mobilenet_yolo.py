@@ -89,7 +89,7 @@ class MobileNetYolo(lnn.Darknet):
         self.loss = lnn.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
         self.postprocess = lnd.Compose([
             lnd.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
-            lnd.NonMaxSupression(nms_thresh)
+            lnd.NonMaxSupression(nms_thresh, False)
         ])
 
     def _forward(self, x):
