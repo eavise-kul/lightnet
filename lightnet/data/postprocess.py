@@ -239,7 +239,7 @@ class GetBoundingBoxes:
         
         # Compute iou
         intersections = dx * dy
-        areas = (x2-x1) * (y2-y1)
+        areas = (x2 - x1) * (y2 - y1)
         unions = (areas + areas.t()) - intersections
         ious = intersections / unions
 
@@ -250,7 +250,13 @@ class GetBoundingBoxes:
             same_class = (classes.unsqueeze(0) == classes.unsqueeze(1))
             conflicting = (conflicting & same_class)
 
-        keep = (conflicting.sum(0) == 0)    # Unlike numpy, pytorch cannot perform any() along a certain axis
+        keep = conflicting.sum(0)
+        l = len(keep) - 1
+        for i in range(1, l):
+            if keep[i] > 0:
+                keep -= conflicting[i]
+
+        keep = (keep == 0)
         return boxes[order][keep[:,None].expand_as(boxes)].view(-1,6).contiguous()
 
 
