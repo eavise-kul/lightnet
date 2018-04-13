@@ -7,6 +7,7 @@ import sys
 import logging
 import signal
 from statistics import mean
+from abc import ABC, abstractmethod
 import torch
 
 import lightnet as ln
@@ -15,7 +16,7 @@ __all__ = ['Engine']
 log = logging.getLogger(__name__)
 
 
-class Engine:
+class Engine(ABC):
     """ This class removes the boilerplate code needed for writing your training cycle. |br|
     Here is the code that runs when the engine is called:
     
@@ -226,17 +227,17 @@ class Engine:
         """
         pass
 
+    @abstractmethod
     def process_batch(self, data):
         """ This function should contain the code to process the forward and backward pass of one (mini-)batch. """
-        log.error('process_batch() function is not implemented')
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def train_batch(self):
         """ This function should contain the code to update the weights of the network. |br|
         Statistical computations, performing backups at regular intervals, etc. also happen here.
         """
-        log.error('train_batch() function is not implemented')
-        raise NotImplementedError
+        pass
 
     def test(self):
         """ This function should contain the code to perform an evaluation on your test-set. """
