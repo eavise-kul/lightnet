@@ -25,7 +25,7 @@ class BramboxData(Dataset):
     """ Dataset for any brambox parsable annotation format.
 
     Args:
-        anno_format (brambox.boxes.format): Annotation format
+        anno_format (brambox.boxes.formats): Annotation format
         anno_filename (list or str): Annotation filename, list of filenames or expandable sequence
         input_dimension (tuple): Tuple containing width,height values
         class_label_map (list): List of class_labels
