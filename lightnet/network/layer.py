@@ -54,8 +54,7 @@ class Reorg(nn.Module):
     def __init__(self, stride=2):
         super(Reorg, self).__init__()
         if not isinstance(stride, int):
-            log.error(f'stride is not an int [{type(stride)}]')
-            raise TypeError
+            raise TypeError(f'stride is not an int [{type(stride)}]')
         self.stride = stride
         self.darknet = True
 
@@ -70,11 +69,9 @@ class Reorg(nn.Module):
         W = x.data.size(3)
 
         if H % self.stride != 0:
-            log.error(f'Dimension mismatch: {H} is not divisible by {self.stride}')
-            raise ValueError
+            raise ValueError(f'Dimension mismatch: {H} is not divisible by {self.stride}')
         if W % self.stride != 0:
-            log.error(f'Dimension mismatch: {W} is not divisible by {self.stride}')
-            raise ValueError
+            raise ValueError(f'Dimension mismatch: {W} is not divisible by {self.stride}')
 
         # darknet compatible version from: https://github.com/thtrieu/darkflow/issues/173#issuecomment-296048648
         if self.darknet:

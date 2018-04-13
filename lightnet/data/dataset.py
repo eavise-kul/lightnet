@@ -59,9 +59,8 @@ class BramboxData(Dataset):
                 if class_label_map is not None:
                     try:
                         a.class_id = class_label_map.index(a.class_label)
-                    except ValueError:
-                        log.error(f'{a.class_label} is not found in the class_label_map')
-                        raise
+                    except ValueError as err:
+                        raise ValueError(f'{a.class_label} is not found in the class_label_map') from err
                 else:
                     a.class_id = 0
 
@@ -76,8 +75,7 @@ class BramboxData(Dataset):
             self._input_dim = index[0]
             index = index[1]
         if index >= len(self):
-            log.error(f'list index out of range [{index}/{len(self)-1}]')
-            raise IndexError
+            raise IndexError(f'list index out of range [{index}/{len(self)-1}]')
 
         # Load
         img = Image.open(self.id(self.keys[index]))

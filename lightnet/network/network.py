@@ -57,8 +57,7 @@ class Darknet(nn.Module):
                 x = module(x)
             return x
         else:
-            log.error(f'No _forward function defined and no default behaviour for this type of layers [{type(self.layers)}]')
-            raise NotImplementedError
+            raise NotImplementedError(f'No _forward function defined and no default behaviour for this type of layers [{type(self.layers)}]')
 
     def forward(self, x, target=None):
         """ This default forward function will compute the output of the network as ``self._forward(x)``.

@@ -240,7 +240,7 @@ class Engine:
 
     def test(self):
         """ This function should contain the code to perform an evaluation on your test-set. """
-        log.warn('test() function is not implemented')
+        log.error('test() function is not implemented')
 
     def quit(self):
         """ This function gets called after every training epoch and decides if the training cycle continues.
