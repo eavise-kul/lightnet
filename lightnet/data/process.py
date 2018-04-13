@@ -4,10 +4,12 @@
 #   Copyright EAVISE
 #
 
+from abc import ABC, abstractmethod
+
 __all__ = ['Compose']
 
 
-class BaseTransform:
+class BaseTransform(ABC):
     """ Base transform class for the pre- and post-processing functions.
     This class allows to create an object with some case specific settings, and then call it with the data to perform the transformation.
     It also allows to call the static method ``apply`` with the data and settings. This is usefull if you want to transform a single data object.
@@ -20,8 +22,10 @@ class BaseTransform:
         return self.apply(data, **self.__dict__)
     
     @classmethod
+    @abstractmethod
     def apply(cls, data, **kwargs):
         """ Classmethod that applies the transformation once.
+        This should be overriden by the superclass.
         
         Args:
             data: Data to transform (eg. image)
@@ -30,11 +34,18 @@ class BaseTransform:
         return data
 
 
-class BaseMultiTransform:
+class BaseMultiTransform(ABC):
     """ Base multiple transform class that is mainly used in pre-processing functions. 
     This class exists for transforms that affect both images and annotations.
     It provides a classmethod ``apply``, that will perform the transormation on one (data, target) pair.
     """
+    def __init__(self, **kwargs):
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+    @abstractmethod
+    def __call__(self, data):
+        return data
 
     @classmethod
     def apply(cls, data, target=None, **kwargs):
@@ -56,6 +67,21 @@ class BaseMultiTransform:
 
 
 class Compose(list):
+    """ This is lightnet's own version of :class:`torchvision.transforms.Compose`.
+
+    Note:
+        The reason we have our own version is because this one offers more freedom to the user.
+        For all intends and purposes this class is just a list.
+        This `Compose` version allows the user to access elements through index, append items, extend it with another list, etc.  
+        When calling instances of this class, it behaves just like :class:`torchvision.transforms.Compose`.
+
+    Note:
+        I proposed to change :class:`torchvision.transforms.Compose` to something similar to this version,
+        which would render this class useless. In the meanwhile, we use our own version
+        and you can track `the issue`_ to see if and when this comes to torchvision.
+
+    .. _the issue: https://github.com/pytorch/vision/issues/456
+    """
     def __call__(self, data):
         for tf in self:
             data = tf(data)

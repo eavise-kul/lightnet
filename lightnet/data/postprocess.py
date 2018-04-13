@@ -29,14 +29,10 @@ class GetBoundingBoxes(BaseTransform):
         The output tensor uses relative values for its coordinates.
     """
     def __init__(self, num_classes, anchors, conf_thresh):
-        self.num_classes = num_classes
-        self.anchors = anchors
-        self.conf_thresh = conf_thresh
-
-        self.mode = 1
+        super().__init__(num_classes=num_classes, anchors=anchors, conf_thresh=conf_thresh)
 
     @classmethod
-    def apply(cls, network_output, num_classes, anchors, conf_thresh, mode = 1):
+    def apply(cls, network_output, num_classes, anchors, conf_thresh):
         num_anchors = len(anchors)
         anchor_step = len(anchors[0])
         anchors = torch.Tensor(anchors)
@@ -81,60 +77,40 @@ class GetBoundingBoxes(BaseTransform):
             cls_max = network_output[:,:,4,:]
             cls_max_idx = torch.zeros_like(cls_max)
 
-        if mode == 0:
-            network_output = network_output.cpu()
-            cls_max = cls_max.cpu()
-            cls_max_idx = cls_max_idx.cpu()
+        score_thresh = cls_max > conf_thresh
+        score_thresh_flat = score_thresh.view(-1)
+
+        if score_thresh.sum() == 0:
             boxes = []
-            for b in range(batch):
-                box_batch = []
-                for a in range(num_anchors):
-                    for i in range(h*w):
-                        if cls_max[b,a,i] > conf_thresh:
-                            box_batch.append([
-                                network_output[b,a,0,i],
-                                network_output[b,a,1,i],
-                                network_output[b,a,2,i],
-                                network_output[b,a,3,i],
-                                cls_max[b,a,i],
-                                cls_max_idx[b,a,i]
-                                ])
-                boxes.append(torch.Tensor(box_batch))
-        else:
-            score_thresh = cls_max > conf_thresh
-            score_thresh_flat = score_thresh.view(-1)
+            for i in range(batch):
+                boxes.append(torch.Tensor([]))
+            return boxes
 
-            if score_thresh.sum() == 0:
-                boxes = []
-                for i in range(batch):
-                    boxes.append(torch.Tensor([]))
-                return boxes
+        # Mask select boxes > conf_thresh
+        coords = network_output.transpose(2, 3)[..., 0:4]
+        coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
+        scores = cls_max[score_thresh]
+        idx = cls_max_idx[score_thresh]
+        detections = torch.cat([coords, scores[:, None], idx[:, None]], dim=1)
 
-            # Mask select boxes > conf_thresh
-            coords = network_output.transpose(2, 3)[..., 0:4]
-            coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
-            scores = cls_max[score_thresh]
-            idx = cls_max_idx[score_thresh]
-            detections = torch.cat([coords, scores[:, None], idx[:, None]], dim=1)
+        # Get indexes of splits between images of batch
+        max_det_per_batch = num_anchors * h * w
+        slices = [slice(max_det_per_batch * i, max_det_per_batch * (i+1)) for i in range(batch)]
+        det_per_batch = torch.IntTensor([score_thresh_flat[s].int().sum() for s in slices])
+        split_idx = torch.cumsum(det_per_batch, dim=0)
 
-            # Get indexes of splits between images of batch
-            max_det_per_batch = num_anchors * h * w
-            slices = [slice(max_det_per_batch * i, max_det_per_batch * (i+1)) for i in range(batch)]
-            det_per_batch = torch.IntTensor([score_thresh_flat[s].int().sum() for s in slices])
-            split_idx = torch.cumsum(det_per_batch, dim=0)
-
-            # Group detections per image of batch
-            boxes = []
-            start = 0
-            for end in split_idx:
-                boxes.append(detections[start: end])
-                start = end
+        # Group detections per image of batch
+        boxes = []
+        start = 0
+        for end in split_idx:
+            boxes.append(detections[start: end])
+            start = end
 
         return boxes
 
 
 class NonMaxSupression(BaseTransform):
-    """ Performs nms on the bounding boxes, filtering boxes with a high overlap
+    """ Performs nms on the bounding boxes, filtering boxes with a high overlap.
 
     Args:
         nms_thresh (Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
@@ -146,80 +122,14 @@ class NonMaxSupression(BaseTransform):
 
     Note:
         This post-processing function expects the input to be bounding boxes,
-        like the ones created by :class:`lightnet.data.GetBoundingBoxes`.  
-        Its output is also using relative coordinates.
+        like the ones created by :class:`lightnet.data.GetBoundingBoxes` and outputs exactly the same format.
     """
     def __init__(self, nms_thresh, class_nms = True, fast = False):
-        self.nms_thresh = nms_thresh
-        self.class_nms = class_nms
-        self.fast = fast
-
-        self.mode = 1
+        super().__init__(nms_thresh = nms_thresh, class_nms = class_nms, fast = fast)
 
     @classmethod
-    def apply(cls, boxes, nms_thresh, class_nms = True, fast = False, mode = 1):
-        if mode == 0:
-            boxes = [cls._nms_old(box, nms_thresh) for box in boxes]
-        else:
-            boxes = [cls._nms(box, nms_thresh, class_nms, fast) for box in boxes]
-        return boxes
-
-    @staticmethod
-    def _nms_old(boxes, nms_thresh):
-        """ Non maximum suppression.
-        Source: https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
-
-        Args:
-          boxes (tensor): Bounding boxes from get_detections
-
-        Return:
-          (tensor): Pruned boxes
-        """
-        if boxes.numel() == 0:
-            return boxes
-        cuda = boxes.is_cuda
-
-        a = boxes[:,:2]
-        b = boxes[:,2:4]
-        bboxes = torch.cat([a-b/2,a+b/2], 1)
-        scores = boxes[:,4]
-
-        x1 = bboxes[:,0]
-        y1 = bboxes[:,1]
-        x2 = bboxes[:,2]
-        y2 = bboxes[:,3]
-
-        areas = ((x2-x1) * (y2-y1))
-        _, order = scores.sort(0, descending=True)
-
-        keep = []
-        while order.numel() > 0:
-            i = order[0]
-            keep.append(i)
-
-            if order.numel() == 1:
-                break
-
-            xx1 = x1[order[1:]].clamp(min=x1[i])
-            yy1 = y1[order[1:]].clamp(min=y1[i])
-            xx2 = x2[order[1:]].clamp(max=x2[i])
-            yy2 = y2[order[1:]].clamp(max=y2[i])
-
-            w = (xx2-xx1).clamp(min=0)
-            h = (yy2-yy1).clamp(min=0)
-            inter = w*h
-
-            iou = inter / (areas[i] + areas[order[1:]] - inter)
-
-            ids = (iou<=nms_thresh).nonzero().squeeze()
-            if ids.numel() == 0:
-                break
-            order = order[ids+1]
-
-        keep = torch.LongTensor(keep)
-        if cuda:
-            keep = keep.cuda()
-        return boxes[keep]
+    def apply(cls, boxes, nms_thresh, class_nms = True, fast = False):
+        return [cls._nms(box, nms_thresh, class_nms, fast) for box in boxes]
 
     @staticmethod
     def _nms(boxes, nms_thresh, class_nms, fast):
@@ -280,28 +190,36 @@ class NonMaxSupression(BaseTransform):
 
 
 class TensorToBrambox(BaseTransform):
-    """ Converts a tensor to a list of brambox objects. """
+    """ Converts a tensor to a list of brambox objects.
+
+    Args:
+        network_size (tuple): Tuple containing the width and height of the images going in the network
+        class_label_map (list, optional): List of class labels to transform the class id's in actual names; Default **None**
+
+    Returns:
+        (list [list [brambox.boxes.Detection]]): list of brambox detections per image
+
+    Note:
+        If no `class_label_map` is given, this transform will simply convert the class id's in a string.
+
+    Note:
+        Just like everything in PyTorch, this transform only works on batches of images.
+        This means you need to wrap your tensor of detections in a list if you want to run this transform on a single image.
+    """
     def __init__(self, network_size, class_label_map=None):
-        self.network_size = network_size
-        self.class_label_map = class_label_map
-        if class_label_map is None:
+        super().__init__(network_size = network_size, class_label_map = class_label_map)
+        if self.class_label_map is None:
             log.warn('No class_label_map given. The indexes will be used as class_labels.')
 
     @classmethod
     def apply(cls, boxes, network_size, class_label_map=None):
-        if torch.is_tensor(boxes):
-            if boxes.dim() == 0:
-                return []
+        converted_boxes = []
+        for box in boxes:
+            if box.dim() == 0:
+                converted_boxes.append([])
             else:
-                return cls._convert(boxes, network_size[0], network_size[1], class_label_map)
-        else:
-            converted_boxes = []
-            for box in boxes:
-                if box.dim() == 0:
-                    converted_boxes.append([])
-                else:
-                    converted_boxes.append(cls._convert(box, network_size[0], network_size[1], class_label_map))
-            return converted_boxes
+                converted_boxes.append(cls._convert(box, network_size[0], network_size[1], class_label_map))
+        return converted_boxes
 
     @staticmethod
     def _convert(boxes, width, height, class_label_map):
@@ -329,10 +247,25 @@ class TensorToBrambox(BaseTransform):
 
 
 class ReverseLetterbox(BaseTransform):
-    """ Performs a reverse letterbox operation on the bounding boxes. """
+    """ Performs a reverse letterbox operation on the bounding boxes, so they can be visualised on the original image.
+    
+    Args:
+        network_size (tuple): Tuple containing the width and height of the images going in the network
+        image_size (tuple): Tuple containing the width and height of the original images 
+
+    Returns:
+        (list [list [brambox.boxes.Detection]]): list of brambox detections per image
+
+    Note:
+        This transform works on :class:`brambox.boxes.Detection` objects,
+        so you need to apply the :class:`~lightnet.data.TensorToBrambox` transform first.
+
+    Note:
+        Just like everything in PyTorch, this transform only works on batches of images.
+        This means you need to wrap your tensor of detections in a list if you want to run this transform on a single image.
+    """
     def __init__(self, network_size, image_size):
-        self.network_size = network_size
-        self.image_size = image_size
+        super().__init__(network_size = network_size, image_size = image_size)
 
     @classmethod
     def apply(cls, boxes, network_size, image_size):
@@ -347,17 +280,10 @@ class ReverseLetterbox(BaseTransform):
             scale = im_h/net_h
         pad = int((net_w - im_w/scale) / 2), int((net_h - im_h/scale) / 2)
 
-        if isinstance(boxes, Detection):
-            return cls._transform([boxes], scale, pad)[0]
-        elif len(boxes) == 0:
-            return boxes
-        elif isinstance(boxes[0], Detection):
-            return cls._transform(boxes, scale, pad)
-        else:
-            converted_boxes = []
-            for b in boxes:
-                converted_boxes.append(cls._transform(b, scale, pad))
-            return converted_boxes
+        converted_boxes = []
+        for b in boxes:
+            converted_boxes.append(cls._transform(b, scale, pad))
+        return converted_boxes
 
     @staticmethod
     def _transform(boxes, scale, pad):

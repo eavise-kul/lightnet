@@ -24,10 +24,12 @@ Postprocessing
 --------------
 These classes parse the output of your networks to understandable data structures.
 They work just like the :mod:`torchvision transforms <pytorch:torchvision>`. |br|
-First you create an object and then you call the object with the image object as parameter.
+First you create an object and then you call the object with the network output as parameter.
 You can also call the ``apply()`` method on the classes to run the transformation once.
 
 .. autoclass:: lightnet.data.GetBoundingBoxes
+   :members: apply
+.. autoclass:: lightnet.data.NonMaxSupression
    :members: apply
 .. autoclass:: lightnet.data.TensorToBrambox
    :members: apply
@@ -41,6 +43,16 @@ Data loading
 .. autoclass:: lightnet.data.DataLoader
    :members:
 .. autofunction:: lightnet.data.list_collate
+
+Various
+-------
+Some random classes and functions that are nice to use for anything related to data processing.
+
+.. autoclass:: lightnet.data.process.BaseTransform
+   :members:
+.. autoclass:: lightnet.data.process.BaseMultiTransform
+   :members:
+.. autoclass:: lightnet.data.Compose
 
 
 .. include:: ../links.rst
