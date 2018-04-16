@@ -14,7 +14,7 @@ import lightnet.data as lnd
 __all__ = ['Yolo']
 
 
-class Yolo(lnn.Darknet):
+class Yolo(lnn.module.Darknet):
     """ `Yolo v2`_ implementation with pytorch.
     This network uses :class:`~lightnet.network.RegionLoss` as its loss function
     and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
@@ -94,12 +94,14 @@ class Yolo(lnn.Darknet):
         ]
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
 
-        self.load_weights(weights_file)
-        self.loss = lnn.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
-        self.postprocess = lnd.Compose([
-            lnd.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
-            lnd.NonMaxSupression(nms_thresh, False)
+        # Post
+        self.loss = lnn.loss.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
+        self.postprocess = lnd.transform.Compose([
+            lnd.transform.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
+            lnd.transform.NonMaxSupression(nms_thresh, False)
         ])
+
+        self.load_weights(weights_file)
 
     def _forward(self, x):
         outputs = []

@@ -14,7 +14,7 @@ import lightnet.data as lnd
 __all__ = ['TinyYolo']
 
 
-class TinyYolo(lnn.Darknet):
+class TinyYolo(lnn.module.Darknet):
     """ `Tiny Yolo v2`_ implementation with pytorch.
     This network uses :class:`~lightnet.network.RegionLoss` as its loss function
     and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
@@ -65,9 +65,11 @@ class TinyYolo(lnn.Darknet):
         ])
         self.layers = nn.Sequential(layer_list)
 
-        self.load_weights(weights_file)
-        self.loss = lnn.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
-        self.postprocess = lnd.Compose([
-            lnd.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
-            lnd.NonMaxSupression(nms_thresh, False)
+        # Post
+        self.loss = lnn.loss.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
+        self.postprocess = lnd.transform.Compose([
+            lnd.transform.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
+            lnd.transform.NonMaxSupression(nms_thresh, False)
         ])
+
+        self.load_weights(weights_file)

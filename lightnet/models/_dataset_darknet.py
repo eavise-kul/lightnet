@@ -40,17 +40,17 @@ class DarknetData(lnd.BramboxData):
         self.anno_paths = [os.path.splitext(p)[0]+'.txt' for p in self.img_paths]
         identify = lambda name : self.img_paths[self.anno_paths.index(name)]
         
-        lb  = lnd.Letterbox(dataset=self)
-        rf  = lnd.RandomFlip(flip)
-        rc  = lnd.RandomCrop(jitter, True)
-        hsv = lnd.HSVShift(hue, saturation, value)
+        lb  = lnd.transform.Letterbox(dataset=self)
+        rf  = lnd.transform.RandomFlip(flip)
+        rc  = lnd.transform.RandomCrop(jitter, True)
+        hsv = lnd.transform.HSVShift(hue, saturation, value)
         it  = tf.ToTensor()
         if augment:
-            img_tf = tf.Compose([hsv, rc, rf, lb, it])
-            anno_tf = tf.Compose([rc, rf, lb])
+            img_tf = lnd.transform.Compose([hsv, rc, rf, lb, it])
+            anno_tf = lnd.transform.Compose([rc, rf, lb])
         else:
-            img_tf = tf.Compose([lb, it])
-            anno_tf = tf.Compose([lb])
+            img_tf = lnd.transform.Compose([lb, it])
+            anno_tf = lnd.transform.Compose([lb])
         
         first_img = Image.open(self.img_paths[0])
         w, h = first_img.size

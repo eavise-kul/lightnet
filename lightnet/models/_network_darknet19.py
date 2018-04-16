@@ -14,7 +14,7 @@ import lightnet.data as lnd
 __all__ = ['Darknet19']
 
 
-class Darknet19(lnn.Darknet):
+class Darknet19(lnn.module.Darknet):
     """ `Darknet19`_ implementation with pytorch.
 
     Todo:
@@ -69,9 +69,11 @@ class Darknet19(lnn.Darknet):
             ])
         )
 
-        self.load_weights(weights_file)
+        # Post
         self.loss = None
         self.postprocess = None
+
+        self.load_weights(weights_file)
 
     def _forward(self, x):
         return self.layers(x)
