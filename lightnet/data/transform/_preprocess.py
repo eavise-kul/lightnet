@@ -346,11 +346,11 @@ class HSVShift(BaseTransform):
         channels = list(img.split())
 
         def change_hue(x):
-            x += int(dh*x)
-            while x > 255:
+            x += int(dh * 255)
+            if x > 255:
                 x -= 255
-            while x < 0:
-                x += 255
+            elif x < 0:
+                x += 0
             return x
 
         channels[0] = channels[0].point(change_hue)
@@ -364,21 +364,20 @@ class HSVShift(BaseTransform):
     @staticmethod
     def _tf_cv(img, dh, ds, dv):
         """ Random hsv shift """
+        img = img.astype(np.float32) / 255.0
         img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
 
-        def change_hue(x):
-            x += int(dh*x)
-            while x > 255:
-                x -= 255
-            while x < 0:
-                x += 255
+        def wrap_hue(x):
+            x[x >= 360.0] -= 360.0
+            x[x < 0.0] += 360.0
             return x
         
-        img[:,:,0] = np.vectorize(change_hue)(img[:,:,0])
-        img[:,:,1] = np.vectorize(lambda i:min(255, max(0, int(i*ds))))(img[:,:,1])
-        img[:,:,2] = np.vectorize(lambda i:min(255, max(0, int(i*dv))))(img[:,:,2])
+        img[:,:,0] = wrap_hue(hsv[:,:,0] + (360.0 * dh))
+        img[:,:,1] = np.clip(ds * img[:,:,1], 0.0, 1.0)
+        img[:,:,2] = np.clip(dv * img[:,:,2], 0.0, 1.0)
 
         img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
+        img = (img * 255).astype(np.uint8)
         return img
 
 
