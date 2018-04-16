@@ -12,7 +12,7 @@ import torch
 import numpy as np
 from PIL import Image, ImageOps
 import brambox.boxes as bbb
-from .process import BaseTransform, BaseMultiTransform
+from .util import BaseTransform, BaseMultiTransform
 
 log = logging.getLogger(__name__)
 
@@ -22,8 +22,8 @@ except:
     log.warn('OpenCV is not installed and cannot be used')
     cv2 = None
 
-
 __all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'BramboxToTensor']
+
 
 class Letterbox(BaseMultiTransform):
     """ Transform images and annotations to the right network dimensions.

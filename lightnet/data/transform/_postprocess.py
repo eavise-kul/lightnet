@@ -8,7 +8,7 @@ import logging
 import torch
 from torch.autograd import Variable
 from brambox.boxes.detections.detection import *
-from .process import BaseTransform
+from .util import BaseTransform
 
 __all__ = ['GetBoundingBoxes', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
 log = logging.getLogger(__name__)

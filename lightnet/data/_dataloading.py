@@ -9,7 +9,6 @@ import random
 import logging
 from PIL import Image
 import torch
-import torch.multiprocessing as multiprocessing
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.sampler import BatchSampler as torchBatchSampler
 from torch.utils.data.dataloader import DataLoader as torchDataLoader
@@ -111,7 +110,7 @@ class DataLoader(torchDataLoader):
     Note:
         This dataloader only works with :class:`lightnet.data.BramboxData` based datasets.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, resize_range = (10, 19), **kwargs):
         super(DataLoader, self).__init__(*args, **kwargs)
         shuffle = False
         sampler = None
@@ -151,26 +150,28 @@ class DataLoader(torchDataLoader):
         self.sampler = sampler
         self.batch_sampler = batch_sampler
 
-    def change_input_dim(self, value=32, randomize=True):
+    def change_input_dim(self, multiple=32, random_range=(10, 19)):
         """ This function will compute a new size and update it on the next mini_batch.
 
         Args:
-            value (int or tuple, optional): if ``random`` is false this value will be chosen for the new size, else this number represents a multiple for the random size; Default **32**
-            randomize (boolean, optional): Whether to randomly compute a new size or set the size given; Default **True**
+            multiple (int or tuple, optional): value (or values) to multiply the randomly generated range by; Default **32**
+            random_range (tuple, optional): When ``randomize`` is true, this (min, max) tuple sets the range for the randomisation; Default **(10, 19)**
+
+        Note:
+            The new size is generated as follows: |br|
+            First we compute a random integer inside ``[random_range]``.
+            We then multiply that number with the ``multiple`` argument, which gives our final new input size. |br|
+            If ``multiple`` is an integer we generate a square size. If you give a tuple of **(width, height)**,
+            the size is computed as :math:`rng * multiple[0], rng * multiple[1]`.
         """
-        if not randomize:
-            if isinstance(value, int):
-                value = (value, value)
-            else:
-                value = (value[0], value[1])
-            self.batch_sampler.new_input_dim = value
+        size = random.randint(*random_range)
+
+        if isinstance(multiple, int):
+            size = (size * multiple, size * multiple)
         else:
-            if isinstance(value, int):
-                size = (random.randint(0,9) + 10) * value
-                size = (size, size)
-            else:
-                size = ((random.randint(0,9) + 10) * value[0], (random.randint(0,9) + 10) * value[1])
-            self.batch_sampler.new_input_dim = size
+            size = (size * multiple[0], size * multiple[1])
+        
+        self.batch_sampler.new_input_dim = size
 
 
 class BatchSampler(torchBatchSampler):
