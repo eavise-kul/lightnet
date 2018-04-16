@@ -14,7 +14,6 @@ import numpy as np
 from tqdm import tqdm
 import visdom
 import torch
-from torchvision import transforms as tf
 import brambox.boxes as bbb
 import lightnet as ln
 
@@ -42,7 +41,7 @@ MINI_BATCH = 8
 def test(arguments):
     log.debug('Creating network')
     net = ln.models.Yolo(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
-    net.postprocess.append(ln.data.TensorToBrambox(NETWORK_SIZE, LABELS))
+    net.postprocess.append(ln.data.transform.TensorToBrambox(NETWORK_SIZE, LABELS))
     net.eval()
     if arguments.cuda:
         net.cuda()
@@ -106,7 +105,7 @@ def test(arguments):
 
     if arguments.save_det is not None:
         # Note: These detection boxes are the coordinates for the letterboxed images,
-        #       you need ln.data.ReverseLetterbox to have the right ones.
+        #       you need ln.data.transform.ReverseLetterbox to have the right ones.
         #       Alternatively, you can save the letterboxed annotations, and use those for statistics later on!
         bbb.generate('det_pickle', det, Path(arguments.save_det).with_suffix('.pkl'))
         #bbb.generate('anno_pickle', det, Path('anno-letterboxed_'+arguments.save_det).with_suffix('.pkl'))

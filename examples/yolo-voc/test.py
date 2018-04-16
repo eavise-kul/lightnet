@@ -43,10 +43,10 @@ class CustomDataset(ln.data.BramboxData):
         def identify(img_id):
             return f'{ROOT}/VOCdevkit/{img_id}.jpg'
 
-        lb  = ln.data.Letterbox(NETWORK_SIZE)
+        lb  = ln.data.transform.Letterbox(NETWORK_SIZE)
         it  = tf.ToTensor()
-        img_tf = tf.Compose([lb, it])
-        anno_tf = tf.Compose([lb])
+        img_tf = ln.data.transform.Compose([lb, it])
+        anno_tf = ln.data.transform.Compose([lb])
 
         super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, LABELS, identify, img_tf, anno_tf)
 
@@ -60,7 +60,7 @@ class CustomDataset(ln.data.BramboxData):
 def test(arguments):
     log.debug('Creating network')
     net = ln.models.Yolo(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
-    net.postprocess.append(ln.data.TensorToBrambox(NETWORK_SIZE, LABELS))
+    net.postprocess.append(ln.data.transform.TensorToBrambox(NETWORK_SIZE, LABELS))
     net.eval()
     if arguments.cuda:
         net.cuda()
@@ -124,7 +124,7 @@ def test(arguments):
 
     if arguments.save_det is not None:
         # Note: These detection boxes are the coordinates for the letterboxed images,
-        #       you need ln.data.ReverseLetterbox to have the right ones.
+        #       you need ln.data.transform.ReverseLetterbox to have the right ones.
         #       Alternatively, you can save the letterboxed annotations, and use those for statistics later on!
         bbb.generate('det_pickle', det, Path(arguments.save_det).with_suffix('.pkl'))
         #bbb.generate('anno_pickle', det, Path('anno-letterboxed_'+arguments.save_det).with_suffix('.pkl'))

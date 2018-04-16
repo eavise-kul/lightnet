@@ -72,7 +72,7 @@ class TrainingEngine(ln.engine.Engine):
 
         log.debug('Creating network')
         net = ln.models.Yolo(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
-        net.postprocess.append(ln.data.TensorToBrambox(NETWORK_SIZE, LABELS))
+        net.postprocess.append(ln.data.transform.TensorToBrambox(NETWORK_SIZE, LABELS))
         if self.cuda:
             net.cuda()
         optim = torch.optim.SGD(net.parameters(), lr=LEARNING_RATE/BATCH, momentum=MOMENTUM, dampening=0, weight_decay=DECAY*BATCH)

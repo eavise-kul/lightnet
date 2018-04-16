@@ -47,8 +47,8 @@ Table of Contents
    :maxdepth: 2
    :caption: API
 
-   lightnet.network <api/network>
    lightnet.data <api/data>
+   lightnet.network <api/network>
    lightnet.engine <api/engine>
    lightnet.models <api/models>
    lightnet.log <api/log>

@@ -27,7 +27,7 @@ NMS_THRESH = .4
 def create_network():
     """ Create the lightnet network """
     net = ln.models.Yolo(CLASSES, args.weight, CONF_THRESH, NMS_THRESH)
-    net.postprocess.append(ln.data.TensorToBrambox(NETWORK_SIZE, LABELS))
+    net.postprocess.append(ln.data.transform.TensorToBrambox(NETWORK_SIZE, LABELS))
 
     net.eval()
     if args.cuda:
@@ -43,7 +43,7 @@ def detect(net, img_path):
     im_h, im_w = img.shape[:2]
 
     img_tf = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img_tf = ln.data.Letterbox.apply(img_tf, dimension=NETWORK_SIZE)
+    img_tf = ln.data.transform.Letterbox.apply(img_tf, dimension=NETWORK_SIZE)
     img_tf = tf.ToTensor()(img_tf)
     img_tf.unsqueeze_(0)
     if args.cuda:
@@ -52,7 +52,7 @@ def detect(net, img_path):
     
     # Run detector
     out = net(img_tf)
-    out = ln.data.ReverseLetterbox.apply(out, NETWORK_SIZE, (im_w, im_h))
+    out = ln.data.transform.ReverseLetterbox.apply(out, NETWORK_SIZE, (im_w, im_h))
 
     return img, out
 

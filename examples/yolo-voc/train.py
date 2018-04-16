@@ -64,13 +64,13 @@ class VOCDataset(ln.data.BramboxData):
         def identify(img_id):
             return f'{ROOT}/VOCdevkit/{img_id}.jpg'
 
-        lb  = ln.data.Letterbox(dataset=self)
-        rf  = ln.data.RandomFlip(FLIP)
-        rc  = ln.data.RandomCrop(JITTER, True, 0.1)
-        hsv = ln.data.HSVShift(HUE, SAT, VAL)
+        lb  = ln.data.transform.Letterbox(dataset=self)
+        rf  = ln.data.transform.RandomFlip(FLIP)
+        rc  = ln.data.transform.RandomCrop(JITTER, True, 0.1)
+        hsv = ln.data.transform.HSVShift(HUE, SAT, VAL)
         it  = tf.ToTensor()
-        img_tf = tf.Compose([hsv, rc, rf, lb, it])
-        anno_tf = tf.Compose([rc, rf, lb])
+        img_tf = ln.data.transform.Compose([hsv, rc, rf, lb, it])
+        anno_tf = ln.data.transform.Compose([rc, rf, lb])
 
         super(VOCDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, LABELS, identify, img_tf, anno_tf)
 
@@ -88,7 +88,7 @@ class VOCTrainingEngine(ln.engine.Engine):
 
         log.debug('Creating network')
         net = ln.models.Yolo(CLASSES, arguments.weight, CONF_THRESH, NMS_THRESH)
-        net.postprocess.append(ln.data.TensorToBrambox(NETWORK_SIZE, LABELS))
+        net.postprocess.append(ln.data.transform.TensorToBrambox(NETWORK_SIZE, LABELS))
         if self.cuda:
             net.cuda()
 
