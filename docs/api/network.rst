@@ -21,7 +21,9 @@ Module
 ------
 .. automodule:: lightnet.network.module
 .. autoclass:: lightnet.network.module.Lightnet
+   :members:
 .. autoclass:: lightnet.network.module.Darknet
+   :members:
 
 
 .. include:: ../links.rst
