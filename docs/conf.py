@@ -47,7 +47,7 @@ napoleon_use_ivar = True
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['torch', 'torchvision', 'visdom']
 intersphinx_mapping = {
-    'pytorch': ('http://pytorch.org/docs/master/', None),
+    'pytorch': ('http://pytorch.org/docs/stable/', None),
     'python': ('https://docs.python.org/3.6', None),
     'brambox': ('https://eavise.gitlab.io/brambox', None),
     }

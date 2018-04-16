@@ -11,7 +11,7 @@ __all__ = ['Lightnet']
 log = logging.getLogger(__name__)
 
 class Lightnet(nn.Module):
-    """ This class provides an abstraction layer on top of the ``pytorch Module`` and is used as a base for every network implemented in this framework.
+    """ This class provides an abstraction layer on top of :class:`pytorch:torch.nn.Module` and is used as a base for every network implemented in this framework.
     There are 2 basic ways of using this class:
 
     - Override the ``forward()`` function.
