@@ -1,17 +1,93 @@
 #
-#   Loading and saving darknet weight files
+#   Base lightnet network structure
 #   Copyright EAVISE
 #
 
+import os
+import collections
 import logging
 import numpy as np
 import torch
 import torch.nn as nn
+from ._lightnet import Lightnet
 
-from . import layer as lnl
-
-__all__ = ['WeightLoader', 'WeightSaver']
+__all__ = ['Darknet']
 log = logging.getLogger(__name__)
+
+class Darknet(Lightnet):
+    """ This network module provides functionality to load darknet weight files.
+
+    Attributes:
+        self.seen (int): The number of images the network has processed to train (used by engine)
+    """
+    def __init__(self):
+        super(Darknet, self).__init__()
+
+        # Parameters
+        self.layers = None
+        self.loss = None
+        self.postprocess = None
+        self.header = [0,2,0]
+        self.seen = 0
+
+    def load_weights(self, weights_file):
+        """ This function will load the weights from a file.
+        If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_. 
+        Otherwise, the file is considered to be a darknet binary weight file.
+
+        Args:
+            weights_file (str): path to file
+        """
+        if os.path.splitext(weights_file)[1] == '.pt':
+            log.info('Loading weights from pytorch file')
+            super().load_weights(weights_file)
+        else:
+            log.info('Loading weights from darknet file')
+            self._load_darknet_weights(weights_file)
+
+    def save_weights(self, weights_file):
+        """ This function will save the weights to a file.
+        If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_. 
+        Otherwise, the file is considered to be a darknet binary weight file.
+
+        Args:
+            weights_file (str): path to file
+        """
+        if os.path.splitext(weights_file)[1] == '.pt':
+            log.debug('Saving weights to pytorch file')
+            super().save_weights(weights_file)
+        else:
+            log.debug('Saving weights to darknet file')
+            self._save_darknet_weights(weights_file)
+
+    def _load_darknet_weights(self, weights_file):
+        weights = WeightLoader(weights_file)
+        self.header = weights.header
+        self.seen = weights.seen
+        if hasattr(self.loss, 'seen'):
+            self.loss.seen = self.seen
+
+        for module in self.modules_recurse():
+            try:
+                weights.load_layer(module)
+                log.info(f'Layer loaded: {module}')
+                if weights.start >= weights.size:
+                    log.debug(f'Finished loading weights [{weights.start}/{weights.size} weights]')
+                    break
+            except NotImplementedError:
+                log.info(f'Layer skipped: {module.__class__.__name__}')
+
+    def _save_darknet_weights(self, weights_file):
+        weights = WeightSaver(self.header, self.seen)
+
+        for module in self.modules_recurse():
+            try:
+                weights.save_layer(module)
+                log.info(f'Layer saved: {module}')
+            except NotImplementedError:
+                log.info(f'Layer skipped: {module.__class__.__name__}')
+
+        weights.write_file(weights_file)
 
 
 class WeightLoader:
