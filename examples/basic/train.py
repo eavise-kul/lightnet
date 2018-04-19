@@ -79,7 +79,7 @@ class TrainingEngine(ln.engine.Engine):
 
         log.debug('Creating datasets')
         data = ln.data.DataLoader(
-            ln.models.DarknetData(TRAINFILE, input_dimension=NETWORK_SIZE, class_label_map=LABELS),
+            ln.models.DarknetDataset(TRAINFILE, input_dimension=NETWORK_SIZE, class_label_map=LABELS),
             batch_size = MINI_BATCH,
             shuffle = True,
             drop_last = True,
@@ -89,7 +89,7 @@ class TrainingEngine(ln.engine.Engine):
         )
         if self.enable_testing is not None:
             self.testloader = torch.utils.data.DataLoader(
-                ln.models.DarknetData(VALIDFILE, False, input_dimension=NETWORK_SIZE, class_label_map=LABELS),
+                ln.models.DarknetDataset(VALIDFILE, False, input_dimension=NETWORK_SIZE, class_label_map=LABELS),
                 batch_size = MINI_BATCH,
                 shuffle = False,
                 drop_last = False,

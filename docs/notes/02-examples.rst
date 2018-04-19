@@ -13,7 +13,7 @@ The scripts in the `basic` subfolder show how to use this library to train, test
    by the author of this package. The OpenCV example is just here for demonstration purposes.
 - train.py
    This script shows how to use the :mod:`lightnet.engine` to train a network on some arbitrary data.
-   This script uses the :class:`lightnet.models.DarknetData` dataset,
+   This script uses the :class:`lightnet.models.DarknetDataset` dataset,
    which uses a file with paths to the images and assumes there are annotations for each image with the same name,
    but a ``.txt`` extension.
 - test.py

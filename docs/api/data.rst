@@ -38,14 +38,14 @@ You can also call the ``apply()`` method on the classes to run the transformatio
 
 Data loading
 ------------
-.. autoclass:: lightnet.data.BramboxData
-   :members:
+.. autoclass:: lightnet.data.Dataset
+   :members: input_dim, resize_getitem
 .. autoclass:: lightnet.data.DataLoader
    :members:
 .. autofunction:: lightnet.data.list_collate
 
-Utilitary
----------
+Util
+----
 Some random classes and functions that are used in the data subpackage.
 
 .. autoclass:: lightnet.data.transform.Compose

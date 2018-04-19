@@ -59,7 +59,7 @@ RS_STEPS = []
 RS_RATES = []
 
 
-class VOCDataset(ln.data.BramboxData):
+class VOCDataset(ln.models.BramboxDataset):
     def __init__(self, anno):
         def identify(img_id):
             return f'{ROOT}/VOCdevkit/{img_id}.jpg'

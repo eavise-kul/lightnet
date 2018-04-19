@@ -11,7 +11,9 @@ Networks
 
 Data
 ----
-.. autoclass:: lightnet.models.DarknetData
+.. autoclass:: lightnet.models.BramboxDataset
+   :members: __getitem__
+.. autoclass:: lightnet.models.DarknetDataset
    :members:
 
 

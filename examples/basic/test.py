@@ -48,7 +48,7 @@ def test(arguments):
 
     log.debug('Creating dataset')
     loader = torch.utils.data.DataLoader(
-        ln.models.DarknetData(TESTFILE, input_dimension=NETWORK_SIZE, class_label_map=LABELS),
+        ln.models.DarknetDataset(TESTFILE, input_dimension=NETWORK_SIZE, class_label_map=LABELS),
         batch_size = MINI_BATCH,
         shuffle = False,
         drop_last = False,

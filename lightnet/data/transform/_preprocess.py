@@ -30,7 +30,7 @@ class Letterbox(BaseMultiTransform):
 
     Args:
         dimension (tuple, optional): Default size for the letterboxing, expressed as a (width, height) tuple; Default **None**
-        dataset (lightnet.data.BramboxData, optional): Dataset that uses this transform; Default **None**
+        dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
 
     Note:
         Create 1 Letterbox object and use it for both image and annotation transforms.
@@ -386,7 +386,7 @@ class BramboxToTensor(BaseTransform):
 
     Args:
         dimension (tuple, optional): Default size of the transformed images, expressed as a (width, height) tuple; Default **None**
-        dataset (lightnet.data.BramboxData, optional): Dataset that uses this transform; Default **None**
+        dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
         max_anno (Number, optional): Maximum number of annotations in the list; Default **50**
         class_label_map (list, optional): class label map to convert class names to an index; Default **None**
 
