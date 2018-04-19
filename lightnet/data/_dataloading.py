@@ -1,98 +1,36 @@
 #
-#   Lightnet dataset that works with brambox annotations
+#   Lightnet dataset and dataloading mechanisms
 #   Copyright EAVISE
 #
 
-import os
-import copy
 import random
 import logging
-from PIL import Image
+from functools import wraps
 import torch
-from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataset import Dataset as torchDataset
 from torch.utils.data.sampler import BatchSampler as torchBatchSampler
 from torch.utils.data.dataloader import DataLoader as torchDataLoader
 from torch.utils.data.dataloader import default_collate
-import brambox.boxes as bbb
 
 
-__all__ = ['BramboxData', 'DataLoader', 'list_collate']
+__all__ = ['Dataset', 'DataLoader', 'list_collate']
 log = logging.getLogger(__name__)
 
 
-class BramboxData(Dataset):
-    """ Dataset for any brambox parsable annotation format.
+class Dataset(torchDataset):
+    """ This class is a subclass of the base :class:`torch.utils.data.Dataset`,
+    that enables on the fly resizing of the ``input_dim`` with :class:`lightnet.data.DataLoader`.
 
     Args:
-        anno_format (brambox.boxes.formats): Annotation format
-        anno_filename (list or str): Annotation filename, list of filenames or expandable sequence
-        input_dimension (tuple): Tuple containing width,height values
-        class_label_map (list): List of class_labels
-        identify (function, optional): Lambda/function to get image based of annotation filename or image id; Default **replace/add .png extension to filename/id**
-        img_transform (torchvision.transforms.Compose): Transforms to perform on the images
-        anno_transform (torchvision.transforms.Compose): Transforms to perform on the annotations
-        kwargs (dict): Keyword arguments that are passed to the brambox parser
-
-    Returns:
-        tuple: image_tensor, list of brambox boxes
+        input_dimension (tuple): (width,height) tuple with default dimensions of the network
     """
-    def __init__(self, anno_format, anno_filename, input_dimension, class_label_map=None, identify=None, img_transform=None, anno_transform=None, **kwargs):
-        super(BramboxData, self).__init__()
+    def __init__(self, input_dimension):
+        super().__init__()
         self.__input_dim = input_dimension[:2]
-        self.img_tf = img_transform
-        self.anno_tf = anno_transform
-        if callable(identify):
-            self.id = identify
-        else:
-            self.id = lambda name : os.path.splitext(name)[0] + '.png'
-
-        # Get annotations
-        self.annos = bbb.parse(anno_format, anno_filename, identify=lambda f:f, class_label_map=class_label_map, **kwargs)
-        self.keys = list(self.annos)
-
-        # Add class_ids
-        if class_label_map is None:
-            log.warn(f'No class_label_map given, annotations wont have a class_id values for eg. loss function')
-        for k,annos in self.annos.items():
-            for a in annos:
-                if class_label_map is not None:
-                    try:
-                        a.class_id = class_label_map.index(a.class_label)
-                    except ValueError as err:
-                        raise ValueError(f'{a.class_label} is not found in the class_label_map') from err
-                else:
-                    a.class_id = 0
-
-        log.info(f'Dataset loaded: {len(self.keys)} images')
-
-    def __len__(self):
-        return len(self.keys)
-
-    def __getitem__(self, index):
-        """ Get (img, anno) tuple based of index from self.keys """
-        if not isinstance(index, int):
-            self._input_dim = index[0]
-            index = index[1]
-        if index >= len(self):
-            raise IndexError(f'list index out of range [{index}/{len(self)-1}]')
-
-        # Load
-        img = Image.open(self.id(self.keys[index]))
-        anno = copy.deepcopy(self.annos[self.keys[index]])
-
-        # Transform
-        if self.img_tf is not None:
-            img = self.img_tf(img)
-        if self.anno_tf is not None:
-            anno = self.anno_tf(anno)
-
-        if hasattr(self, '_input_dim'):
-            del self._input_dim
-        return img, anno
 
     @property
     def input_dim(self):
-        """ Dimensions that can be used by transforms to set the correct image size, etc.
+        """ Dimension that can be used by transforms to set the correct image size, etc.
         This allows transforms to have a single source of truth for the input dimension of the network.
 
         Return:
@@ -102,13 +40,42 @@ class BramboxData(Dataset):
             return self._input_dim
         return self.__input_dim
 
+    @staticmethod
+    def resize_getitem(getitem_fn):
+        """ Decorator method that needs to be used around the ``__getitem__`` method. |br|
+        This decorator enables the on the fly resizing  of the ``input_dim`` with our :class:`~lightnet.data.DataLoader` class.
+
+        Example:
+            .. code:: python
+                
+                class MyDataSet(ln.data.Dataset):
+
+                    @ln.data.Dataset.resize_getitem
+                    def __getitem__(self, index):
+                        raise NotImplementedError('Do your thing here')
+        """
+        @wraps(getitem_fn)
+        def wrapper(self, index):
+            if not isinstance(index, int):
+                self._input_dim = index[0]
+                index = index[1]
+
+            ret_val = getitem_fn(self, index)
+
+            if hasattr(self, '_input_dim'):
+                del self._input_dim
+
+            return ret_val
+
+        return wrapper
+
 
 class DataLoader(torchDataLoader):
     """ Lightnet dataloader that enables on the fly resizing of the images.
     See :class:`torch.utils.data.DataLoader` for more information on the arguments.
 
     Note:
-        This dataloader only works with :class:`lightnet.data.BramboxData` based datasets.
+        This dataloader only works with :class:`lightnet.data.Dataset` based datasets.
     """
     def __init__(self, *args, resize_range = (10, 19), **kwargs):
         super(DataLoader, self).__init__(*args, **kwargs)

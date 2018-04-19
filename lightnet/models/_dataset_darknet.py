@@ -1,5 +1,5 @@
 #
-#   Darknet dataset
+#   Lightnet dataset that uses the same files and structure as darknet and performs the same data augmentations.
 #   Copyright EAVISE
 #
 
@@ -8,11 +8,12 @@ from PIL import Image
 from torchvision import transforms as tf
 
 import lightnet.data as lnd
+from . import BramboxDataset
 
-__all__ = ['DarknetData']
+__all__ = ['DarknetDataset']
 
 
-class DarknetData(lnd.BramboxData):
+class DarknetDataset(BramboxDataset):
     """ Dataset that works with darknet files and performs the same data augmentations.
     You must use this dataset with the :meth:`~lightnet.data.list_collate` function in a dataloader.
     If you enable the data augmentation you must also use the :class:`~lightnet.data.DataLoader` class as dataloader.
@@ -56,4 +57,4 @@ class DarknetData(lnd.BramboxData):
         w, h = first_img.size
         kwargs = { 'image_width': w, 'image_height':h }
 
-        super(DarknetData, self).__init__(anno_format, self.anno_paths, input_dimension, class_label_map,  identify, img_tf, anno_tf, **kwargs)
+        super().__init__(anno_format, self.anno_paths, input_dimension, class_label_map,  identify, img_tf, anno_tf, **kwargs)
