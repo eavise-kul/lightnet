@@ -73,7 +73,8 @@ class Darknet19(lnn.module.Darknet):
         self.loss = None
         self.postprocess = None
 
-        self.load_weights(weights_file)
+        if weights_file is not None:
+            self.load_weights(weights_file)
 
     def _forward(self, x):
         return self.layers(x)

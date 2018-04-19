@@ -72,4 +72,5 @@ class TinyYolo(lnn.module.Darknet):
             lnd.transform.NonMaxSupression(nms_thresh, False)
         ])
 
-        self.load_weights(weights_file)
+        if weights_file is not None:
+            self.load_weights(weights_file)
