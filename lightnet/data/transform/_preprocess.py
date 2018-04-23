@@ -415,14 +415,14 @@ class BramboxToTensor(BaseTransform):
         if not isinstance(data, collections.Sequence):
             raise TypeError(f'BramboxToTensor only works with <brambox annotation list> [{type(data)}]')
 
-        anno_np = np.array([cls._tf_anno(anno, dimension, class_label_map) for anno in data], dtype=np.float64)
+        anno_np = np.array([cls._tf_anno(anno, dimension, class_label_map) for anno in data], dtype=np.float32)
 
         if max_anno is not None:
             anno_len = len(data)
             if anno_len > max_anno:
                 raise ValueError(f'More annotations than maximum allowed [{anno_len}/{max_anno}]')
 
-            z_np = np.zeros((max_anno-anno_len, 5), dtype=np.float64)
+            z_np = np.zeros((max_anno-anno_len, 5), dtype=np.float32)
             z_np[:,0] = -1
 
             if anno_len > 0:
