@@ -32,7 +32,7 @@ class Lightnet(nn.Module):
         whenever the network is training.
     """
     def __init__(self):
-        super(Lightnet, self).__init__()
+        super().__init__()
 
         # Parameters
         self.layers = None
@@ -106,10 +106,12 @@ class Lightnet(nn.Module):
 
     def load_weights(self, weights_file):
         """ This function will load the weights from a file.
+        It also allows to load in weights file with only a part of the weights in.
 
         Args:
             weights_file (str): path to file
         """
+        old_state = self.state_dict()
         state = torch.load(weights_file, lambda storage, loc: storage)
         self.seen = state['seen']
 
@@ -120,44 +122,33 @@ class Lightnet(nn.Module):
                 new_key = key.replace('.layer.', '.layers.')
                 state['weights'][new_key] = state['weights'].pop(key)
 
-        self.load_state_dict(state['weights'])
+        new_state = state['weights']
+        if new_state.keys() != old_state.keys():
+            log.warn('Modules not matching, performing partial update')
+            new_state = {k: v for k,v in new_state.items() if k in old_state}
+            old_state.update(new_dict)
+            new_state = old_state
+        self.load_state_dict(new_state)
 
         if hasattr(self.loss, 'seen'):
             self.loss.seen = self.seen
 
         log.info(f'Loaded weights from {weights_file}')
 
-    def save_weights(self, weights_file):
+    def save_weights(self, weights_file, seen=None):
         """ This function will save the weights to a file.
 
         Args:
             weights_file (str): path to file
+            seen (int, optional): Number of images trained on; Default **self.seen**
         """
+        if seen == None:
+            seen = self.seen
+
         state = {
-            'seen': self.seen,
+            'seen': seen,
             'weights': self.state_dict()
         }
         torch.save(state, weights_file)
 
         log.info(f'Saved weights as {weights_file}')
-
-    def update_weights(self, weights_file):
-        """ Pytorch weight files does not allow for partial loading of a network.
-        This update function gets around it by updating the current state_dict of the network
-        with the state_dict of the pytorch ``weights_file`` given.
-        """
-        old_state = self.state_dict()
-        new_state = torch.load(weights_file, lambda storage, loc: storage)
-
-        # Changed in layer.py: self.layer -> self.layers
-        for key in list(new_state['weights'].keys()):
-            if '.layer.' in key:
-                log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
-                new_key = key.replace('.layer.', '.layers.')
-                new_state['weights'][new_key] = new_state['weights'].pop(key)
-
-        new_dict = {k: v for k,v in new_state['weights'].items() if k in old_state}
-        old_state.update(new_dict)
-        self.load_state_dict(old_state)
-
-        log.info(f'Updated weights from {weights_file}')

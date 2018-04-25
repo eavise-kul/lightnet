@@ -1,5 +1,5 @@
 #
-#   Base lightnet network structure
+#   Base network structure for Darknet networks
 #   Copyright EAVISE
 #
 
@@ -15,6 +15,7 @@ from ..layer._darknet import *
 __all__ = ['Darknet']
 log = logging.getLogger(__name__)
 
+
 class Darknet(Lightnet):
     """ This network module provides functionality to load darknet weight files.
 
@@ -22,14 +23,8 @@ class Darknet(Lightnet):
         self.seen (int): The number of images the network has processed to train (used by engine)
     """
     def __init__(self):
-        super(Darknet, self).__init__()
-
-        # Parameters
-        self.layers = None
-        self.loss = None
-        self.postprocess = None
+        super().__init__()
         self.header = [0,2,0]
-        self.seen = 0
 
     def load_weights(self, weights_file):
         """ This function will load the weights from a file.
@@ -46,20 +41,21 @@ class Darknet(Lightnet):
             log.info('Loading weights from darknet file')
             self._load_darknet_weights(weights_file)
 
-    def save_weights(self, weights_file):
+    def save_weights(self, weights_file, seen=None):
         """ This function will save the weights to a file.
         If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_. 
         Otherwise, the file is considered to be a darknet binary weight file.
 
         Args:
             weights_file (str): path to file
+            seen (int, optional): Number of images trained on; Default **self.seen**
         """
         if os.path.splitext(weights_file)[1] == '.pt':
             log.debug('Saving weights to pytorch file')
-            super().save_weights(weights_file)
+            super().save_weights(weights_file, seen)
         else:
             log.debug('Saving weights to darknet file')
-            self._save_darknet_weights(weights_file)
+            self._save_darknet_weights(weights_file, seen)
 
     def _load_darknet_weights(self, weights_file):
         weights = WeightLoader(weights_file)
@@ -78,8 +74,10 @@ class Darknet(Lightnet):
             except NotImplementedError:
                 log.info(f'Layer skipped: {module.__class__.__name__}')
 
-    def _save_darknet_weights(self, weights_file):
-        weights = WeightSaver(self.header, self.seen)
+    def _save_darknet_weights(self, weights_file, seen=None):
+        if seen == None:
+            seen = self.seen
+        weights = WeightSaver(self.header, seen)
 
         for module in self.modules_recurse():
             try:
