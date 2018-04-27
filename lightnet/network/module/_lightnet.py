@@ -126,7 +126,7 @@ class Lightnet(nn.Module):
         if new_state.keys() != old_state.keys():
             log.warn('Modules not matching, performing partial update')
             new_state = {k: v for k,v in new_state.items() if k in old_state}
-            old_state.update(new_dict)
+            old_state.update(new_state)
             new_state = old_state
         self.load_state_dict(new_state)
 
