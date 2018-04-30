@@ -35,10 +35,10 @@ class Darknet(Lightnet):
             weights_file (str): path to file
         """
         if os.path.splitext(weights_file)[1] == '.pt':
-            log.info('Loading weights from pytorch file')
+            log.debug('Loading weights from pytorch file')
             super().load_weights(weights_file)
         else:
-            log.info('Loading weights from darknet file')
+            log.debug('Loading weights from darknet file')
             self._load_darknet_weights(weights_file)
 
     def save_weights(self, weights_file, seen=None):
