@@ -8,6 +8,7 @@ Networks
 .. autoclass:: lightnet.models.Yolo
 .. autoclass:: lightnet.models.TinyYolo
 .. .. autoclass:: lightnet.models.MobileNetYolo
+.. autoclass:: lightnet.models.YoloFusion
 
 Data
 ----
