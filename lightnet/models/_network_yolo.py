@@ -3,7 +3,6 @@
 #   Copyright EAVISE
 #
 
-import os
 from collections import OrderedDict, Iterable
 import torch
 import torch.nn as nn
