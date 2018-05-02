@@ -15,3 +15,6 @@ from ._network_yolo import *
 
 # Mobilenet
 from ._network_mobilenet_yolo import *
+
+# SensorFusion
+from ._network_yolo_fusion import *
