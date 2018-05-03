@@ -184,11 +184,36 @@ class Engine(ABC):
             values (list): New values that will be used for the attribute
             default (optional): Default value to use for the rate; Default **None**
 
+        Note:
+            You can also set the ``learning_rate`` with this method.
+            This will actually use the ``learning_rate`` computed property of this class and set the learning rate of the optimizer. |br|
+            This is great for automating adaptive learning rates, and can work in conjunction with pytorch schedulers.
+
         Example:
-            >>> import lightnet as ln
-            >>> eng = ln.engine.Engine(...)
-            >>> eng.add_rate('test_rate', [1000, 5000], [100, 500], 50)
-            >>> eng.add_rate('learning_rate', [100, 1000, 10000], [.01, .001, .0001]) # Learning rate already has a value
+            >>> class MyEngine(ln.engine.Engine):
+            ...     batch_size = 2
+            ...     def process_batch(self, data):
+            ...         raise NotImplementedError()
+            ...     def train_batch(self):
+            ...         raise NotImplementedError()
+            >>> net = ln.models.Yolo()
+            >>> eng = MyEngine(
+            ...     net,
+            ...     torch.optim.SGD(net.parameters(), lr=.1),
+            ...     None    # Should be dataloader
+            ... )
+            >>> eng.add_rate('test_rate', [1000, 10000], [100, 500], 50)
+            >>> eng.add_rate('learning_rate', [1000, 10000], [.01, .001])
+            >>> eng.test_rate
+            50
+            >>> eng.learning_rate
+            0.1
+            >>> net.seen = 2000     # batch_size = 2
+            >>> eng._update_rates() # Happens automatically during training loop
+            >>> eng.test_rate
+            100
+            >>> eng.learning_rate
+            0.01
         """
         if default is not None or not hasattr(self, name):
             setattr(self, name, default)

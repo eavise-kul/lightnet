@@ -40,6 +40,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
+    'sphinx.ext.doctest',
     ]
 
 todo_include_todos = True
@@ -51,6 +52,12 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3.6', None),
     'brambox': ('https://eavise.gitlab.io/brambox', None),
     }
+
+doctest_global_setup = """
+import torch
+import lightnet as ln
+ln.logger.setConsoleLevel('ERROR')
+"""
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']

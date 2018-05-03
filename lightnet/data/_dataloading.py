@@ -46,13 +46,18 @@ class Dataset(torchDataset):
         This decorator enables the on the fly resizing  of the ``input_dim`` with our :class:`~lightnet.data.DataLoader` class.
 
         Example:
-            .. code:: python
-                
-                class MyDataSet(ln.data.Dataset):
-
-                    @ln.data.Dataset.resize_getitem
-                    def __getitem__(self, index):
-                        raise NotImplementedError('Do your thing here')
+            >>> class CustomSet(ln.data.Dataset):
+            ...     def __len__(self):
+            ...         return 10
+            ...     @ln.data.Dataset.resize_getitem
+            ...     def __getitem__(self, index):
+            ...         # Should return (image, anno) but here we return input_dim
+            ...         return self.input_dim
+            >>> data = CustomSet((200,200))
+            >>> data[0]
+            (200, 200)
+            >>> data[(480,320), 0]
+            (480, 320)
         """
         @wraps(getitem_fn)
         def wrapper(self, index):
@@ -76,6 +81,36 @@ class DataLoader(torchDataLoader):
 
     Note:
         This dataloader only works with :class:`lightnet.data.Dataset` based datasets.
+
+    Example:
+        >>> class CustomSet(ln.data.Dataset):
+        ...     def __len__(self):
+        ...         return 4
+        ...     @ln.data.Dataset.resize_getitem
+        ...     def __getitem__(self, index):
+        ...         # Should return (image, anno) but here we return (input_dim,) 
+        ...         return (self.input_dim,)
+        >>> dl = ln.data.DataLoader(
+        ...     CustomSet((200,200)),
+        ...     batch_size = 2,
+        ...     collate_fn = ln.data.list_collate   # We want the data to be grouped as a list
+        ... )
+        >>> dl.dataset.input_dim    # Default input_dim
+        (200, 200)
+        >>> for d in dl:
+        ...     d
+        [[(200, 200), (200, 200)]]
+        [[(200, 200), (200, 200)]]
+        >>> dl.change_input_dim(320, random_range=(1, 1))
+        >>> for d in dl:
+        ...     d
+        [[(320, 320), (320, 320)]]
+        [[(320, 320), (320, 320)]]
+        >>> dl.change_input_dim((480, 320), random_range=(1, 1))
+        >>> for d in dl:
+        ...     d
+        [[(480, 320), (480, 320)]]
+        [[(480, 320), (480, 320)]]
     """
     def __init__(self, *args, resize_range = (10, 19), **kwargs):
         super(DataLoader, self).__init__(*args, **kwargs)
@@ -125,7 +160,7 @@ class DataLoader(torchDataLoader):
 
         Args:
             multiple (int or tuple, optional): value (or values) to multiply the randomly generated range by; Default **32**
-            random_range (tuple, optional): When ``randomize`` is true, this (min, max) tuple sets the range for the randomisation; Default **(10, 19)**
+            random_range (tuple, optional): This (min, max) tuple sets the range for the randomisation; Default **(10, 19)**
 
         Note:
             The new size is generated as follows: |br|

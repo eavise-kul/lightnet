@@ -23,6 +23,20 @@ class Compose(list):
         which would render this class useless. In the meanwhile, we use our own version
         and you can track `the issue`_ to see if and when this comes to torchvision.
 
+    Example:
+        >>> tf = ln.data.transform.Compose([lambda n: n+1])
+        >>> tf(10)  # 10+1
+        11
+        >>> tf.append(lambda n: n*2)
+        >>> tf(10)  # (10+1)*2
+        22
+        >>> tf.insert(0, lambda n: n//2)
+        >>> tf(10)  # ((10//2)+1)*2
+        12
+        >>> del tf[2]
+        >>> tf(10)  # (10//2)+1
+        6
+
     .. _the issue: https://github.com/pytorch/vision/issues/456
     """
     def __call__(self, data):
@@ -54,7 +68,6 @@ class BaseTransform(ABC):
     @abstractmethod
     def apply(cls, data, **kwargs):
         """ Classmethod that applies the transformation once.
-        This should be overriden by the superclass.
         
         Args:
             data: Data to transform (eg. image)

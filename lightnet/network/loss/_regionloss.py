@@ -46,6 +46,37 @@ class RegionLoss(nn.modules.loss._Loss):
             output (torch.autograd.Variable): Output from the network
             target (brambox.boxes.annotations.Annotation or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see :class:`lightnet.data.BramboxToTensor`)
             seen (int, optional): How many images the network has already been trained on; Default **Add batch_size to previous seen value**
+
+        Note:
+            The example below only shows this function working with a target tensor. |br|
+            This loss function also works with a list of brambox annotations as target and will work the same.
+            The added benefit of using brambox annotations is that this function will then also look at the ``ignore`` flag of the annotations
+            and ignore detections that match with it. This allows you to have annotations that will not influence the loss in any way,
+            as opposed to having them removed and counting them as false detections.
+
+        Example:
+            >>> _ = torch.random.manual_seed(0)
+            >>> network = ln.models.Yolo(num_classes=2, conf_thresh=4e-2)
+            >>> region_loss = ln.network.loss.RegionLoss(network.num_classes, network.anchors)
+            >>> Win, Hin = 96, 96
+            >>> Wout, Hout = 1, 1
+            >>> # true boxes for each item in the batch
+            >>> # each box encodes class, x_center, y_center, width, and height
+            >>> # coordinates are normalized in the range 0 to 1
+            >>> # items in each batch are padded with dummy boxes with class_id=-1
+            >>> target = torch.FloatTensor([
+            ...     # boxes for batch item 1
+            ...     [[0, 0.50, 0.50, 1.00, 1.00],
+            ...      [1, 0.32, 0.42, 0.22, 0.12]],
+            ...     # boxes for batch item 2 (it has no objects, note the pad!)
+            ...     [[-1, 0, 0, 0, 0],
+            ...      [-1, 0, 0, 0, 0]],
+            ... ])
+            >>> im_data = torch.autograd.Variable(torch.randn(len(target), 3, Hin, Win))
+            >>> output = network._forward(im_data)
+            >>> loss = float(region_loss(output, target))
+            >>> print(f'loss = {loss:.2f}')
+            loss = 20.43
         """
         # Parameters
         nB = output.data.size(0)

@@ -23,37 +23,44 @@ Setting this environment variable before running a lightnet script will force li
 The second method is by using the :func:`lightnet.logger.setConsoleLevel` function. This has the benefit that it is programmable, but you wont get the extra information by setting the level to ``DEBUG``.
 
 .. rubric:: Example
-.. code:: python
 
-  import lightnet as ln
-  import logging
-
-  # This line will log all messages to a file.
-  # Note: that this also saves messages from other packages using the logging module
-  logging.basicConfig(filename='file.log', filemode='w')      
-
-  # This line will only log TRAIN and TEST level messages to a file
-  # Note: this logfile will only consider messages from 'lightnet.*' loggers
-  filehandler = ln.logger.setLogFile('file.log', filemode='w')
-
-  # This line enables all messages from lightnet to be printed on the console
-  # Note: messages that were printed before this line (eg. upon loading the package) will not be printed
-  ln.logger.setConsoleLevel(logging.NOTSET)
-
-  # Use this function to enable/disable colored terminal output
-  ln.logger.setConsoleColor(False)
-
-  # If you want to use the logging module yourself, and have the same styling as the lightnet logger,
-  # you can use this snippet
-  log = logging.getLogger('lightnet.choose-a-name-here')
-  log.debug('this is a debug message')
-  log.info('this is an info message')
-  log.warn('this is a warning')
-  log.deprecated('This is a deprecation warning')
-  log.error('This is an error')
-  log.critical('This as a critical error')
-  log.train('This is a special logging level that prefixes the message with `TRAIN`')
-  log.test('This is a special logging level that prefixes the message with `TEST`')
+>>> import sys
+>>> sys.stderr.write = print  # Ignore this: for doctest only
+>>> import logging
+>>> 
+>>> # This line will log all messages to a file.
+>>> # Note: that this also saves messages from other packages using the logging module
+>>> logging.basicConfig(filename='file.log', filemode='w')  # doctest: +SKIP
+>>> 
+>>> # This line will only log TRAIN and TEST level messages to a file
+>>> # Note: this logfile will only consider messages from 'lightnet.*' loggers
+>>> filehandler = ln.logger.setLogFile('file.log', filemode='w')  # doctest: +SKIP
+>>> 
+>>> # Use this function to enable/disable colored terminal output
+>>> ln.logger.setConsoleColor(False)
+>>> 
+>>> # This line enables all messages from lightnet to be printed on the console
+>>> # Note: messages that were printed before this line (eg. upon loading the package) will not be printed
+>>> ln.logger.setConsoleLevel(logging.NOTSET)
+>>> 
+>>> # If you want to use the logging module yourself, and have the same styling as the lightnet logger, use this
+>>> log = logging.getLogger('lightnet.choose-a-name-here')
+>>> log.debug('This is a debug message')  # doctest: +NORMALIZE_WHITESPACE
+DEBUG      This is a debug message
+>>> log.info('This is an info message')   #doctest: +NORMALIZE_WHITESPACE
+INFO       This is an info message
+>>> log.warn('This is a warning')   # doctest: +NORMALIZE_WHITESPACE
+WARNING    This is a warning
+>>> log.deprecated('This is a deprecation warning')   # doctest: +NORMALIZE_WHITESPACE
+DEPRECATED This is a deprecation warning
+>>> log.error('This is an error')   # doctest: +NORMALIZE_WHITESPACE
+ERROR      This is an error
+>>> log.critical('This is a critical error') # doctest: +NORMALIZE_WHITESPACE
+CRITICAL   This is a critical error
+>>> log.train('This is a special logging level that prefixes the message with `TRAIN`')   # doctest: +NORMALIZE_WHITESPACE
+TRAIN      This is a special logging level that prefixes the message with `TRAIN`
+>>> log.test('This is a special logging level that prefixes the message with `TEST`')  # doctest: +NORMALIZE_WHITESPACE
+TEST       This is a special logging level that prefixes the message with `TEST`
 
 
 .. rubric:: API
