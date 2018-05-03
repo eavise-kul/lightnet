@@ -67,12 +67,12 @@ class Darknet(Lightnet):
         for module in self.modules_recurse():
             try:
                 weights.load_layer(module)
-                log.info(f'Layer loaded: {module}')
+                log.debug(f'Layer loaded: {module}')
                 if weights.start >= weights.size:
                     log.debug(f'Finished loading weights [{weights.start}/{weights.size} weights]')
                     break
             except NotImplementedError:
-                log.info(f'Layer skipped: {module.__class__.__name__}')
+                log.debug(f'Layer skipped: {module.__class__.__name__}')
 
     def _save_darknet_weights(self, weights_file, seen=None):
         if seen == None:
@@ -82,9 +82,9 @@ class Darknet(Lightnet):
         for module in self.modules_recurse():
             try:
                 weights.save_layer(module)
-                log.info(f'Layer saved: {module}')
+                log.debug(f'Layer saved: {module}')
             except NotImplementedError:
-                log.info(f'Layer skipped: {module.__class__.__name__}')
+                log.debug(f'Layer skipped: {module.__class__.__name__}')
 
         weights.write_file(weights_file)
 

@@ -10,4 +10,6 @@ TODOs for version 030
   - [X] Speed-up RegionLoss
   - [X] Support PyTorch v0.4.0
   - [X] Write Doctests for the various 'endpoints' of the library
+  - [ ] Add linting with pycodestyle
+  - [ ] Update gitlab CI
 
