@@ -15,7 +15,7 @@ class Compose(list):
     Note:
         The reason we have our own version is because this one offers more freedom to the user.
         For all intends and purposes this class is just a list.
-        This `Compose` version allows the user to access elements through index, append items, extend it with another list, etc.  
+        This `Compose` version allows the user to access elements through index, append items, extend it with another list, etc.
         When calling instances of this class, it behaves just like :class:`torchvision.transforms.Compose`.
 
     Note:
@@ -43,7 +43,7 @@ class Compose(list):
         for tf in self:
             data = tf(data)
         return data
-    
+
     def __repr__(self):
         format_string = self.__class__.__name__ + ' ['
         for tf in self:
@@ -63,12 +63,12 @@ class BaseTransform(ABC):
 
     def __call__(self, data):
         return self.apply(data, **self.__dict__)
-    
+
     @classmethod
     @abstractmethod
     def apply(cls, data, **kwargs):
         """ Classmethod that applies the transformation once.
-        
+
         Args:
             data: Data to transform (eg. image)
             **kwargs: Same arguments that are passed to the ``__init__`` function
@@ -77,7 +77,7 @@ class BaseTransform(ABC):
 
 
 class BaseMultiTransform(ABC):
-    """ Base multiple transform class that is mainly used in pre-processing functions. 
+    """ Base multiple transform class that is mainly used in pre-processing functions.
     This class exists for transforms that affect both images and annotations.
     It provides a classmethod ``apply``, that will perform the transormation on one (data, target) pair.
     """
@@ -92,7 +92,7 @@ class BaseMultiTransform(ABC):
     @classmethod
     def apply(cls, data, target=None, **kwargs):
         """ Classmethod that applies the transformation once.
-        
+
         Args:
             data: Data to transform (eg. image)
             target (optional): ground truth for that data; Default **None**

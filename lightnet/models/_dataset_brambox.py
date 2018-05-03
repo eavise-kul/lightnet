@@ -34,16 +34,16 @@ class BramboxDataset(lnd.Dataset):
         if callable(identify):
             self.id = identify
         else:
-            self.id = lambda name : os.path.splitext(name)[0] + '.png'
+            self.id = lambda name: os.path.splitext(name)[0] + '.png'
 
         # Get annotations
-        self.annos = bbb.parse(anno_format, anno_filename, identify=lambda f:f, class_label_map=class_label_map, **kwargs)
+        self.annos = bbb.parse(anno_format, anno_filename, identify=lambda f: f, class_label_map=class_label_map, **kwargs)
         self.keys = list(self.annos)
 
         # Add class_ids
         if class_label_map is None:
             log.warn(f'No class_label_map given, annotations wont have a class_id values for eg. loss function')
-        for k,annos in self.annos.items():
+        for k, annos in self.annos.items():
             for a in annos:
                 if class_label_map is not None:
                     try:
@@ -64,7 +64,7 @@ class BramboxDataset(lnd.Dataset):
 
         Args:
             index (int): index of the ``self.keys`` list containing all the image identifiers of the dataset.
-        
+
         Returns:
             tuple: (transformed image, list of transformed brambox boxes)
         """

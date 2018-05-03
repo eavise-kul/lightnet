@@ -1,7 +1,7 @@
 #
 #   Visualisation with visdom
 #   Copyright EAVISE
-#   
+#
 
 import logging
 import numpy as np
@@ -38,14 +38,14 @@ class LinePlotter:
             self.traces.append(name)
 
         if self.vis is None:
-            return 
+            return
         if not self.vis.check_connection():
             log.error('No connection with visdom server')
             self.vis = None
 
     def __call__(self, y, x=None, opts={}, name=None, update='append'):
         """ Add point(s) to a trace or draw a new trace in the window.
-        
+
         Args:
             y (numpy or torch array): Y-value(s) to plot
             x (numpy or torch array, optional): X-value(s) to plot the Y-value(s) at; Default **None**
@@ -70,10 +70,10 @@ class LinePlotter:
         if not self.vis.win_exists(self.win, self.env):
             if 'legend' not in opts:
                 opts['legend'] = [name]
-            self.vis.line(y,x, self.win, self.env, opts, name=name)
+            self.vis.line(y, x, self.win, self.env, opts, name=name)
             log.debug(f'Created new visdom window [{self.win}]')
         else:
-            self.vis.line(y,x, self.win, self.env, opts, update, name)
+            self.vis.line(y, x, self.win, self.env, opts, update, name)
             log.debug(f'Updated visdom window [{self.win}]')
 
     def clear(self, name=None):

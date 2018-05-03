@@ -74,9 +74,9 @@ class PaddedMaxPool2d(nn.Module):
         kernel_size (int or tuple): Kernel size for maxpooling
         stride (int or tuple, optional): The stride of the window; Default ``kernel_size``
         padding (tuple, optional): (left, right, top, bottom) padding; Default **None**
-        dilation (int or tuple, optional): A parameter that controls the stride of elements in the window 
+        dilation (int or tuple, optional): A parameter that controls the stride of elements in the window
     """
-    def __init__(self, kernel_size, stride=None, padding=(0,0,0,0), dilation=1):
+    def __init__(self, kernel_size, stride=None, padding=(0, 0, 0, 0), dilation=1):
         super(PaddedMaxPool2d, self).__init__()
         self.kernel_size = kernel_size
         self.stride = stride or kernel_size
@@ -127,9 +127,9 @@ class Reorg(nn.Module):
             x = x.view(B, -1, H//self.stride, W//self.stride)
         else:
             ws, hs = self.stride, self.stride
-            x = x.view(B, C, H//hs, hs, W//ws, ws).transpose(3,4).contiguous()
-            x = x.view(B, C, H//hs*W//ws, hs*ws).transpose(2,3).contiguous()
-            x = x.view(B, C, hs*ws, H//hs, W//ws).transpose(1,2).contiguous()
+            x = x.view(B, C, H//hs, hs, W//ws, ws).transpose(3, 4).contiguous()
+            x = x.view(B, C, H//hs*W//ws, hs*ws).transpose(2, 3).contiguous()
+            x = x.view(B, C, hs*ws, H//hs, W//ws).transpose(1, 2).contiguous()
             x = x.view(B, hs*ws*C, H//hs, W//ws)
 
         return x

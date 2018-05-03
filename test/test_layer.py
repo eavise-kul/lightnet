@@ -1,4 +1,3 @@
-import time
 import unittest
 import torch
 from lightnet.network.layer import *
@@ -70,7 +69,8 @@ reorg_forward_expected_output = torch.FloatTensor([
     465.0, 467.0, 469.0, 471.0, 473.0, 475.0, 477.0, 479.0,
     497.0, 499.0, 501.0, 503.0, 505.0, 507.0, 509.0, 511.0])
 
-class TestReorg(unittest.TestCase):
+
+class TestYoloReorg(unittest.TestCase):
     def setUp(self):
         self.reorg = Reorg(2)
 
@@ -91,9 +91,7 @@ class TestReorg(unittest.TestCase):
         correct given a tensor with known input dimensions.
         Test CPU implementation
         """
-        #t1 = time.time()
         output = self.reorg.forward(self.input)
-        #print(f'CPU: {time.time()-t1}')
         self.assertEqual(output.size(), torch.Size([1, 32, 4, 4]))
 
     def test_dimensions_forward_cuda(self):
@@ -102,10 +100,7 @@ class TestReorg(unittest.TestCase):
         Test CUDA implementation
         """
         self.input = self.input.cuda()
-        #t1 = time.time()
         output = self.reorg.forward(self.input)
-        #torch.cuda.synchronize()
-        #print(f'GPU: {time.time()-t1}')
         self.assertEqual(output.size(), torch.Size([1, 32, 4, 4]))
 
     def test_forward_cpu(self):
@@ -126,6 +121,7 @@ class TestReorg(unittest.TestCase):
         output = self.reorg.forward(self.input)
         equal_elements = torch.eq(output.data.cpu(), reorg_forward_expected_output.view(1, 32, 4, 4))
         self.assertTrue(equal_elements.all())
+
 
 if __name__ == '__main__':
     unittest.main()

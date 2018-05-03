@@ -10,6 +10,7 @@ import torch.nn as nn
 __all__ = ['Lightnet']
 log = logging.getLogger(__name__)
 
+
 class Lightnet(nn.Module):
     """ This class provides an abstraction layer on top of :class:`pytorch:torch.nn.Module` and is used as a base for every network implemented in this framework.
     There are 2 basic ways of using this class:
@@ -46,7 +47,7 @@ class Lightnet(nn.Module):
             return self.layers(x)
         elif isinstance(self.layers, nn.ModuleList):
             log.warn('No _forward function defined, looping sequentially over modulelist')
-            for _,module in enumerate(self.layers):
+            for _, module in enumerate(self.layers):
                 x = module(x)
             return x
         else:
@@ -95,7 +96,7 @@ class Lightnet(nn.Module):
         Args:
             mod (torch.nn.Module, optional): Module to loop over; Default **self**
         """
-        if mod == None:
+        if mod is None:
             mod = self
 
         for module in mod.children():
@@ -125,7 +126,7 @@ class Lightnet(nn.Module):
         new_state = state['weights']
         if new_state.keys() != old_state.keys():
             log.warn('Modules not matching, performing partial update')
-            new_state = {k: v for k,v in new_state.items() if k in old_state}
+            new_state = {k: v for k, v in new_state.items() if k in old_state}
             old_state.update(new_state)
             new_state = old_state
         self.load_state_dict(new_state)
@@ -142,7 +143,7 @@ class Lightnet(nn.Module):
             weights_file (str): path to file
             seen (int, optional): Number of images trained on; Default **self.seen**
         """
-        if seen == None:
+        if seen is None:
             seen = self.seen
 
         state = {

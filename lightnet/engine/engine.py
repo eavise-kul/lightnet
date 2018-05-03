@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 class Engine(ABC):
     """ This class removes the boilerplate code needed for writing your training cycle. |br|
     Here is the code that runs when the engine is called:
-    
+
     .. literalinclude:: /../lightnet/engine/engine.py
        :language: python
        :pyobject: Engine.__call__
@@ -79,7 +79,7 @@ class Engine(ABC):
                 setattr(self, key, kwargs[key])
             else:
                 log.warn(f'{key} attribute already exists on engine. Keeping original value [{getattr(self, key)}]')
-    
+
     def __call__(self):
         """ Start the training cycle. """
         self.start()
@@ -147,7 +147,7 @@ class Engine(ABC):
     @property
     def learning_rate(self):
         """ Get and set the learning rate
-            
+
         Args:
             lr (Number): Set the learning rate for all values of optimizer.param_groups[i]['lr']
 
@@ -234,7 +234,7 @@ class Engine(ABC):
         """ Update rates according to batch size. |br|
         This function gets automatically called every batch, and should generally not be called by the user.
         """
-        for key, (steps,values) in self.__rates.items():
+        for key, (steps, values) in self.__rates.items():
             new_rate = None
             for i in range(len(steps)):
                 if self.batch >= steps[i]:

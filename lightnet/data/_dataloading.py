@@ -88,7 +88,7 @@ class DataLoader(torchDataLoader):
         ...         return 4
         ...     @ln.data.Dataset.resize_getitem
         ...     def __getitem__(self, index):
-        ...         # Should return (image, anno) but here we return (input_dim,) 
+        ...         # Should return (image, anno) but here we return (input_dim,)
         ...         return (self.input_dim,)
         >>> dl = ln.data.DataLoader(
         ...     CustomSet((200,200)),
@@ -112,7 +112,7 @@ class DataLoader(torchDataLoader):
         [[(480, 320), (480, 320)]]
         [[(480, 320), (480, 320)]]
     """
-    def __init__(self, *args, resize_range = (10, 19), **kwargs):
+    def __init__(self, *args, resize_range=(10, 19), **kwargs):
         super(DataLoader, self).__init__(*args, **kwargs)
         self.__initialized = False
         shuffle = False
@@ -175,7 +175,7 @@ class DataLoader(torchDataLoader):
             size = (size * multiple, size * multiple)
         else:
             size = (size * multiple[0], size * multiple[1])
-        
+
         self.batch_sampler.new_input_dim = size
 
 

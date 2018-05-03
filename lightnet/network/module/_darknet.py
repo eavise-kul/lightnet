@@ -24,11 +24,11 @@ class Darknet(Lightnet):
     """
     def __init__(self):
         super().__init__()
-        self.header = [0,2,0]
+        self.header = [0, 2, 0]
 
     def load_weights(self, weights_file):
         """ This function will load the weights from a file.
-        If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_. 
+        If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_.
         Otherwise, the file is considered to be a darknet binary weight file.
 
         Args:
@@ -43,7 +43,7 @@ class Darknet(Lightnet):
 
     def save_weights(self, weights_file, seen=None):
         """ This function will save the weights to a file.
-        If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_. 
+        If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_.
         Otherwise, the file is considered to be a darknet binary weight file.
 
         Args:
@@ -75,7 +75,7 @@ class Darknet(Lightnet):
                 log.debug(f'Layer skipped: {module.__class__.__name__}')
 
     def _save_darknet_weights(self, weights_file, seen=None):
-        if seen == None:
+        if seen is None:
             seen = self.seen
         weights = WeightSaver(self.header, seen)
 
@@ -106,8 +106,8 @@ class WeightLoader:
             else:
                 log.error('New weight file syntax! Loading of weights might not work properly. Please submit an issue with the weight file version number. [Run with DEBUG logging level]')
                 self.seen = int(np.fromfile(fp, count=1, dtype=np.int64)[0])
-            
-            self.buf = np.fromfile(fp, dtype = np.float32)
+
+            self.buf = np.fromfile(fp, dtype=np.float32)
 
         self.start = 0
         self.size = self.buf.size
@@ -152,7 +152,7 @@ class WeightLoader:
         num_w = model.layers[0].weight.numel()
         model.layers[0].weight.data.copy_(torch.from_numpy(self.buf[self.start:self.start+num_w])
                                                .view_as(model.layers[0].weight.data))
-        self.start += num_w 
+        self.start += num_w
 
     def _load_fc(self, model):
         num_b = model.bias.numel()
@@ -163,7 +163,7 @@ class WeightLoader:
         num_w = model.weight.numel()
         model.weight.data.copy_(torch.from_numpy(self.buf[self.start:self.start+num_w])
                                      .view_as(model.weight.data))
-        self.start += num_w 
+        self.start += num_w
 
 
 class WeightSaver:

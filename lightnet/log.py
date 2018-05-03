@@ -108,6 +108,7 @@ if 'LN_LOGLVL' in os.environ:
 else:
     ch.setLevel(logging.INFO)
 
+
 # File Handler
 def createFileHandler(self, filename, levels=('TRAIN', 'TEST'), filemode='a'):
     """ Create a file to write log messages of certaing levels """
