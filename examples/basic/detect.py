@@ -48,10 +48,14 @@ def detect(net, img_path):
     img_tf.unsqueeze_(0)
     if args.cuda:
         img_tf = img_tf.cuda()
-    img_tf = torch.autograd.Variable(img_tf, volatile=True)
     
     # Run detector
-    out = net(img_tf)
+    if torch.__version__.startswith('0.3'):
+        img_tf = torch.autograd.Variable(img_tf, volatile=True)
+        out = net(img_tf)
+    else:
+        with torch.no_grad():
+            out = net(img_tf)
     out = ln.data.transform.ReverseLetterbox.apply(out, NETWORK_SIZE, (im_w, im_h))
 
     return img, out

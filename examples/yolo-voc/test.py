@@ -92,22 +92,31 @@ def test(arguments):
     for idx, (data, box) in enumerate(tqdm(loader, total=len(loader))):
         if arguments.cuda:
             data = data.cuda()
-        data = torch.autograd.Variable(data, volatile=True)
+        if torch.__version__.startswith('0.3'):
+            data = torch.autograd.Variable(data, volatile=True)
+            output, loss = net(data, box)
+        else:
+            with torch.no_grad():
+                output, loss = net(data, box)
 
-        output, loss = net(data, box)
-
-        tot_loss.append(net.loss.loss_tot.data[0]*len(box))
-        coord_loss.append(net.loss.loss_coord.data[0]*len(box))
-        conf_loss.append(net.loss.loss_conf.data[0]*len(box))
-        if net.loss.loss_cls is not None:
-            cls_loss.append(net.loss.loss_cls.data[0]*len(box))
+        if torch.__version__.startswith('0.3'):
+            tot_loss.append(net.loss.loss_tot.data[0]*len(box))
+            coord_loss.append(net.loss.loss_coord.data[0]*len(box))
+            conf_loss.append(net.loss.loss_conf.data[0]*len(box))
+            if net.loss.loss_cls is not None:
+                cls_loss.append(net.loss.loss_cls.data[0]*len(box))
+        else:
+            tot_loss.append(net.loss.loss_tot.item()*len(box))
+            coord_loss.append(net.loss.loss_coord.item()*len(box))
+            conf_loss.append(net.loss.loss_conf.item()*len(box))
+            if net.loss.loss_cls is not None:
+                cls_loss.append(net.loss.loss_cls.item()*len(box))
 
         key_val = len(anno)
         anno.update({loader.dataset.keys[key_val+k]: v for k,v in enumerate(box)})
         det.update({loader.dataset.keys[key_val+k]: v for k,v in enumerate(output)})
 
     log.debug('Computing statistics')
-
     pr = bbb.pr(det, anno)
     m_ap = round(bbb.ap(*pr)*100, 2)
     tot = round(sum(tot_loss)/len(anno), 5)

@@ -161,11 +161,18 @@ class TrainingEngine(ln.engine.Engine):
         loss = self.network(data, target)
         loss.backward()
 
-        self.train_loss['tot'].append(self.network.loss.loss_tot.data[0])
-        self.train_loss['coord'].append(self.network.loss.loss_coord.data[0])
-        self.train_loss['conf'].append(self.network.loss.loss_conf.data[0])
-        if CLASSES > 1:
-            self.train_loss['cls'].append(self.network.loss.loss_cls.data[0])
+        if torch.__version__.startswith('0.3'):
+            self.train_loss['tot'].append(self.network.loss.loss_tot.data[0])
+            self.train_loss['coord'].append(self.network.loss.loss_coord.data[0])
+            self.train_loss['conf'].append(self.network.loss.loss_conf.data[0])
+            if CLASSES > 1:
+                self.train_loss['cls'].append(self.network.loss.loss_cls.data[0])
+        else:
+            self.train_loss['tot'].append(self.network.loss.loss_tot.item())
+            self.train_loss['coord'].append(self.network.loss.loss_coord.item())
+            self.train_loss['conf'].append(self.network.loss.loss_conf.item())
+            if CLASSES > 1:
+                self.train_loss['cls'].append(self.network.loss.loss_cls.item())
     
     def train_batch(self):
         self.optimizer.step()
@@ -199,11 +206,15 @@ class TrainingEngine(ln.engine.Engine):
         for idx, (data, target) in enumerate(self.testloader):
             if self.cuda:
                 data = data.cuda()
-            data = torch.autograd.Variable(data, volatile=True)
+            if torch.__version__.startswith('0.3'):
+                data = torch.autograd.Variable(data, volatile=True)
+                output, loss = self.network(data, target)
+                tot_loss.append(loss.data[0]*len(target))
+            else:
+                with torch.no_grad():
+                    output, loss = self.network(data, target)
+                tot_loss.append(loss.item()*len(target))
 
-            output, loss = self.network(data, target)
-
-            tot_loss.append(loss.data[0]*len(target))
             key_val = len(anno)
             anno.update({key_val+k: v for k,v in enumerate(target)})
             det.update({key_val+k: v for k,v in enumerate(output)})

@@ -69,7 +69,11 @@ class GetBoundingBoxes(BaseTransform):
 
         # Compute class_score
         if num_classes > 1:
-            cls_scores = torch.nn.functional.softmax(Variable(network_output[:,:,5:,:], volatile=True), 2).data
+            if torch.__version__.startswith('0.3'):
+                cls_scores = torch.nn.functional.softmax(Variable(network_output[:,:,5:,:], volatile=True), 2).data
+            else:
+                with torch.no_grad():
+                    cls_scores = torch.nn.functional.softmax(network_output[:,:,5:,:], 2)
             cls_max, cls_max_idx = torch.max(cls_scores, 2)
             cls_max_idx = cls_max_idx.float()
             cls_max.mul_(network_output[:,:,4,:])
@@ -172,7 +176,7 @@ class NonMaxSupression(BaseTransform):
             same_class = (classes.unsqueeze(0) == classes.unsqueeze(1))
             conflicting = (conflicting & same_class)
 
-        keep = conflicting.sum(0)
+        keep = conflicting.sum(0).byte()
         if not fast:        # How can we optimize this part!?
             keep = keep.cpu()
             conflicting = conflicting.cpu()
@@ -231,15 +235,26 @@ class TensorToBrambox(BaseTransform):
         brambox = []
         for box in boxes:
             det = Detection()
-            det.x_top_left = box[0]
-            det.y_top_left = box[1]
-            det.width = box[2]
-            det.height = box[3]
-            det.confidence = box[4]
-            if class_label_map is not None:
-                det.class_label = class_label_map[int(box[5])]
+            if torch.__version__.startswith('0.3'):
+                det.x_top_left = box[0]
+                det.y_top_left = box[1]
+                det.width = box[2]
+                det.height = box[3]
+                det.confidence = box[4]
+                if class_label_map is not None:
+                    det.class_label = class_label_map[int(box[5])]
+                else:
+                    det.class_label = str(int(box[5]))
             else:
-                det.class_label = str(int(box[5]))
+                det.x_top_left = box[0].item()
+                det.y_top_left = box[1].item()
+                det.width = box[2].item()
+                det.height = box[3].item()
+                det.confidence = box[4].item()
+                if class_label_map is not None:
+                    det.class_label = class_label_map[int(box[5].item())]
+                else:
+                    det.class_label = str(int(box[5].item()))
 
             brambox.append(det)
 

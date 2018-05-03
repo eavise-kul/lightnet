@@ -8,6 +8,6 @@ TODOs for version 030
   - [X] Refactor entire library to be more modular
   - [X] Speed-up PostProcessing pipeline
   - [X] Speed-up RegionLoss
-  - [ ] Support PyTorch v0.4.0
+  - [X] Support PyTorch v0.4.0
   - [ ] Write Doctests for the various 'endpoints' of the library
 

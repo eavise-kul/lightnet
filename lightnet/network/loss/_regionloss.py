@@ -83,17 +83,23 @@ class RegionLoss(nn.modules.loss._Loss):
             anchor_w = anchor_w.cuda()
             anchor_h = anchor_h.cuda()
 
-        pred_boxes[:,0] = (coord[:,:,0].data + lin_x).view(-1)
-        pred_boxes[:,1] = (coord[:,:,1].data + lin_y).view(-1)
-        pred_boxes[:,2] = (coord[:,:,2].data.exp() * anchor_w).view(-1)
-        pred_boxes[:,3] = (coord[:,:,3].data.exp() * anchor_h).view(-1)
+        if torch.__version__.startswith('0.3'):
+            pred_boxes[:,0] = (coord[:,:,0].data + lin_x).view(-1)
+            pred_boxes[:,1] = (coord[:,:,1].data + lin_y).view(-1)
+            pred_boxes[:,2] = (coord[:,:,2].data.exp() * anchor_w).view(-1)
+            pred_boxes[:,3] = (coord[:,:,3].data.exp() * anchor_h).view(-1)
+        else:
+            pred_boxes[:,0] = (coord[:,:,0].detach() + lin_x).view(-1)
+            pred_boxes[:,1] = (coord[:,:,1].detach() + lin_y).view(-1)
+            pred_boxes[:,2] = (coord[:,:,2].detach().exp() * anchor_w).view(-1)
+            pred_boxes[:,3] = (coord[:,:,3].detach().exp() * anchor_h).view(-1)
         pred_boxes = pred_boxes.cpu()
 
         # Get target values
         coord_mask,conf_mask,cls_mask,tcoord,tconf,tcls = self.build_targets(pred_boxes,target,nH,nW)
         coord_mask = coord_mask.expand_as(tcoord)
         if nC > 1:
-            tcls = tcls.view(-1)[cls_mask].long()
+            tcls = tcls[cls_mask].view(-1).long()
             cls_mask = cls_mask.view(-1, 1).repeat(1, nC)
 
         if cuda:
@@ -105,14 +111,18 @@ class RegionLoss(nn.modules.loss._Loss):
                 tcls = tcls.cuda()
                 cls_mask = cls_mask.cuda()
 
-        tcoord = Variable(tcoord, requires_grad=False)
-        tconf  = Variable(tconf, requires_grad=False)
-        coord_mask = Variable(coord_mask, requires_grad=False)
-        conf_mask  = Variable(conf_mask.sqrt(), requires_grad=False)
+        conf_mask = conf_mask.sqrt()
+        if torch.__version__.startswith('0.3'):
+            tcoord = Variable(tcoord, requires_grad=False)
+            tconf = Variable(tconf, requires_grad=False)
+            coord_mask = Variable(coord_mask, requires_grad=False)
+            conf_mask = Variable(conf_mask, requires_grad=False)
+            if nC > 1:
+                tcls = Variable(tcls, requires_grad=False)
+                cls_mask = Variable(cls_mask, requires_grad=False)
+
         if nC > 1:
-            tcls  = Variable(tcls, requires_grad=False)
-            cls_mask = Variable(cls_mask, requires_grad=False)
-            cls      = cls[cls_mask].view(-1, nC)
+            cls = cls[cls_mask].view(-1, nC)
 
         # Compute losses
         mse = nn.MSELoss(size_average=False)
@@ -144,12 +154,20 @@ class RegionLoss(nn.modules.loss._Loss):
         nPixels  = nH*nW
 
         # Tensors
-        conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
-        coord_mask = torch.zeros(nB, nA, 1, nH*nW)
-        cls_mask   = torch.zeros(nB, nA, nH*nW).byte()
-        tcoord     = torch.zeros(nB, nA, 4, nH*nW)
-        tconf      = torch.zeros(nB, nA, nH*nW)
-        tcls       = torch.zeros(nB, nA, nH*nW)
+        if torch.__version__.startswith('0.3'):
+            conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
+            coord_mask = torch.zeros(nB, nA, 1, nH*nW)
+            cls_mask   = torch.zeros(nB, nA, nH*nW).byte()
+            tcoord     = torch.zeros(nB, nA, 4, nH*nW)
+            tconf      = torch.zeros(nB, nA, nH*nW)
+            tcls       = torch.zeros(nB, nA, nH*nW)
+        else:
+            conf_mask  = torch.ones(nB, nA, nH*nW, requires_grad=False) * self.noobject_scale
+            coord_mask = torch.zeros(nB, nA, 1, nH*nW, requires_grad=False)
+            cls_mask   = torch.zeros(nB, nA, nH*nW, requires_grad=False).byte()
+            tcoord     = torch.zeros(nB, nA, 4, nH*nW, requires_grad=False)
+            tconf      = torch.zeros(nB, nA, nH*nW, requires_grad=False)
+            tcls       = torch.zeros(nB, nA, nH*nW, requires_grad=False)
 
         if self.seen < 12800:
             coord_mask.fill_(1)
@@ -162,7 +180,7 @@ class RegionLoss(nn.modules.loss._Loss):
 
         for b in range(nB):
             gt = ground_truth[b][(ground_truth[b,:,0] >= 0)[:, None].expand_as(ground_truth[b])].view(-1, 5)
-            if gt.dim() == 0:   # No gt for this image
+            if gt.dim() == 0 or gt.size(0) == 0:    # No gt for this image
                 continue
 
             # Build up tensors
@@ -180,7 +198,7 @@ class RegionLoss(nn.modules.loss._Loss):
             # Set confidence mask of matching detections to 0
             iou_gt_pred = bbox_ious(gt, cur_pred_boxes)
             mask = (iou_gt_pred > self.thresh).sum(0) >= 1
-            conf_mask[b][mask] = 0
+            conf_mask[b][mask.view_as(conf_mask[b])] = 0
 
             # Find best anchor for each gt
             gt_wh = gt.clone()
@@ -216,12 +234,20 @@ class RegionLoss(nn.modules.loss._Loss):
         nPixels  = nH*nW
 
         # Tensors
-        conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
-        coord_mask = torch.zeros(nB, nA, 1, nH*nW)
-        cls_mask   = torch.zeros(nB, nA, nH*nW).byte()
-        tcoord     = torch.zeros(nB, nA, 4, nH*nW)
-        tconf      = torch.zeros(nB, nA, nH*nW)
-        tcls       = torch.zeros(nB, nA, nH*nW)
+        if torch.__version__.startswith('0.3'):
+            conf_mask  = torch.ones(nB, nA, nH*nW) * self.noobject_scale
+            coord_mask = torch.zeros(nB, nA, 1, nH*nW)
+            cls_mask   = torch.zeros(nB, nA, nH*nW).byte()
+            tcoord     = torch.zeros(nB, nA, 4, nH*nW)
+            tconf      = torch.zeros(nB, nA, nH*nW)
+            tcls       = torch.zeros(nB, nA, nH*nW)
+        else:
+            conf_mask  = torch.ones(nB, nA, nH*nW, requires_grad=False) * self.noobject_scale
+            coord_mask = torch.zeros(nB, nA, 1, nH*nW, requires_grad=False)
+            cls_mask   = torch.zeros(nB, nA, nH*nW, requires_grad=False).byte()
+            tcoord     = torch.zeros(nB, nA, 4, nH*nW, requires_grad=False)
+            tconf      = torch.zeros(nB, nA, nH*nW, requires_grad=False)
+            tcls       = torch.zeros(nB, nA, nH*nW, requires_grad=False)
 
         if self.seen < 12800:
             coord_mask.fill_(1)
@@ -253,7 +279,7 @@ class RegionLoss(nn.modules.loss._Loss):
             # Set confidence mask of matching detections to 0
             iou_gt_pred = bbox_ious(gt, cur_pred_boxes)
             mask = (iou_gt_pred > self.thresh).sum(0) >= 1
-            conf_mask[b][mask] = 0
+            conf_mask[b][mask.view_as(conf_mask[b])] = 0
 
             # Find best anchor for each gt
             gt_wh = gt.clone()

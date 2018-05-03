@@ -79,6 +79,7 @@ class DataLoader(torchDataLoader):
     """
     def __init__(self, *args, resize_range = (10, 19), **kwargs):
         super(DataLoader, self).__init__(*args, **kwargs)
+        self.__initialized = False
         shuffle = False
         sampler = None
         batch_sampler = None
@@ -116,6 +117,8 @@ class DataLoader(torchDataLoader):
 
         self.sampler = sampler
         self.batch_sampler = batch_sampler
+
+        self.__initialized = True
 
     def change_input_dim(self, multiple=32, random_range=(10, 19)):
         """ This function will compute a new size and update it on the next mini_batch.
@@ -166,13 +169,13 @@ class BatchSampler(torchBatchSampler):
 
 
 def list_collate(batch):
-    """ Function that collates lists of items together into one list (of lists).
+    """ Function that collates lists or tuples together into one list (of lists/tuples).
     Use this as the collate function in a Dataloader, if you want to have a list of items as an output, as opposed to tensors (eg. Brambox.boxes).
     """
     items = list(zip(*batch))
 
     for i in range(len(items)):
-        if isinstance(items[i][0], list):
+        if isinstance(items[i][0], (list, tuple)):
             items[i] = list(items[i])
         else:
             items[i] = default_collate(items[i])

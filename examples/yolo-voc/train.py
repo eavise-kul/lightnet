@@ -140,11 +140,18 @@ class VOCTrainingEngine(ln.engine.Engine):
         loss = self.network(data, target)
         loss.backward()
 
-        self.train_loss['tot'].append(self.network.loss.loss_tot.data[0])
-        self.train_loss['coord'].append(self.network.loss.loss_coord.data[0])
-        self.train_loss['conf'].append(self.network.loss.loss_conf.data[0])
-        if self.network.loss.loss_cls is not None:
-            self.train_loss['cls'].append(self.network.loss.loss_cls.data[0])
+        if torch.__version__.startswith('0.3'):
+            self.train_loss['tot'].append(self.network.loss.loss_tot.data[0])
+            self.train_loss['coord'].append(self.network.loss.loss_coord.data[0])
+            self.train_loss['conf'].append(self.network.loss.loss_conf.data[0])
+            if self.network.loss.loss_cls is not None:
+                self.train_loss['cls'].append(self.network.loss.loss_cls.data[0])
+        else:
+            self.train_loss['tot'].append(self.network.loss.loss_tot.item())
+            self.train_loss['coord'].append(self.network.loss.loss_coord.item())
+            self.train_loss['conf'].append(self.network.loss.loss_conf.item())
+            if self.network.loss.loss_cls is not None:
+                self.train_loss['cls'].append(self.network.loss.loss_cls.item())
     
     def train_batch(self):
         self.optimizer.step()
