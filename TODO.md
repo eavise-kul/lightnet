@@ -11,5 +11,5 @@ TODOs for version 030
   - [X] Support PyTorch v0.4.0
   - [X] Write Doctests for the various 'endpoints' of the library
   - [X] Add linting with pycodestyle
-  - [ ] Update gitlab CI
+  - [X] Update gitlab CI
 

@@ -94,6 +94,7 @@ class TestYoloReorg(unittest.TestCase):
         output = self.reorg.forward(self.input)
         self.assertEqual(output.size(), torch.Size([1, 32, 4, 4]))
 
+    @unittest.skipIf(not torch.cuda.is_available(), 'CUDA not available')
     def test_dimensions_forward_cuda(self):
         """Validate that the dimensions of the output tensor are
         correct given a tensor with known input dimensions.
@@ -112,6 +113,7 @@ class TestYoloReorg(unittest.TestCase):
         equal_elements = torch.eq(output.data, reorg_forward_expected_output.view(1, 32, 4, 4))
         self.assertTrue(equal_elements.all())
 
+    @unittest.skipIf(not torch.cuda.is_available(), 'CUDA not available')
     def test_forward_cuda(self):
         """Validate that the reorg layer puts the input elements to
         the correct locations in the output tensor.
