@@ -31,7 +31,7 @@ class YoloLateFusion(lnn.module.Darknet):
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3, fusion_channels=1,
-                anchors=[(1.3221,1.73145), (3.19275,4.00944), (5.05587,8.09892), (9.47112,4.84053), (11.2364,10.0071)]):
+                 anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         """ Network initialisation """
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
@@ -167,7 +167,7 @@ class YoloMidFusion(lnn.module.Darknet):
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3, fusion_channels=1,
-                anchors=[(1.3221,1.73145), (3.19275,4.00944), (5.05587,8.09892), (9.47112,4.84053), (11.2364,10.0071)]):
+                 anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         """ Network initialisation """
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
