@@ -33,7 +33,7 @@ class Darknet19(lnn.module.Darknet):
     """
     def __init__(self, num_classes=20, weights_file=None, input_channels=3):
         """ Network initialisation """
-        super(Darknet19, self).__init__()
+        super().__init__()
 
         # Parameters
         self.num_classes = num_classes

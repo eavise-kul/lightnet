@@ -36,7 +36,7 @@ class TinyYolo(lnn.module.Darknet):
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3,
                  anchors=[(1.08, 1.19), (3.42, 4.41), (6.63, 11.38), (9.42, 5.11), (16.62, 10.52)]):
         """ Network initialisation """
-        super(TinyYolo, self).__init__()
+        super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
             raise TypeError('Anchors need to be a 2D list of numbers')
 

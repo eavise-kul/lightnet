@@ -113,7 +113,7 @@ class DataLoader(torchDataLoader):
         [[(480, 320), (480, 320)]]
     """
     def __init__(self, *args, resize_range=(10, 19), **kwargs):
-        super(DataLoader, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__initialized = False
         shuffle = False
         sampler = None
@@ -185,13 +185,13 @@ class BatchSampler(torchBatchSampler):
     whilst ensuring it stays the same across one mini-batch.
     """
     def __init__(self, *args, input_dimension=None, **kwargs):
-        super(BatchSampler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.input_dim = input_dimension
         self.new_input_dim = None
 
     def __iter__(self):
         self.__set_input_dim()
-        for batch in super(BatchSampler, self).__iter__():
+        for batch in super().__iter__():
             yield [(self.input_dim, idx) for idx in batch]
             self.__set_input_dim()
 

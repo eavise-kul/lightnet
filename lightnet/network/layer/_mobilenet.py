@@ -23,7 +23,7 @@ class Conv2dBatchReLU(nn.Module):
         padding (int or tuple): padding of the convolution
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
-        super(Conv2dBatchReLU, self).__init__()
+        super().__init__()
 
         # Parameters
         self.in_channels = in_channels
@@ -61,7 +61,7 @@ class Conv2dDepthWise(nn.Module):
     .. _Mobilenets: https://arxiv.org/pdf/1704.04861.pdf
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
-        super(Conv2dDepthWise, self).__init__()
+        super().__init__()
 
         # Parameters
         self.in_channels = in_channels

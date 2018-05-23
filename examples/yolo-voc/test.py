@@ -48,10 +48,10 @@ class CustomDataset(ln.models.BramboxDataset):
         img_tf = ln.data.transform.Compose([lb, it])
         anno_tf = ln.data.transform.Compose([lb])
 
-        super(CustomDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, LABELS, identify, img_tf, anno_tf)
+        super().__init__('anno_pickle', anno, NETWORK_SIZE, LABELS, identify, img_tf, anno_tf)
 
     def __getitem__(self, index):
-        img, anno = super(CustomDataset, self).__getitem__(index)
+        img, anno = super().__getitem__(index)
         for a in anno:
             a.ignore = a.difficult  # Mark difficult annotations as ignore for pr metric
         return img, anno

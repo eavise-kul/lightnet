@@ -39,7 +39,7 @@ class MobileNetYolo(lnn.module.Lightnet):
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, alpha=1.0, input_channels=3,
                  anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         """ Network initialisation """
-        super(MobileNetYolo, self).__init__()
+        super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
             raise TypeError('Anchors need to be a 2D list of numbers')
 

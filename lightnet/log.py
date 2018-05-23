@@ -60,7 +60,7 @@ class ColoredFormatter(logging.Formatter):
 # Filter
 class LevelFilter(logging.Filter):
     def __init__(self, levels, *args, **kwargs):
-        super(LevelFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.levels = levels
 
     def filter(self, record):

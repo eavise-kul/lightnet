@@ -72,7 +72,7 @@ class VOCDataset(ln.models.BramboxDataset):
         img_tf = ln.data.transform.Compose([hsv, rc, rf, lb, it])
         anno_tf = ln.data.transform.Compose([rc, rf, lb])
 
-        super(VOCDataset, self).__init__('anno_pickle', anno, NETWORK_SIZE, LABELS, identify, img_tf, anno_tf)
+        super().__init__('anno_pickle', anno, NETWORK_SIZE, LABELS, identify, img_tf, anno_tf)
 
 
 class VOCTrainingEngine(ln.engine.Engine):
@@ -106,7 +106,7 @@ class VOCTrainingEngine(ln.engine.Engine):
             collate_fn = ln.data.list_collate,
         )
 
-        super(VOCTrainingEngine, self).__init__(net, optim, data, **kwargs)
+        super().__init__(net, optim, data, **kwargs)
 
     def start(self):
         log.debug('Creating additional logging objects')

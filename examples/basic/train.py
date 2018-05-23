@@ -98,7 +98,7 @@ class TrainingEngine(ln.engine.Engine):
                 collate_fn = ln.data.list_collate,
             )
 
-        super(TrainingEngine, self).__init__(net, optim, data)
+        super().__init__(net, optim, data)
 
     def start(self):
         """ Starting values """

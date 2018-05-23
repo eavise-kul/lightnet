@@ -25,7 +25,7 @@ class Conv2dBatchLeaky(nn.Module):
         leaky_slope (number, optional): Controls the angle of the negative slope of the leaky ReLU; Default **0.1**
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding, leaky_slope=0.1):
-        super(Conv2dBatchLeaky, self).__init__()
+        super().__init__()
 
         # Parameters
         self.in_channels = in_channels
@@ -55,7 +55,7 @@ class GlobalAvgPool2d(nn.Module):
     """ This layer averages each channel to a single number.
     """
     def __init__(self):
-        super(GlobalAvgPool2d, self).__init__()
+        super().__init__()
 
     def forward(self, x):
         B = x.data.size(0)
@@ -77,7 +77,7 @@ class PaddedMaxPool2d(nn.Module):
         dilation (int or tuple, optional): A parameter that controls the stride of elements in the window
     """
     def __init__(self, kernel_size, stride=None, padding=(0, 0, 0, 0), dilation=1):
-        super(PaddedMaxPool2d, self).__init__()
+        super().__init__()
         self.kernel_size = kernel_size
         self.stride = stride or kernel_size
         self.padding = padding
@@ -99,7 +99,7 @@ class Reorg(nn.Module):
         stride (int): stride to divide the input tensor
     """
     def __init__(self, stride=2):
-        super(Reorg, self).__init__()
+        super().__init__()
         if not isinstance(stride, int):
             raise TypeError(f'stride is not an int [{type(stride)}]')
         self.stride = stride
