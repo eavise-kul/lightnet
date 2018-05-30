@@ -62,12 +62,15 @@ class Dataset(torchDataset):
         @wraps(getitem_fn)
         def wrapper(self, index):
             if not isinstance(index, int):
+                has_dim = True
                 self._input_dim = index[0]
                 index = index[1]
+            else:
+                has_dim = False
 
             ret_val = getitem_fn(self, index)
 
-            if hasattr(self, '_input_dim'):
+            if has_dim:
                 del self._input_dim
 
             return ret_val
