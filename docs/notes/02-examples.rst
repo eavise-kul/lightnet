@@ -49,7 +49,7 @@ While brambox (and thus lightnet) can work with Pascal VOC annotations,
 we still need to group the data in a training and testing set.
 Because we are converting this anyway, we take the opportunity to convert the annotations to a pickle format,
 which will be faster to parse whilst training/testing. |br|
-You can check whether to annotation conversion was succesfull, by running the __bbox_view.py__ script from brambox.
+You can check whether to annotation conversion was succesfull, by running the **bbox_view.py** script from brambox.
 
 .. code:: bash
 
