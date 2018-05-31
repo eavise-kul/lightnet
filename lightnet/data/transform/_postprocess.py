@@ -219,7 +219,7 @@ class TensorToBrambox(BaseTransform):
     def apply(cls, boxes, network_size, class_label_map=None):
         converted_boxes = []
         for box in boxes:
-            if box.dim() == 0:
+            if box.dim() == 0 or box.size(0) == 0:
                 converted_boxes.append([])
             else:
                 converted_boxes.append(cls._convert(box, network_size[0], network_size[1], class_label_map))
