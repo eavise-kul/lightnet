@@ -63,7 +63,6 @@ class Engine(ABC):
             log.warn('No dataloader given, make sure to have a self.dataloader property for this engine to work with.')
 
         # Rates
-        self.__lr = self.optimizer.param_groups[0]['lr']
         self.__rates = {}
 
         # Sigint handling
@@ -154,11 +153,10 @@ class Engine(ABC):
         Return:
             Number: The current learning rate
         """
-        return self.__lr
+        return self.optimizer.param_groups[0]['lr']
 
     @learning_rate.setter
     def learning_rate(self, lr):
-        self.__lr = lr
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
 
@@ -228,17 +226,19 @@ class Engine(ABC):
             values = values[:len(steps)]
             log.warn(f'{name} has more values than steps, shortening values to {values}')
 
-        self.__rates[name] = (steps, values)
+        self.__rates[name] = (steps, values, [True]*len(steps))
 
     def _update_rates(self):
         """ Update rates according to batch size. |br|
         This function gets automatically called every batch, and should generally not be called by the user.
         """
-        for key, (steps, values) in self.__rates.items():
+        for key, (steps, values, check) in self.__rates.items():
             new_rate = None
             for i in range(len(steps)):
                 if self.batch >= steps[i]:
-                    new_rate = values[i]
+                    if check[i]:
+                        new_rate = values[i]
+                        check[i] = False
                 else:
                     break
 
