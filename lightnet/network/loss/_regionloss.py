@@ -150,7 +150,6 @@ class RegionLoss(nn.modules.loss._Loss):
                 tcls = tcls.cuda()
                 cls_mask = cls_mask.cuda()
 
-        conf_mask = conf_mask.sqrt()
         if torch.__version__.startswith('0.3'):
             tcoord = Variable(tcoord, requires_grad=False)
             tconf = Variable(tconf, requires_grad=False)
@@ -164,6 +163,8 @@ class RegionLoss(nn.modules.loss._Loss):
             cls = cls[cls_mask].view(-1, nC)
 
         # Compute losses
+        coord_mask = coord_mask.sqrt()
+        conf_mask = conf_mask.sqrt()
         mse = nn.MSELoss(size_average=False)
         self.loss_coord = self.coord_scale * mse(coord*coord_mask, tcoord*coord_mask) / nB
         self.loss_conf = mse(conf*conf_mask, tconf*conf_mask) / nB
@@ -194,25 +195,27 @@ class RegionLoss(nn.modules.loss._Loss):
 
         # Tensors
         if torch.__version__.startswith('0.3'):
-            conf_mask = torch.ones(nB, nA, nH*nW) * self.noobject_scale
-            coord_mask = torch.zeros(nB, nA, 1, nH*nW)
-            cls_mask = torch.zeros(nB, nA, nH*nW).byte()
-            tcoord = torch.zeros(nB, nA, 4, nH*nW)
-            tconf = torch.zeros(nB, nA, nH*nW)
-            tcls = torch.zeros(nB, nA, nH*nW)
+            conf_mask = torch.ones(nB, nA, nPixels) * self.noobject_scale
+            coord_mask = torch.zeros(nB, nA, 1, nPixels)
+            cls_mask = torch.zeros(nB, nA, nPixels).byte()
+            tcoord = torch.zeros(nB, nA, 4, nPixels)
+            tconf = torch.zeros(nB, nA, nPixels)
+            tcls = torch.zeros(nB, nA, nPixels)
         else:
-            conf_mask = torch.ones(nB, nA, nH*nW, requires_grad=False) * self.noobject_scale
-            coord_mask = torch.zeros(nB, nA, 1, nH*nW, requires_grad=False)
-            cls_mask = torch.zeros(nB, nA, nH*nW, requires_grad=False).byte()
-            tcoord = torch.zeros(nB, nA, 4, nH*nW, requires_grad=False)
-            tconf = torch.zeros(nB, nA, nH*nW, requires_grad=False)
-            tcls = torch.zeros(nB, nA, nH*nW, requires_grad=False)
+            conf_mask = torch.ones(nB, nA, nPixels, requires_grad=False) * self.noobject_scale
+            coord_mask = torch.zeros(nB, nA, 1, nPixels, requires_grad=False)
+            cls_mask = torch.zeros(nB, nA, nPixels, requires_grad=False).byte()
+            tcoord = torch.zeros(nB, nA, 4, nPixels, requires_grad=False)
+            tconf = torch.zeros(nB, nA, nPixels, requires_grad=False)
+            tcls = torch.zeros(nB, nA, nPixels, requires_grad=False)
 
         if self.seen < 12800:
             coord_mask.fill_(1)
+            # coord_mask.fill_(.01 / self.coord_scale)
+
             if self.anchor_step == 4:
-                tcoord[:, :, 0] = self.anchors[:, 2].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nH*nW)
-                tcoord[:, :, 1] = self.anchors[:, 3].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nH*nW)
+                tcoord[:, :, 0] = self.anchors[:, 2].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nPixels)
+                tcoord[:, :, 1] = self.anchors[:, 3].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nPixels)
             else:
                 tcoord[:, :, 0].fill_(0.5)
                 tcoord[:, :, 1].fill_(0.5)
@@ -252,7 +255,7 @@ class RegionLoss(nn.modules.loss._Loss):
                 best_n = best_anchors[i]
                 iou = iou_gt_pred[i][best_n*nPixels+gj*nW+gi]
 
-                coord_mask[b][best_n][0][gj*nW+gi] = 1
+                coord_mask[b][best_n][0][gj*nW+gi] = 2 - (gt[i, 2] * gt[i, 3]) / nPixels
                 cls_mask[b][best_n][gj*nW+gi] = 1
                 conf_mask[b][best_n][gj*nW+gi] = self.object_scale
                 tcoord[b][best_n][0][gj*nW+gi] = gt[i, 0] - gi
@@ -274,25 +277,27 @@ class RegionLoss(nn.modules.loss._Loss):
 
         # Tensors
         if torch.__version__.startswith('0.3'):
-            conf_mask = torch.ones(nB, nA, nH*nW) * self.noobject_scale
-            coord_mask = torch.zeros(nB, nA, 1, nH*nW)
-            cls_mask = torch.zeros(nB, nA, nH*nW).byte()
-            tcoord = torch.zeros(nB, nA, 4, nH*nW)
-            tconf = torch.zeros(nB, nA, nH*nW)
-            tcls = torch.zeros(nB, nA, nH*nW)
+            conf_mask = torch.ones(nB, nA, nPixels) * self.noobject_scale
+            coord_mask = torch.zeros(nB, nA, 1, nPixels)
+            cls_mask = torch.zeros(nB, nA, nPixels).byte()
+            tcoord = torch.zeros(nB, nA, 4, nPixels)
+            tconf = torch.zeros(nB, nA, nPixels)
+            tcls = torch.zeros(nB, nA, nPixels)
         else:
-            conf_mask = torch.ones(nB, nA, nH*nW, requires_grad=False) * self.noobject_scale
-            coord_mask = torch.zeros(nB, nA, 1, nH*nW, requires_grad=False)
-            cls_mask = torch.zeros(nB, nA, nH*nW, requires_grad=False).byte()
-            tcoord = torch.zeros(nB, nA, 4, nH*nW, requires_grad=False)
-            tconf = torch.zeros(nB, nA, nH*nW, requires_grad=False)
-            tcls = torch.zeros(nB, nA, nH*nW, requires_grad=False)
+            conf_mask = torch.ones(nB, nA, nPixels, requires_grad=False) * self.noobject_scale
+            coord_mask = torch.zeros(nB, nA, 1, nPixels, requires_grad=False)
+            cls_mask = torch.zeros(nB, nA, nPixels, requires_grad=False).byte()
+            tcoord = torch.zeros(nB, nA, 4, nPixels, requires_grad=False)
+            tconf = torch.zeros(nB, nA, nPixels, requires_grad=False)
+            tcls = torch.zeros(nB, nA, nPixels, requires_grad=False)
 
         if self.seen < 12800:
             coord_mask.fill_(1)
+            # coord_mask.fill_(.01 / self.coord_scale)
+
             if self.anchor_step == 4:
-                tcoord[:, :, 0] = self.anchors[:, 2].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nH*nW)
-                tcoord[:, :, 1] = self.anchors[:, 3].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nH*nW)
+                tcoord[:, :, 0] = self.anchors[:, 2].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nPixels)
+                tcoord[:, :, 1] = self.anchors[:, 3].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nPixels)
             else:
                 tcoord[:, :, 0].fill_(0.5)
                 tcoord[:, :, 1].fill_(0.5)
@@ -335,8 +340,9 @@ class RegionLoss(nn.modules.loss._Loss):
 
                 if anno.ignore:
                     conf_mask[b][best_n][gj*nW+gi] = 0
+                    coord_mask[b][best_n][0][gj*nW+gi] = 0  # Explicitely set to zero for when seen < 12800
                 else:
-                    coord_mask[b][best_n][0][gj*nW+gi] = 1
+                    coord_mask[b][best_n][0][gj*nW+gi] = 2 - (gt[i, 2] * gt[i, 3]) / nPixels
                     cls_mask[b][best_n][gj*nW+gi] = 1
                     conf_mask[b][best_n][gj*nW+gi] = self.object_scale
                     tcoord[b][best_n][0][gj*nW+gi] = gt[i, 0] - gi
