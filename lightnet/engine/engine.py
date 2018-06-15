@@ -26,44 +26,26 @@ class Engine(ABC):
        :dedent: 4
 
     Args:
-        network (lightnet.network.Darknet, optional): Lightnet network to train
-        optimizer (torch.optim, optional): Optimizer for the network
-        dataloader (lightnet.data.DataLoader or torch.utils.data.DataLoader, optional): Dataloader for the training data
+        params (lightnet.engine.HyperParameters): TODO
+        dataloader (torch.utils.data.DataLoader, optional): Dataloader for the training data
         **kwargs (dict, optional): Keywords arguments that will be set as attributes of the engine
 
     Attributes:
-        self.network: Lightnet network
-        self.optimizer: Torch optimizer
-        self.batch_size: Number indicating batch_size; Default **1**
-        self.mini_batch_size: Size of a mini_batch; Default **1**
-        self.max_batches: Maximum number of batches to process; Default **None**
-        self.test_rate: How often to run test; Default **None**
         self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send; Default **False**
+        self.*: All values of the :class:`~lightnet.engine.HyperParameters` can be accessed in this class as well
     """
-    __allowed_overwrite = ['batch_size', 'mini_batch_size', 'max_batches', 'test_rate']
-    batch_size = 1
-    mini_batch_size = 1
-    max_batches = None
-    test_rate = None
+    _init_done = False
+    _epoch_start = {}
+    _epoch_end = {}
+    _batch_start = {}
+    _batch_end = {}
 
-    def __init__(self, network, optimizer, dataloader, **kwargs):
-        if network is not None:
-            self.network = network
-        else:
-            log.warn('No network given, make sure to have a self.network property for this engine to work with.')
-
-        if optimizer is not None:
-            self.optimizer = optimizer
-        else:
-            log.warn('No optimizer given, make sure to have a self.optimizer property for this engine to work with.')
-
+    def __init__(self, params, dataloader, **kwargs):
+        self.params = params
         if dataloader is not None:
             self.dataloader = dataloader
         else:
             log.warn('No dataloader given, make sure to have a self.dataloader property for this engine to work with.')
-
-        # Rates
-        self.__rates = {}
 
         # Sigint handling
         self.sigint = False
@@ -74,91 +56,76 @@ class Engine(ABC):
 
         # Set attributes
         for key in kwargs:
-            if not hasattr(self, key) or key in self.__allowed_overwrite:
+            if not hasattr(self, key):
                 setattr(self, key, kwargs[key])
             else:
-                log.warn(f'{key} attribute already exists on engine. Keeping original value [{getattr(self, key)}]')
+                log.warn(f'{key} attribute already exists on engine.')
+
+        self._init_done = True
 
     def __call__(self):
         """ Start the training cycle. """
         self.start()
-        self._update_rates()
-        if self.test_rate is not None:
-            last_test = self.batch - (self.batch % self.test_rate)
 
         log.info('Start training')
         self.network.train()
+
         while True:
+            # Epoch Start
+            self.epoch += 1
+            self._run_hooks(self.epoch, self._epoch_start)
+
             loader = self.dataloader
             for idx, data in enumerate(loader):
+                # Batch Start
+                self.batch += 1
+                self._run_hooks(self.batch, self._batch_start)
+
                 # Forward and backward on (mini-)batches
                 self.process_batch(data)
                 if (idx + 1) % self.batch_subdivisions != 0:
+                    self.batch -= 1
                     continue
 
                 # Optimizer step
                 self.train_batch()
 
-                # Check if we need to stop training
-                if self.quit() or self.sigint:
-                    log.info('Reached quitting criteria')
-                    return
-
-                # Check if we need to perform testing
-                if self.test_rate is not None and self.batch - last_test >= self.test_rate:
-                    log.info('Start testing')
-                    last_test += self.test_rate
-                    self.network.eval()
-                    self.test()
-                    log.debug('Done testing')
-                    self.network.train()
+                # Batch End
+                self._run_hooks(self.batch, self._batch_end)
 
                 # Check if we need to stop training
                 if self.quit() or self.sigint:
                     log.info('Reached quitting criteria')
                     return
-
-                # Automatically update registered rates
-                self._update_rates()
 
                 # Not enough mini-batches left to have an entire batch
                 if (len(loader) - idx) <= self.batch_subdivisions:
                     break
 
-    @property
-    def batch(self):
-        """ Get current batch number.
+            # Epoch End
+            self._run_hooks(self.epoch, self._epoch_end)
 
-        Return:
-            int: Computed as self.network.seen // self.batch_size
-        """
-        return self.network.seen // self.batch_size
+            # Check if we need to stop training
+            if self.quit() or self.sigint:
+                log.info('Reached quitting criteria')
+                return
 
-    @property
-    def batch_subdivisions(self):
-        """ Get number of mini-batches per batch.
+    def __getattr__(self, name):
+        if hasattr(self.params, name):
+            return getattr(self.params, name)
+        else:
+            raise AttributeError(f'{name} attribute does not exist')
 
-        Return:
-            int: Computed as self.batch_size // self.mini_batch_size
-        """
-        return self.batch_size // self.mini_batch_size
+    def __setattr__(self, name, value):
+        if self._init_done and name not in dir(self) and hasattr(self.params, name):
+            setattr(self.params, name, value)
+        else:
+            super().__setattr__(name, value)
 
-    @property
-    def learning_rate(self):
-        """ Get and set the learning rate
-
-        Args:
-            lr (Number): Set the learning rate for all values of optimizer.param_groups[i]['lr']
-
-        Return:
-            Number: The current learning rate
-        """
-        return self.optimizer.param_groups[0]['lr']
-
-    @learning_rate.setter
-    def learning_rate(self, lr):
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr
+    def __sigint_handler(self, signal, frame):
+        if not self.sigint:
+            log.debug('SIGINT caught. Waiting for gracefull exit')
+            self.sigint = True
 
     def log(self, msg):
         """ Log messages about training and testing.
@@ -172,79 +139,64 @@ class Engine(ABC):
         else:
             self.__log.test(msg)
 
-    def add_rate(self, name, steps, values, default=None):
-        """ Add a rate to the engine.
-        Rates are object attributes that automatically change according to the current batch number.
+    def _run_hooks(self, value, hooks):
+        """ TODO """
+        keys = list(hooks.keys())
+        for k in keys:
+            if value % k == 0:
+                for fn in hooks[k]:
+                    if hasattr(fn, '__self__'):
+                        fn()
+                    else:
+                        fn(self)
 
-        Args:
-            name (str): Name that will be used for the attribute. You can access the value with self.name
-            steps (list): Batches at which the rate should change
-            values (list): New values that will be used for the attribute
-            default (optional): Default value to use for the rate; Default **None**
+    @classmethod
+    def epoch_start(cls, interval=1):
+        """ TODO """
+        def decorator(fn):
+            if interval in cls._epoch_start:
+                cls._epoch_start[interval].append(fn)
+            else:
+                cls._epoch_start[interval] = [fn]
+            return fn
 
-        Note:
-            You can also set the ``learning_rate`` with this method.
-            This will actually use the ``learning_rate`` computed property of this class and set the learning rate of the optimizer. |br|
-            This is great for automating adaptive learning rates, and can work in conjunction with pytorch schedulers.
+        return decorator
 
-        Example:
-            >>> class MyEngine(ln.engine.Engine):
-            ...     batch_size = 2
-            ...     def process_batch(self, data):
-            ...         raise NotImplementedError()
-            ...     def train_batch(self):
-            ...         raise NotImplementedError()
-            >>> net = ln.models.Yolo()
-            >>> eng = MyEngine(
-            ...     net,
-            ...     torch.optim.SGD(net.parameters(), lr=.1),
-            ...     None    # Should be dataloader
-            ... )
-            >>> eng.add_rate('test_rate', [1000, 10000], [100, 500], 50)
-            >>> eng.add_rate('learning_rate', [1000, 10000], [.01, .001])
-            >>> eng.test_rate
-            50
-            >>> eng.learning_rate
-            0.1
-            >>> net.seen = 2000     # batch_size = 2
-            >>> eng._update_rates() # Happens automatically during training loop
-            >>> eng.test_rate
-            100
-            >>> eng.learning_rate
-            0.01
-        """
-        if default is not None or not hasattr(self, name):
-            setattr(self, name, default)
-        if name in self.__rates:
-            log.warn(f'{name} rate was already used, overwriting...')
+    @classmethod
+    def epoch_end(cls, interval=1):
+        """ TODO """
+        def decorator(fn):
+            if interval in cls._epoch_end:
+                cls._epoch_end[interval].append(fn)
+            else:
+                cls._epoch_end[interval] = [fn]
+            return fn
 
-        if len(steps) > len(values):
-            diff = len(steps) - len(values)
-            values = values + diff * [values[-1]]
-            log.warn(f'{name} has more steps than values, extending values to {values}')
-        elif len(steps) < len(values):
-            values = values[:len(steps)]
-            log.warn(f'{name} has more values than steps, shortening values to {values}')
+        return decorator
 
-        self.__rates[name] = (steps, values, [True]*len(steps))
+    @classmethod
+    def batch_start(cls, interval=1):
+        """ TODO """
+        def decorator(fn):
+            if interval in cls._batch_start:
+                cls._batch_start[interval].append(fn)
+            else:
+                cls._batch_start[interval] = [fn]
+            return fn
 
-    def _update_rates(self):
-        """ Update rates according to batch size. |br|
-        This function gets automatically called every batch, and should generally not be called by the user.
-        """
-        for key, (steps, values, check) in self.__rates.items():
-            new_rate = None
-            for i in range(len(steps)):
-                if self.batch >= steps[i]:
-                    if check[i]:
-                        new_rate = values[i]
-                        check[i] = False
-                else:
-                    break
+        return decorator
 
-            if new_rate is not None and new_rate != getattr(self, key):
-                log.info(f'Adjusting {key} [{new_rate}]')
-                setattr(self, key, new_rate)
+    @classmethod
+    def batch_end(cls, interval=1):
+        """ TODO """
+        def decorator(fn):
+            if interval in cls._batch_end:
+                cls._batch_end[interval].append(fn)
+            else:
+                cls._batch_end[interval] = [fn]
+            return fn
+
+        return decorator
 
     def start(self):
         """ First function that gets called when starting the engine. |br|
@@ -264,10 +216,6 @@ class Engine(ABC):
         """
         pass
 
-    def test(self):
-        """ This function should contain the code to perform an evaluation on your test-set. """
-        log.error('test() function is not implemented')
-
     def quit(self):
         """ This function gets called after every training epoch and decides if the training cycle continues.
 
@@ -280,12 +228,4 @@ class Engine(ABC):
             If it evaluates to **True**, you know the program will exit after this function and you can thus
             perform the necessary actions (eg. save final weights).
         """
-        if self.max_batches is not None:
-            return self.batch >= self.max_batches
-        else:
-            return False
-
-    def __sigint_handler(self, signal, frame):
-        if not self.sigint:
-            log.debug('SIGINT caught. Waiting for gracefull exit')
-            self.sigint = True
+        return False
