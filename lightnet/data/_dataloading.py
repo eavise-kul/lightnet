@@ -165,6 +165,9 @@ class DataLoader(torchDataLoader):
             multiple (int or tuple, optional): value (or values) to multiply the randomly generated range by; Default **32**
             random_range (tuple, optional): This (min, max) tuple sets the range for the randomisation; Default **(10, 19)**
 
+        Return:
+            tuple: width, height tuple with new dimension
+
         Note:
             The new size is generated as follows: |br|
             First we compute a random integer inside ``[random_range]``.
@@ -180,6 +183,8 @@ class DataLoader(torchDataLoader):
             size = (size * multiple[0], size * multiple[1])
 
         self.batch_sampler.new_input_dim = size
+
+        return size
 
 
 class BatchSampler(torchBatchSampler):

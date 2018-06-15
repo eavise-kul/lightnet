@@ -21,25 +21,16 @@ class Lightnet(nn.Module):
       This class will then automatically call the loss and postprocess functions on the output of ``_forward()``,
       depending whether the network is training or evaluating.
 
-    Attributes:
-        self.seen (int): The number of images the network has processed to train *(used by engine)*
-
     Note:
         If you define **self.layers** as a :class:`pytorch:torch.nn.Sequential` or :class:`pytorch:torch.nn.ModuleList`,
         the default ``_forward()`` function can use these layers automatically to run the network.
-
-    Warning:
-        If you use your own ``forward()`` function, you need to update the **self.seen** parameter
-        whenever the network is training.
     """
     def __init__(self):
         super().__init__()
 
-        # Parameters
         self.layers = None
         self.loss = None
         self.postprocess = None
-        self.seen = 0
 
     def _forward(self, x):
         log.debug('Running default forward functions')
@@ -55,8 +46,7 @@ class Lightnet(nn.Module):
 
     def forward(self, x, target=None):
         """ This default forward function will compute the output of the network as ``self._forward(x)``.
-        Then, depending on whether you are training or evaluating, it will pass that output to ``self.loss()`` or ``self.posprocess()``. |br|
-        This function also increments the **self.seen** variable.
+        Then, depending on whether you are training or evaluating, it will pass that output to ``self.loss()`` or ``self.posprocess()``.
 
         Args:
             x (torch.autograd.Variable): Input variable
@@ -67,7 +57,6 @@ class Lightnet(nn.Module):
             This is usefull for testing your network, as you usually want to know the validation loss.
         """
         if self.training:
-            self.seen += x.size(0)
             x = self._forward(x)
 
             if callable(self.loss):
@@ -114,42 +103,28 @@ class Lightnet(nn.Module):
         """
         old_state = self.state_dict()
         state = torch.load(weights_file, lambda storage, loc: storage)
-        self.seen = state['seen']
 
         # Changed in layer.py: self.layer -> self.layers
-        for key in list(state['weights'].keys()):
+        for key in list(state.keys()):
             if '.layer.' in key:
                 log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
                 new_key = key.replace('.layer.', '.layers.')
-                state['weights'][new_key] = state['weights'].pop(key)
+                state[new_key] = state.pop(key)
 
-        new_state = state['weights']
-        if new_state.keys() != old_state.keys():
+        if state.keys() != old_state.keys():
             log.warn('Modules not matching, performing partial update')
-            new_state = {k: v for k, v in new_state.items() if k in old_state}
-            old_state.update(new_state)
-            new_state = old_state
-        self.load_state_dict(new_state)
-
-        if hasattr(self.loss, 'seen'):
-            self.loss.seen = self.seen
+            state = {k: v for k, v in state.items() if k in old_state}
+            old_state.update(state)
+            state = old_state
+        self.load_state_dict(state)
 
         log.info(f'Loaded weights from {weights_file}')
 
-    def save_weights(self, weights_file, seen=None):
+    def save_weights(self, weights_file):
         """ This function will save the weights to a file.
 
         Args:
             weights_file (str): path to file
-            seen (int, optional): Number of images trained on; Default **self.seen**
         """
-        if seen is None:
-            seen = self.seen
-
-        state = {
-            'seen': seen,
-            'weights': self.state_dict()
-        }
-        torch.save(state, weights_file)
-
+        torch.save(self.state_dict(), weights_file)
         log.info(f'Saved weights as {weights_file}')

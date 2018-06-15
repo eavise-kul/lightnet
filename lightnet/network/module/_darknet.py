@@ -18,9 +18,6 @@ log = logging.getLogger(__name__)
 
 class Darknet(Lightnet):
     """ This network module provides functionality to load darknet weight files.
-
-    Attributes:
-        self.seen (int): The number of images the network has processed to train (used by engine)
     """
     def __init__(self):
         super().__init__()
@@ -41,28 +38,26 @@ class Darknet(Lightnet):
             log.debug('Loading weights from darknet file')
             self._load_darknet_weights(weights_file)
 
-    def save_weights(self, weights_file, seen=None):
+    def save_weights(self, weights_file):
         """ This function will save the weights to a file.
         If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/0.3.0/notes/serialization.html#recommended-approach-for-saving-a-model>`_.
         Otherwise, the file is considered to be a darknet binary weight file.
 
         Args:
             weights_file (str): path to file
-            seen (int, optional): Number of images trained on; Default **self.seen**
         """
         if os.path.splitext(weights_file)[1] == '.pt':
             log.debug('Saving weights to pytorch file')
-            super().save_weights(weights_file, seen)
+            super().save_weights(weights_file)
         else:
             log.debug('Saving weights to darknet file')
-            self._save_darknet_weights(weights_file, seen)
+            self._save_darknet_weights(weights_file)
 
     def _load_darknet_weights(self, weights_file):
         weights = WeightLoader(weights_file)
         self.header = weights.header
-        self.seen = weights.seen
         if hasattr(self.loss, 'seen'):
-            self.loss.seen = self.seen
+            self.loss.seen = torch.tensor(weights.seen)
 
         for module in self.modules_recurse():
             try:
@@ -74,9 +69,11 @@ class Darknet(Lightnet):
             except NotImplementedError:
                 log.debug(f'Layer skipped: {module.__class__.__name__}')
 
-    def _save_darknet_weights(self, weights_file, seen=None):
-        if seen is None:
-            seen = self.seen
+    def _save_darknet_weights(self, weights_file):
+        if hasattr(self.loss, 'seen'):
+            seen = self.loss.seen.item()
+        else:
+            seen = 0
         weights = WeightSaver(self.header, seen)
 
         for module in self.modules_recurse():

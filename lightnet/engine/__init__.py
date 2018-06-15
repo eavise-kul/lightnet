@@ -7,3 +7,4 @@ It has an engine, capable of orchestrating your training and test cycles, and al
 
 from .engine import *
 from .visual import *
+from .parameters import *

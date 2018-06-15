@@ -17,7 +17,7 @@ TODO for version 030
 TODO for version 100
   - [X] Make seen from RegionLoss a registered buffer
   - [ ] Rework Engine with hooks
-  - [ ] Add HyperParameters class to serialize training info
+  - [X] Add HyperParameters class to serialize training info
   - [X] Fix class-based NMS and set as default _(issue #14)_
   - [ ] Fix RegionLoss to match darknet more closely _(issue #12)_
   - [ ] Use Schedulers for learning rate

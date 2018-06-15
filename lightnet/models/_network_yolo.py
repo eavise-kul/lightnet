@@ -94,7 +94,7 @@ class Yolo(lnn.module.Darknet):
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
 
         # Post
-        self.loss = lnn.loss.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
+        self.loss = lnn.loss.RegionLoss(self.num_classes, self.anchors, self.reduction, 0)
         self.postprocess = lnd.transform.Compose([
             lnd.transform.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
             lnd.transform.NonMaxSupression(nms_thresh)
