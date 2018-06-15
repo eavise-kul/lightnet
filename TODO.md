@@ -15,7 +15,7 @@ TODO for version 030
 
 ## VER 1.0.0
 TODO for version 100
-  - [ ] Make seen from RegionLoss a registered buffer
+  - [X] Make seen from RegionLoss a registered buffer
   - [ ] Rework Engine with hooks
   - [ ] Add HyperParameters class to serialize training info
   - [X] Fix class-based NMS and set as default _(issue #14)_

@@ -22,7 +22,7 @@ class RegionLoss(nn.modules.loss._Loss):
         object_scale (float): weight of regions with target boxes
         class_scale (float): weight of categorical predictions
         thresh (float): minimum iou between a predicted box and ground truth for them to be considered matching
-        seen (int): How many images the network has already been trained on.
+        seen (torch.Tensor): How many images the network has already been trained on.
     """
     def __init__(self, num_classes, anchors, reduction=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6):
         super().__init__()
@@ -30,14 +30,22 @@ class RegionLoss(nn.modules.loss._Loss):
         self.num_anchors = len(anchors)
         self.anchor_step = len(anchors[0])
         self.anchors = torch.Tensor(anchors)
-        self.reduction = reduction      # input_dim/output_dim
-        self.seen = seen
+        self.reduction = reduction
+        self.register_buffer('seen', torch.tensor(seen))
 
         self.coord_scale = coord_scale
         self.noobject_scale = noobject_scale
         self.object_scale = object_scale
         self.class_scale = class_scale
         self.thresh = thresh
+
+    def extra_repr(self):
+        repr_str = f'classes={self.num_classes}, reduction={self.reduction}, threshold={self.thresh}, seen={self.seen.item()}\n'
+        repr_str += f'coord_scale={self.coord_scale}, object_scale={self.object_scale}, noobject_scale={self.noobject_scale}, class_scale={self.class_scale}\n'
+        repr_str += f'anchors='
+        for a in self.anchors:
+            repr_str += f'[{a[0]:.5g}, {a[1]:.5g}] '
+        return repr_str
 
     def forward(self, output, target, seen=None):
         """ Compute Region loss.
@@ -88,8 +96,8 @@ class RegionLoss(nn.modules.loss._Loss):
         if isinstance(target, Variable):
             target = target.data
         if seen is not None:
-            self.seen = seen
-        else:
+            self.seen = torch.tensor(seen)
+        elif self.training:
             self.seen += nB
 
         # Get x,y,w,h,conf,cls
