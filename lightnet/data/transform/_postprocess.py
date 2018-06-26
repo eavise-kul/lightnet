@@ -119,7 +119,6 @@ class NonMaxSupression(BaseTransform):
     Args:
         nms_thresh (Number [0-1]): Overlapping threshold to filter detections with non-maxima suppresion
         class_nms (Boolean, optional): Whether to perform nms per class; Default **True**
-        fast (Boolean, optional): This flag can be used to select a much faster variant on the algorithm, that suppresses slightly more boxes; Default **False**
 
     Returns:
         (list [Batch x Tensor [Boxes x 6]]): **[x_center, y_center, width, height, confidence, class_id]** for every bounding box
@@ -128,15 +127,15 @@ class NonMaxSupression(BaseTransform):
         This post-processing function expects the input to be bounding boxes,
         like the ones created by :class:`lightnet.data.GetBoundingBoxes` and outputs exactly the same format.
     """
-    def __init__(self, nms_thresh, class_nms=True, fast=False):
-        super().__init__(nms_thresh=nms_thresh, class_nms=class_nms, fast=fast)
+    def __init__(self, nms_thresh, class_nms=True):
+        super().__init__(nms_thresh=nms_thresh, class_nms=class_nms)
 
     @classmethod
-    def apply(cls, boxes, nms_thresh, class_nms=True, fast=False):
-        return [cls._nms(box, nms_thresh, class_nms, fast) for box in boxes]
+    def apply(cls, boxes, nms_thresh, class_nms=True):
+        return [cls._nms(box, nms_thresh, class_nms) for box in boxes]
 
     @staticmethod
-    def _nms(boxes, nms_thresh, class_nms, fast):
+    def _nms(boxes, nms_thresh, class_nms):
         """ Non maximum suppression.
 
         Args:
@@ -173,23 +172,18 @@ class NonMaxSupression(BaseTransform):
         conflicting = (ious > nms_thresh).triu(1)
 
         if class_nms:
+            classes = classes[order]
             same_class = (classes.unsqueeze(0) == classes.unsqueeze(1))
             conflicting = (conflicting & same_class)
 
-        keep = conflicting.sum(0).byte()
-        if not fast:        # How can we optimize this part!?
-            keep = keep.cpu()
-            conflicting = conflicting.cpu()
+        conflicting = conflicting.cpu()
+        keep = torch.zeros(len(conflicting), dtype=torch.uint8)
+        supress = torch.zeros(len(conflicting))
+        for i, row in enumerate(conflicting):
+            if not supress[i]:
+                keep[i] = 1
+                supress[row] = 1
 
-            keep_len = len(keep) - 1
-            for i in range(1, keep_len):
-                if keep[i] > 0:
-                    keep -= conflicting[i]
-
-            if cuda:
-                keep = keep.cuda()
-
-        keep = (keep == 0)
         return boxes[order][keep[:, None].expand_as(boxes)].view(-1, 6).contiguous()
 
 

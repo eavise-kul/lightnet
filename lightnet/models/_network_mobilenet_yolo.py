@@ -89,7 +89,7 @@ class MobileNetYolo(lnn.module.Lightnet):
         self.loss = lnn.loss.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
         self.postprocess = lnd.transform.Compose([
             lnd.transform.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
-            lnd.transform.NonMaxSupression(nms_thresh, False)
+            lnd.transform.NonMaxSupression(nms_thresh)
         ])
 
         if weights_file is not None:
