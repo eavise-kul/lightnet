@@ -22,7 +22,7 @@ TODO for version 100
   - [X] Fix RegionLoss to match darknet more closely _(issue #12)_
   - [X] Use Schedulers for learning rate
   - [X] Implement weight mapping mechanism
-  - [ ] Drop pytorch 0.3 support
+  - [X] Drop pytorch 0.3 support
   - [ ] Remove deprecated quick-fixes
   - [ ] Update examples to new API
   - [ ] Check references and citations

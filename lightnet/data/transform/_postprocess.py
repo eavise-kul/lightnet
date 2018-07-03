@@ -33,32 +33,24 @@ class GetBoundingBoxes(BaseTransform):
 
     @classmethod
     def apply(cls, network_output, num_classes, anchors, conf_thresh):
-        num_anchors = len(anchors)
-        anchor_step = len(anchors[0])
-        anchors = torch.Tensor(anchors)
-        if isinstance(network_output, Variable):
-            network_output = network_output.data
-
         # Check dimensions
         if network_output.dim() == 3:
             network_output.unsqueeze_(0)
 
         # Variables
-        cuda = network_output.is_cuda
+        num_anchors = len(anchors)
+        anchor_step = len(anchors[0])
+        anchors = torch.Tensor(anchors)
+        device = network_output.device
         batch = network_output.size(0)
         h = network_output.size(2)
         w = network_output.size(3)
 
         # Compute xc,yc, w,h, box_score on Tensor
-        lin_x = torch.linspace(0, w-1, w).repeat(h, 1).view(h*w)
-        lin_y = torch.linspace(0, h-1, h).repeat(w, 1).t().contiguous().view(h*w)
-        anchor_w = anchors[:, 0].contiguous().view(1, num_anchors, 1)
-        anchor_h = anchors[:, 1].contiguous().view(1, num_anchors, 1)
-        if cuda:
-            lin_x = lin_x.cuda()
-            lin_y = lin_y.cuda()
-            anchor_w = anchor_w.cuda()
-            anchor_h = anchor_h.cuda()
+        lin_x = torch.linspace(0, w-1, w).repeat(h, 1).view(h*w).to(device)
+        lin_y = torch.linspace(0, h-1, h).view(h, 1).repeat(1, w).view(h*w).to(device)
+        anchor_w = anchors[:, 0].contiguous().view(1, num_anchors, 1).to(device)
+        anchor_h = anchors[:, 1].contiguous().view(1, num_anchors, 1).to(device)
 
         network_output = network_output.view(batch, num_anchors, -1, h*w)   # -1 == 5+num_classes (we can drop feature maps if 1 class)
         network_output[:, :, 0, :].sigmoid_().add_(lin_x).div_(w)           # X center
@@ -69,11 +61,8 @@ class GetBoundingBoxes(BaseTransform):
 
         # Compute class_score
         if num_classes > 1:
-            if torch.__version__.startswith('0.3'):
-                cls_scores = torch.nn.functional.softmax(Variable(network_output[:, :, 5:, :], volatile=True), 2).data
-            else:
-                with torch.no_grad():
-                    cls_scores = torch.nn.functional.softmax(network_output[:, :, 5:, :], 2)
+            with torch.no_grad():
+                cls_scores = torch.nn.functional.softmax(network_output[:, :, 5:, :], 2)
             cls_max, cls_max_idx = torch.max(cls_scores, 2)
             cls_max_idx = cls_max_idx.float()
             cls_max.mul_(network_output[:, :, 4, :])
@@ -87,7 +76,7 @@ class GetBoundingBoxes(BaseTransform):
         if score_thresh.sum() == 0:
             boxes = []
             for i in range(batch):
-                boxes.append(torch.Tensor([]))
+                boxes.append(torch.tensor([]))
             return boxes
 
         # Mask select boxes > conf_thresh
@@ -146,7 +135,6 @@ class NonMaxSupression(BaseTransform):
         """
         if boxes.numel() == 0:
             return boxes
-        cuda = boxes.is_cuda
 
         a = boxes[:, :2]
         b = boxes[:, 2:4]
@@ -178,7 +166,7 @@ class NonMaxSupression(BaseTransform):
 
         conflicting = conflicting.cpu()
         keep = torch.zeros(len(conflicting), dtype=torch.uint8)
-        supress = torch.zeros(len(conflicting))
+        supress = torch.zeros(len(conflicting), dtype=torch.float)
         for i, row in enumerate(conflicting):
             if not supress[i]:
                 keep[i] = 1
@@ -213,7 +201,7 @@ class TensorToBrambox(BaseTransform):
     def apply(cls, boxes, network_size, class_label_map=None):
         converted_boxes = []
         for box in boxes:
-            if box.dim() == 0 or box.size(0) == 0:
+            if box.numel() == 0:
                 converted_boxes.append([])
             else:
                 converted_boxes.append(cls._convert(box, network_size[0], network_size[1], class_label_map))
@@ -229,26 +217,15 @@ class TensorToBrambox(BaseTransform):
         brambox = []
         for box in boxes:
             det = Detection()
-            if torch.__version__.startswith('0.3'):
-                det.x_top_left = box[0]
-                det.y_top_left = box[1]
-                det.width = box[2]
-                det.height = box[3]
-                det.confidence = box[4]
-                if class_label_map is not None:
-                    det.class_label = class_label_map[int(box[5])]
-                else:
-                    det.class_label = str(int(box[5]))
+            det.x_top_left = box[0].item()
+            det.y_top_left = box[1].item()
+            det.width = box[2].item()
+            det.height = box[3].item()
+            det.confidence = box[4].item()
+            if class_label_map is not None:
+                det.class_label = class_label_map[int(box[5].item())]
             else:
-                det.x_top_left = box[0].item()
-                det.y_top_left = box[1].item()
-                det.width = box[2].item()
-                det.height = box[3].item()
-                det.confidence = box[4].item()
-                if class_label_map is not None:
-                    det.class_label = class_label_map[int(box[5].item())]
-                else:
-                    det.class_label = str(int(box[5].item()))
+                det.class_label = str(int(box[5].item()))
 
             brambox.append(det)
 
