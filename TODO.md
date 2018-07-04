@@ -21,7 +21,7 @@ TODO for version 100
   - [X] Fix class-based NMS and set as default _(issue #14)_
   - [X] Fix RegionLoss to match darknet more closely _(issue #12)_
   - [X] Use Schedulers for learning rate
-  - [ ] Implement weight mapping mechanism
+  - [X] Implement weight mapping mechanism
   - [ ] Drop pytorch 0.3 support
   - [ ] Remove deprecated quick-fixes
   - [ ] Update examples to new API

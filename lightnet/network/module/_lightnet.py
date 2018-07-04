@@ -4,6 +4,8 @@
 #
 
 import logging
+import re
+from collections import OrderedDict
 import torch
 import torch.nn as nn
 
@@ -94,14 +96,15 @@ class Lightnet(nn.Module):
             else:
                 yield module
 
-    def load_weights(self, weights_file):
+    def load_weights(self, weights_file, strict=False):
         """ This function will load the weights from a file.
         It also allows to load in weights file with only a part of the weights in.
 
         Args:
             weights_file (str): path to file
+            strict (Boolean, optional): Whether the weight file should contain all layers of the model; Default **False**
         """
-        old_state = self.state_dict()
+        keys = self.state_dict().keys()
         state = torch.load(weights_file, lambda storage, loc: storage)
 
         # Changed in layer.py: self.layer -> self.layers
@@ -111,20 +114,46 @@ class Lightnet(nn.Module):
                 new_key = key.replace('.layer.', '.layers.')
                 state[new_key] = state.pop(key)
 
-        if state.keys() != old_state.keys():
+        if not strict and state.keys() != keys:
             log.warn('Modules not matching, performing partial update')
-            state = {k: v for k, v in state.items() if k in old_state}
-            old_state.update(state)
-            state = old_state
-        self.load_state_dict(state)
+        self.load_state_dict(state, strict=strict)
 
         log.info(f'Loaded weights from {weights_file}')
 
-    def save_weights(self, weights_file):
+    def save_weights(self, weights_file, remap=None):
         """ This function will save the weights to a file.
 
         Args:
             weights_file (str): path to file
+            remap (list, optional): list of remapping tuples, to be able to use the weights from one model in another; Default **None**
+
+        Note:
+            The optional ``remap`` parameter expects a list of tuples, containing **('old', 'new')** remapping sequences.
+            The remapping sequence can contain strings or regex objects.
+
+            What happens when you supply a remapping list,
+            is that this function will loop over the ``state_dict`` of the model and for each parameter of the ``state_dict`` it will loop through the remapping list.
+            If the first string or regex of the remapping sequence is found in the ``state_dict`` key, it will be replaced by the second string or regex of that remapping sequence. |br|
+            There are two important things to note here:
+
+            - If a key does not match any remapping sequence, it gets discarded. To save all the weights, even if you need no remapping, add a last remapping sequence of **('', '')** which will match with all keys, but not modify them.
+            - The remapping sequences or processed in order. This means that if a key matches with a certain remapping sequence, the following sequences will not be considered anymore.
         """
-        torch.save(self.state_dict(), weights_file)
-        log.info(f'Saved weights as {weights_file}')
+        if remap is not None:
+            orig_weights = self.state_dict()
+            weights = OrderedDict()
+
+            for k, v in orig_weights.items():
+                for r in remap:
+                    if re.match(r[0], k) is not None:
+                        weights[re.sub(r[0], r[1], k)] = v
+                        break
+
+            remap = ' remapped'
+        else:
+            weights = self.state_dict()
+            remap = ''
+
+        torch.save(weights, weights_file)
+
+        log.info(f'Saved{remap} weights as {weights_file}')
