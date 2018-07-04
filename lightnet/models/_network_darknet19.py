@@ -17,21 +17,18 @@ __all__ = ['Darknet19']
 class Darknet19(lnn.module.Darknet):
     """ `Darknet19`_ implementation with pytorch.
 
-    Todo:
-        - Loss function: L2 (Crossentropyloss in pytorch)
-
     Args:
-        num_classes (Number, optional): Number of classes; Default **20**
+        num_classes (Number, optional): Number of classes; Default **1000**
         weights_file (str, optional): Path to the saved weights; Default **None**
         input_channels (Number, optional): Number of input channels; Default **3**
 
     Attributes:
-        self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
-        self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes`
+        self.loss (fn): loss function; Default :class:`torch.nn.Crossentropyloss`
+        self.postprocess (fn): Postprocessing function; Default :class:`torch.nn.Softmax`
 
     .. _Darknet19: https://github.com/pjreddie/darknet/blob/master/cfg/darknet19.cfg
     """
-    def __init__(self, num_classes=20, weights_file=None, input_channels=3):
+    def __init__(self, num_classes=1000, weights_file=None, input_channels=3):
         """ Network initialisation """
         super().__init__()
 
@@ -64,14 +61,16 @@ class Darknet19(lnn.module.Darknet):
                 ('21_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 1024, 3, 1, 1)),
                 ('22_convbatch',    lnn.layer.Conv2dBatchLeaky(1024, 512, 1, 1, 0)),
                 ('23_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 1024, 3, 1, 1)),
-                ('24_conv',         nn.Conv2d(1024, 1000, 1, 1, 0)),
-                ('avgpool',         lnn.layer.GlobalAvgPool2d())
+                ('24_conv',         nn.Conv2d(1024, num_classes, 1, 1, 0)),
+                ('25_avgpool',      lnn.layer.GlobalAvgPool2d())
             ])
         )
 
         # Post
-        self.loss = None
-        self.postprocess = None
+        self.loss = nn.CrossEntropyLoss()
+        self.postprocess = lnd.transform.Compose([
+            nn.Softmax(1)
+        ])
 
         if weights_file is not None:
             self.load_weights(weights_file)
