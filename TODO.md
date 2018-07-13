@@ -23,7 +23,7 @@ TODO for version 100
   - [X] Use Schedulers for learning rate
   - [X] Implement weight mapping mechanism
   - [X] Drop pytorch 0.3 support
-  - [ ] Remove deprecated quick-fixes
+  - [X] Remove deprecated quick-fixes
   - [ ] Update examples to new API
   - [ ] Check references and citations
   - [ ] Check everything is documented

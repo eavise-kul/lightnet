@@ -107,13 +107,6 @@ class Lightnet(nn.Module):
         keys = self.state_dict().keys()
         state = torch.load(weights_file, lambda storage, loc: storage)
 
-        # Changed in layer.py: self.layer -> self.layers
-        for key in list(state.keys()):
-            if '.layer.' in key:
-                log.deprecated('Deprecated weights file found. Consider resaving your weights file before this manual intervention gets removed')
-                new_key = key.replace('.layer.', '.layers.')
-                state[new_key] = state.pop(key)
-
         if not strict and state.keys() != keys:
             log.warn('Modules not matching, performing partial update')
         self.load_state_dict(state, strict=strict)
