@@ -33,12 +33,15 @@ To get all the data, make a directory to store it all, and execute the following
 
 .. code:: bash
 
+   mkdir data
+   cd data
    wget https://pjreddie.com/media/files/VOCtrainval_11-May-2012.tar
    wget https://pjreddie.com/media/files/VOCtrainval_06-Nov-2007.tar
    wget https://pjreddie.com/media/files/VOCtest_06-Nov-2007.tar
    tar xf VOCtrainval_11-May-2012.tar
    tar xf VOCtrainval_06-Nov-2007.tar
    tar xf VOCtest_06-Nov-2007.tar
+   cd ..
 
 There will now be a *VOCdevkit* folder with all the data.
 
@@ -79,7 +82,7 @@ Use the **train.py** script to train the model. You can use *train.py --help* fo
 .. code:: bash
 
    # Adapt the model parameters inside of train.py to suite your needs
-   ./train.py -cv darknet19_448.conv.23
+   ./train.py -cvn yolo darknet19_448.conv.23
 
 .. rubric:: Test model
 
@@ -91,7 +94,7 @@ Use the **test.py** script to test the model. You can again use *test.py --help*
    pip install tqdm 
    
    # Adapt the model parameters inside of test.py to suite your needs
-   ./test.py -cv backup/weight_30000.pt
+   ./test.py -cvn yolo backup/final.state.pt
 
 
 .. include:: ../links.rst
