@@ -9,16 +9,13 @@ They work just like the :mod:`torchvision transforms <pytorch:torchvision>`. |br
 First you create an object and then you call the object with the image or annotation object as parameter.
 You can also call the ``apply()`` method on the classes to run the transformation once.
 
+.. autoclass:: lightnet.data.transform.Crop
 .. autoclass:: lightnet.data.transform.Letterbox
-   :members: apply
-.. autoclass:: lightnet.data.transform.RandomCrop
-   :members: apply
 .. autoclass:: lightnet.data.transform.RandomFlip
-   :members: apply
-.. autoclass:: lightnet.data.transform.HSVShift
-   :members: apply
+.. autoclass:: lightnet.data.transform.RandomHSV
+.. autoclass:: lightnet.data.transform.RandomJitter
+.. autoclass:: lightnet.data.transform.RandomRotate
 .. autoclass:: lightnet.data.transform.BramboxToTensor
-   :members: apply
 
 Postprocessing
 --------------
@@ -28,13 +25,9 @@ First you create an object and then you call the object with the network output 
 You can also call the ``apply()`` method on the classes to run the transformation once.
 
 .. autoclass:: lightnet.data.transform.GetBoundingBoxes
-   :members: apply
 .. autoclass:: lightnet.data.transform.NonMaxSupression
-   :members: apply
 .. autoclass:: lightnet.data.transform.TensorToBrambox
-   :members: apply
 .. autoclass:: lightnet.data.transform.ReverseLetterbox
-   :members: apply
 
 Data loading
 ------------

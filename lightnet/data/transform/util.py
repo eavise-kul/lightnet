@@ -4,9 +4,14 @@
 #   Copyright EAVISE
 #
 
+import logging
+import collections
 from abc import ABC, abstractmethod
+from PIL import Image
+import numpy as np
 
 __all__ = ['Compose']
+log = logging.getLogger(__name__)
 
 
 class Compose(list):
@@ -57,15 +62,11 @@ class BaseTransform(ABC):
     This class allows to create an object with some case specific settings, and then call it with the data to perform the transformation.
     It also allows to call the static method ``apply`` with the data and settings. This is usefull if you want to transform a single data object.
     """
-    def __init__(self, **kwargs):
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
-
+    @abstractmethod
     def __call__(self, data):
-        return self.apply(data, **self.__dict__)
+        return data
 
     @classmethod
-    @abstractmethod
     def apply(cls, data, **kwargs):
         """ Classmethod that applies the transformation once.
 
@@ -73,7 +74,8 @@ class BaseTransform(ABC):
             data: Data to transform (eg. image)
             **kwargs: Same arguments that are passed to the ``__init__`` function
         """
-        return data
+        obj = cls(**kwargs)
+        return obj(data)
 
 
 class BaseMultiTransform(ABC):
@@ -81,13 +83,18 @@ class BaseMultiTransform(ABC):
     This class exists for transforms that affect both images and annotations.
     It provides a classmethod ``apply``, that will perform the transormation on one (data, target) pair.
     """
-    def __init__(self, **kwargs):
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
-
-    @abstractmethod
     def __call__(self, data):
-        return data
+        if data is None:
+            return None
+        elif isinstance(data, collections.Sequence):
+            return self._tf_anno(data)
+        elif isinstance(data, Image.Image):
+            return self._tf_pil(data)
+        elif isinstance(data, np.ndarray):
+            return self._tf_cv(data)
+        else:
+            log.error(f'{self.__class__.__name__} only works with <brambox annotation lists>, <PIL images> or <OpenCV images> [{type(data)}]')
+            return data
 
     @classmethod
     def apply(cls, data, target=None, **kwargs):
@@ -106,3 +113,15 @@ class BaseMultiTransform(ABC):
 
         res_target = obj(target)
         return res_data, res_target
+
+    @abstractmethod
+    def _tf_pil(self, img):
+        return img
+
+    @abstractmethod
+    def _tf_cv(self, img):
+        return img
+
+    @abstractmethod
+    def _tf_anno(self, annos):
+        return annos

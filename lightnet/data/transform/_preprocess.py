@@ -9,6 +9,7 @@ import random
 import collections
 import logging
 import torch
+import math
 import numpy as np
 from PIL import Image, ImageOps
 import brambox.boxes as bbb
@@ -22,11 +23,89 @@ except ImportError:
     log.warn('OpenCV is not installed and cannot be used')
     cv2 = None
 
-__all__ = ['Letterbox', 'RandomCrop', 'RandomFlip', 'HSVShift', 'BramboxToTensor']
+__all__ = ['Crop', 'Letterbox', 'RandomFlip', 'RandomHSV', 'RandomJitter', 'RandomRotate', 'BramboxToTensor']
+
+
+#
+#   Transform to fit
+#
+class Crop(BaseMultiTransform):
+    """ Rescale and crop images/annotations to the right network dimensions.
+    This transform will first rescale to the closest (bigger) dimension possible and then take a crop to the exact dimensions.
+
+    Args:
+        dimension (tuple, optional): Default size for the letterboxing, expressed as a (width, height) tuple; Default **None**
+        dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
+        center (Boolean, optional): Whether to take the crop from the center or randomly.
+
+    Note:
+        Create 1 Crop object and use it for both image and annotation transforms.
+        This object will save data from the image transform and use that on the annotation transform.
+    """
+    def __init__(self, dimension=None, dataset=None, center=True):
+        self.dimension = dimension
+        self.dataset = dataset
+        self.center = center
+        if self.dimension is None and self.dataset is None:
+            raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
+
+        self.scale = None
+        self.dx = 0
+        self.dy = 0
+
+    def _get_crop(self, im_w, im_h, net_w, net_h):
+        if im_w / net_w >= im_h / net_h:
+            self.scale = net_h / im_h
+            self.dy = 0
+            dw = int(im_w * self.scale - net_w)
+            self.dx = dw // 2 if self.center else random.randint(0, dw)
+        else:
+            self.scale = net_w / im_w
+            self.dx = 0
+            dh = int(im_h * self.scale - net_h)
+            self.dy = dh // 2 if self.center else random.randint(0, dh)
+
+    def _tf_pil(self, img):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        else:
+            net_w, net_h = self.dimension
+        im_w, im_h = img.size
+        self._get_crop(im_w, im_h, net_w, net_h)
+
+        # Rescale
+        if self.scale != 1:
+            bands = img.split()
+            bands = [b.resize((int(self.scale*im_w), int(self.scale*im_h))) for b in bands]
+            img = Image.merge(img.mode, bands)
+            im_w, im_h = img.size
+
+        # Crop
+        img = img.crop((self.dx, self.dy, self.dx+net_w, self.dy+net_h))
+        return img
+
+    def _tf_cv(self, img):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        else:
+            net_w, net_h = self.dimension
+        im_h, im_w = img.shape[:2]
+        self._get_crop(im_w, im_h, net_w, net_h)
+
+        # Rescale
+        if self.scale != 1:
+            img = cv2.resize(img, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_CUBIC)
+
+        # Crop
+        img = img[dy:dy+net_h, dx:dx+net_w]
+        return img
+
+    def _tf_anno(self, annos):
+        raise NotImplementedError('This transformation does not work with annotations yet. Sorry!')
 
 
 class Letterbox(BaseMultiTransform):
-    """ Transform images and annotations to the right network dimensions.
+    """ Rescale images/annotations and add top/bottom borders to get to the right network dimensions.
 
     Args:
         dimension (tuple, optional): Default size for the letterboxing, expressed as a (width, height) tuple; Default **None**
@@ -36,27 +115,15 @@ class Letterbox(BaseMultiTransform):
         Create 1 Letterbox object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
     """
-    def __init__(self, dimension=None, dataset=None):
-        super().__init__(dimension=dimension, dataset=dataset)
+    def __init__(self, dimension=None, dataset=None, fill_color=127):
+        self.dimension = dimension
+        self.dataset = dataset
+        self.fill_color = fill_color
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
 
         self.pad = None
         self.scale = None
-        self.fill_color = 127
-
-    def __call__(self, data):
-        if data is None:
-            return None
-        elif isinstance(data, collections.Sequence):
-            return self._tf_anno(data)
-        elif isinstance(data, Image.Image):
-            return self._tf_pil(data)
-        elif isinstance(data, np.ndarray):
-            return self._tf_cv(data)
-        else:
-            log.error(f'Letterbox only works with <brambox annotation lists>, <PIL images> or <OpenCV images> [{type(data)}]')
-            return data
 
     def _tf_pil(self, img):
         """ Letterbox an image to fit in the network """
@@ -143,111 +210,9 @@ class Letterbox(BaseMultiTransform):
         return annos
 
 
-class RandomCrop(BaseMultiTransform):
-    """ Take random crop from the image.
-
-    Args:
-        jitter (Number [0-1]): Indicates how much of the image we can crop
-        crop_anno(Boolean, optional): Whether we crop the annotations inside the image crop; Default **False**
-        intersection_threshold(number or list, optional): Argument passed on to :class:`brambox.boxes.util.modifiers.CropModifier`
-
-    Note:
-        Create 1 RandomCrop object and use it for both image and annotation transforms.
-        This object will save data from the image transform and use that on the annotation transform.
-    """
-    def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001, fill_color=127):
-        super().__init__(jitter=jitter, crop_anno=crop_anno, fill_color=fill_color)
-        self.crop_modifier = bbb.CropModifier(float('Inf'), intersection_threshold)
-
-    def __call__(self, data):
-        if data is None:
-            return None
-        elif isinstance(data, collections.Sequence):
-            return self._tf_anno(data)
-        elif isinstance(data, Image.Image):
-            return self._tf_pil(data)
-        elif isinstance(data, np.ndarray):
-            return self._tf_cv(data)
-        else:
-            log.error(f'RandomCrop only works with <brambox annotation lists>, <PIL images> or <OpenCV images> [{type(data)}]')
-            return data
-
-    def _tf_pil(self, img):
-        """ Take random crop from image """
-        im_w, im_h = img.size
-        crop = self._get_crop(im_w, im_h)
-        crop_w = crop[2] - crop[0]
-        crop_h = crop[3] - crop[1]
-        img_np = np.array(img)
-        channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
-
-        img = img.crop((max(0, crop[0]), max(0, crop[1]), min(im_w, crop[2]-1), min(im_h, crop[3]-1)))
-        img_crop = Image.new(img.mode, (crop_w, crop_h), color=(self.fill_color,)*channels)
-        img_crop.paste(img, (max(0, -crop[0]), max(0, -crop[1])))
-
-        return img_crop
-
-    def _tf_cv(self, img):
-        """ Take random crop from image """
-        im_h, im_w = img.shape[:2]
-        crop = self._get_crop(im_w, im_h)
-
-        crop_w = crop[2] - crop[0]
-        crop_h = crop[3] - crop[1]
-        img_crop = np.ones((crop_h, crop_w) + img.shape[2:], dtype=img.dtype) * self.fill_color
-
-        src_x1 = max(0, crop[0])
-        src_x2 = min(crop[2], im_w)
-        src_y1 = max(0, crop[1])
-        src_y2 = min(crop[3], im_h)
-        dst_x1 = max(0, -crop[0])
-        dst_x2 = crop_w - max(0, crop[2]-im_w)
-        dst_y1 = max(0, -crop[1])
-        dst_y2 = crop_h - max(0, crop[3]-im_h)
-        img_crop[dst_y1:dst_y2, dst_x1:dst_x2] = img[src_y1:src_y2, src_x1:src_x2]
-
-        return img_crop
-
-    def _get_crop(self, im_w, im_h):
-        dw, dh = int(im_w*self.jitter), int(im_h*self.jitter)
-        crop_left = random.randint(-dw, dw)
-        crop_right = random.randint(-dw, dw)
-        crop_top = random.randint(-dh, dh)
-        crop_bottom = random.randint(-dh, dh)
-        crop = (crop_left, crop_top, im_w-crop_right, im_h-crop_bottom)
-
-        self.crop_modifier.area = crop
-        return crop
-
-    def _tf_anno(self, annos):
-        """ Change coordinates of an annotation, according to the previous crop """
-        if self.crop_anno:
-            bbb.modify(annos, [self.crop_modifier])
-        else:
-            crop = self.crop_modifier.area
-            for i in range(len(annos)-1, -1, -1):
-                anno = annos[i]
-                x1 = max(crop[0], anno.x_top_left)
-                x2 = min(crop[2], anno.x_top_left+anno.width)
-                y1 = max(crop[1], anno.y_top_left)
-                y2 = min(crop[3], anno.y_top_left+anno.height)
-                w = x2-x1
-                h = y2-y1
-
-                if self.crop_modifier.inter_area:
-                    ratio = ((w * h) / (anno.width * anno.height)) < self.crop_modifier.inter_thresh
-                else:
-                    ratio = (w / anno.width) < self.crop_modifier.inter_thresh[0] or (h / anno.height) < self.crop_modifier.inter_thresh[1]
-                if w <= 0 or h <= 0 or ratio:
-                    del annos[i]
-                    continue
-
-                annos[i].x_top_left -= crop[0]
-                annos[i].y_top_left -= crop[1]
-
-        return annos
-
-
+#
+#   Data augmentation
+#
 class RandomFlip(BaseMultiTransform):
     """ Randomly flip image.
 
@@ -263,18 +228,8 @@ class RandomFlip(BaseMultiTransform):
         self.flip = False
         self.im_w = None
 
-    def __call__(self, data):
-        if data is None:
-            return None
-        elif isinstance(data, collections.Sequence):
-            return [self._tf_anno(anno) for anno in data]
-        elif isinstance(data, Image.Image):
-            return self._tf_pil(data)
-        elif isinstance(data, np.ndarray):
-            return self._tf_cv(data)
-        else:
-            log.error(f'RandomFlip only works with <brambox annotation lists>, <PIL images> or <OpenCV images> [{type(data)}]')
-            return data
+    def _get_flip(self):
+        self.flip = random.random() < self.threshold
 
     def _tf_pil(self, img):
         """ Randomly flip image """
@@ -292,17 +247,16 @@ class RandomFlip(BaseMultiTransform):
             img = cv2.flip(img, 1)
         return img
 
-    def _get_flip(self):
-        self.flip = random.random() < self.threshold
-
-    def _tf_anno(self, anno):
+    def _tf_anno(self, annos):
         """ Change coordinates of an annotation, according to the previous flip """
         if self.flip and self.im_w is not None:
-            anno.x_top_left = self.im_w - anno.x_top_left - anno.width
-        return anno
+            for anno in annos:
+                anno.x_top_left = self.im_w - anno.x_top_left - anno.width
+
+        return annos
 
 
-class HSVShift(BaseTransform):
+class RandomHSV(BaseTransform):
     """ Perform random HSV shift on the RGB data.
 
     Args:
@@ -317,27 +271,28 @@ class HSVShift(BaseTransform):
     .. _cvtColor: https://docs.opencv.org/master/d7/d1b/group__imgproc__misc.html#ga397ae87e1288a81d2363b61574eb8cab
     """
     def __init__(self, hue, saturation, value):
-        super().__init__(hue=hue, saturation=saturation, value=value)
+        self.hue = hue
+        self.saturation = saturation
+        self.value = value
 
-    @classmethod
-    def apply(cls, data, hue, saturation, value):
-        dh = random.uniform(-hue, hue)
-        ds = random.uniform(1, saturation)
+    def __call__(self, data):
+        dh = random.uniform(-self.hue, self.hue)
+        ds = random.uniform(1, self.saturation)
         if random.random() < 0.5:
             ds = 1/ds
-        dv = random.uniform(1, value)
+        dv = random.uniform(1, self.value)
         if random.random() < 0.5:
             dv = 1/dv
 
         if data is None:
             return None
         elif isinstance(data, Image.Image):
-            return cls._tf_pil(data, dh, ds, dv)
+            return self._tf_pil(data, dh, ds, dv)
         elif isinstance(data, np.ndarray):
-            return cls._tf_cv(data, dh, ds, dv)
+            return self._tf_cv(data, dh, ds, dv)
         else:
             log.error(f'HSVShift only works with <PIL images> or <OpenCV images> [{type(data)}]')
-            return data
+            return data     # Pass on data to not destroy pipeline with annos
 
     @staticmethod
     def _tf_pil(img, dh, ds, dv):
@@ -381,6 +336,172 @@ class HSVShift(BaseTransform):
         return img
 
 
+class RandomJitter(BaseMultiTransform):
+    """ Add random jitter to an image, by randomly cropping (or adding borders) to each side.
+
+    Args:
+        jitter (Number [0-1]): Indicates how much of the image we can crop
+        crop_anno(Boolean, optional): Whether we crop the annotations inside the image crop; Default **False**
+        intersection_threshold(number or list, optional): Argument passed on to :class:`brambox.boxes.util.modifiers.CropModifier`
+
+    Note:
+        Create 1 RandomCrop object and use it for both image and annotation transforms.
+        This object will save data from the image transform and use that on the annotation transform.
+    """
+    def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001, fill_color=127):
+        self.jitter = jitter
+        self.crop_anno = crop_anno
+        self.fill_color = fill_color
+        self.crop_modifier = bbb.CropModifier(float('Inf'), intersection_threshold)
+
+    def _get_crop(self, im_w, im_h):
+        dw, dh = int(im_w*self.jitter), int(im_h*self.jitter)
+        crop_left = random.randint(-dw, dw)
+        crop_right = random.randint(-dw, dw)
+        crop_top = random.randint(-dh, dh)
+        crop_bottom = random.randint(-dh, dh)
+        crop = (crop_left, crop_top, im_w-crop_right, im_h-crop_bottom)
+
+        self.crop_modifier.area = crop
+        return crop
+
+    def _tf_pil(self, img):
+        """ Take random crop from image """
+        im_w, im_h = img.size
+        crop = self._get_crop(im_w, im_h)
+        crop_w = crop[2] - crop[0]
+        crop_h = crop[3] - crop[1]
+        img_np = np.array(img)
+        channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
+
+        img = img.crop((max(0, crop[0]), max(0, crop[1]), min(im_w, crop[2]-1), min(im_h, crop[3]-1)))
+        img_crop = Image.new(img.mode, (crop_w, crop_h), color=(self.fill_color,)*channels)
+        img_crop.paste(img, (max(0, -crop[0]), max(0, -crop[1])))
+
+        return img_crop
+
+    def _tf_cv(self, img):
+        """ Take random crop from image """
+        im_h, im_w = img.shape[:2]
+        crop = self._get_crop(im_w, im_h)
+
+        crop_w = crop[2] - crop[0]
+        crop_h = crop[3] - crop[1]
+        img_crop = np.ones((crop_h, crop_w) + img.shape[2:], dtype=img.dtype) * self.fill_color
+
+        src_x1 = max(0, crop[0])
+        src_x2 = min(crop[2], im_w)
+        src_y1 = max(0, crop[1])
+        src_y2 = min(crop[3], im_h)
+        dst_x1 = max(0, -crop[0])
+        dst_x2 = crop_w - max(0, crop[2]-im_w)
+        dst_y1 = max(0, -crop[1])
+        dst_y2 = crop_h - max(0, crop[3]-im_h)
+        img_crop[dst_y1:dst_y2, dst_x1:dst_x2] = img[src_y1:src_y2, src_x1:src_x2]
+
+        return img_crop
+
+    def _tf_anno(self, annos):
+        """ Change coordinates of an annotation, according to the previous crop """
+        if self.crop_anno:
+            bbb.modify(annos, [self.crop_modifier])
+        else:
+            crop = self.crop_modifier.area
+            for i in range(len(annos)-1, -1, -1):
+                anno = annos[i]
+                x1 = max(crop[0], anno.x_top_left)
+                x2 = min(crop[2], anno.x_top_left+anno.width)
+                y1 = max(crop[1], anno.y_top_left)
+                y2 = min(crop[3], anno.y_top_left+anno.height)
+                w = x2-x1
+                h = y2-y1
+
+                if self.crop_modifier.inter_area:
+                    ratio = ((w * h) / (anno.width * anno.height)) < self.crop_modifier.inter_thresh
+                else:
+                    ratio = (w / anno.width) < self.crop_modifier.inter_thresh[0] or (h / anno.height) < self.crop_modifier.inter_thresh[1]
+                if w <= 0 or h <= 0 or ratio:
+                    del annos[i]
+                    continue
+
+                annos[i].x_top_left -= crop[0]
+                annos[i].y_top_left -= crop[1]
+
+        return annos
+
+
+class RandomRotate(BaseMultiTransform):
+    """ Randomly rotate the image/annotations.
+    For the annotations we take the smallest possible rectangle that fits the rotated rectangle.
+
+    Args:
+        jitter (Number [0-180]): Random number between -jitter,jitter degrees is used to rotate the image
+
+    Note:
+        Create 1 RandomRotate object and use it for both image and annotation transforms.
+        This object will save data from the image transform and use that on the annotation transform.
+    """
+    def __init__(self, jitter):
+        self.jitter = jitter
+        self.angle = None
+        self.im_w = None
+        self.im_h = None
+
+    def _get_rotate(self, im_w, im_h):
+        self.im_w = im_w
+        self.im_h = im_h
+        self.angle = random.randint(-self.jitter, self.jitter)
+
+    def _tf_pil(self, img):
+        im_w, im_h = img.size
+        self._get_rotate(im_w, im_h)
+        return img.rotate(self.angle)
+
+    def _tf_cv(self, img):
+        im_h, im_w = img.shape[:2]
+        self._get_rotate(im_w, im_h)
+        M = cv2.getRotationMatrix2D((im_w/2, im_h/2), self.angle, 1)
+        return cv2.warpAffine(img, M, (im_w, im_h))
+
+    def _tf_anno(self, annos):
+        cx, cy = self.im_w/2, self.im_h/2
+        rad = math.radians(-self.angle)
+        cos_a = math.cos(rad)
+        sin_a = math.sin(rad)
+
+        for anno in annos:
+            # Rotate anno
+            x1_c = anno.x_top_left - cx
+            y1_c = anno.y_top_left - cy
+            x2_c = x1_c + anno.width
+            y2_c = y1_c + anno.height
+
+            x1_r = (x1_c * cos_a - y1_c * sin_a) + cx
+            y1_r = (x1_c * sin_a + y1_c * cos_a) + cy
+            x2_r = (x2_c * cos_a - y1_c * sin_a) + cx
+            y2_r = (x2_c * sin_a + y1_c * cos_a) + cy
+            x3_r = (x2_c * cos_a - y2_c * sin_a) + cx
+            y3_r = (x2_c * sin_a + y2_c * cos_a) + cy
+            x4_r = (x1_c * cos_a - y2_c * sin_a) + cx
+            y4_r = (x1_c * sin_a + y2_c * cos_a) + cy
+
+            # Max rect box
+            x1_n = min(x1_r, x2_r, x3_r, x4_r)
+            y1_n = min(y1_r, y2_r, y3_r, y4_r)
+            x2_n = max(x1_r, x2_r, x3_r, x4_r)
+            y2_n = max(y1_r, y2_r, y3_r, y4_r)
+
+            anno.x_top_left = x1_n
+            anno.y_top_left = y1_n
+            anno.width = x2_n - x1_n
+            anno.height = y2_n - y1_n
+
+        return annos
+
+
+#
+#   Util
+#
 class BramboxToTensor(BaseTransform):
     """ Converts a list of brambox annotation objects to a tensor.
 
@@ -397,7 +518,11 @@ class BramboxToTensor(BaseTransform):
         If no class_label_map is given, this function will first try to convert the class_label to an integer. If that fails, it is simply given the number 0.
     """
     def __init__(self, dimension=None, dataset=None, max_anno=50, class_label_map=None):
-        super().__init__(dimension=dimension, dataset=dataset, max_anno=max_anno, class_label_map=class_label_map)
+        self.dimension = dimension
+        self.dataset = dataset
+        self.max_anno = max_anno
+        self.class_label_map = class_label_map
+
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
         if self.class_label_map is None:
