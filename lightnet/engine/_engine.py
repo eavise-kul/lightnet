@@ -20,7 +20,7 @@ class Engine(ABC):
     """ This class removes the boilerplate code needed for writing your training cycle. |br|
     Here is the code that runs when the engine is called:
 
-    .. literalinclude:: /../lightnet/engine/engine.py
+    .. literalinclude:: /../lightnet/engine/_engine.py
        :language: python
        :pyobject: Engine.__call__
        :dedent: 4
@@ -78,13 +78,13 @@ class Engine(ABC):
             loader = self.dataloader
             for idx, data in enumerate(loader):
                 # Batch Start
-                self.batch += 1
-                self._run_hooks(self.batch, self._batch_start)
+                if (idx + 1) % self.batch_subdivisions == 0:
+                    self.batch += 1
+                    self._run_hooks(self.batch, self._batch_start)
 
                 # Forward and backward on (mini-)batches
                 self.process_batch(data)
                 if (idx + 1) % self.batch_subdivisions != 0:
-                    self.batch -= 1
                     continue
 
                 # Optimizer step
@@ -95,6 +95,7 @@ class Engine(ABC):
 
                 # Check if we need to stop training
                 if self.quit() or self.sigint:
+                    self.epoch -= 1     # Did not finish this epoch
                     log.info('Reached quitting criteria')
                     return
 
