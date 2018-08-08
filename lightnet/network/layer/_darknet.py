@@ -8,12 +8,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-__all__ = ['Conv2dBatchLeaky', 'GlobalAvgPool2d', 'PaddedMaxPool2d', 'Reorg']
+__all__ = ['Conv2dBatchReLU', 'GlobalAvgPool2d', 'PaddedMaxPool2d', 'Reorg']
 log = logging.getLogger(__name__)
 
 
-class Conv2dBatchLeaky(nn.Module):
-    """ This convenience layer groups a 2D convolution, a batchnorm and a leaky ReLU.
+class Conv2dBatchReLU(nn.Module):
+    """ This convenience layer groups a 2D convolution, a batchnorm and a ReLU.
     They are executed in a sequential manner.
 
     Args:
@@ -22,9 +22,19 @@ class Conv2dBatchLeaky(nn.Module):
         kernel_size (int or tuple): Size of the kernel of the convolution
         stride (int or tuple): Stride of the convolution
         padding (int or tuple): padding of the convolution
-        leaky_slope (number, optional): Controls the angle of the negative slope of the leaky ReLU; Default **0.1**
+        momentum (int, optional): momentum of the moving averages of the normalization; Default **0.01**
+        relu (class, optional): Which ReLU to use; Default :class:`torch.nn.LeakyReLU`
+
+    Note:
+        If you require the `relu` class to get extra parameters, you can use a `lambda` or `functools.partial`:
+
+        >>> conv = ln.layer.Conv2dBatchReLU(
+        ...     in_c, out_c, kernel, stride, padding,
+        ...     relu=functools.partial(torch.nn.LeakyReLU, 0.1, inplace=True)
+        ... )   # doctest: +SKIP
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, leaky_slope=0.1):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
+                 momentum=0.01, relu=lambda: nn.LeakyReLU(0.1, inplace = True)):
         super().__init__()
 
         # Parameters
@@ -33,18 +43,18 @@ class Conv2dBatchLeaky(nn.Module):
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
-        self.leaky_slope = leaky_slope
+        self.momentum = momentum
 
         # Layer
         self.layers = nn.Sequential(
             nn.Conv2d(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding, bias=False),
-            nn.BatchNorm2d(self.out_channels),
-            nn.LeakyReLU(self.leaky_slope, inplace=True)
+            nn.BatchNorm2d(self.out_channels, momentum=self.momentum),
+            relu()
         )
 
     def __repr__(self):
-        s = '{name} ({in_channels}, {out_channels}, kernel_size={kernel_size}, stride={stride}, padding={padding}, negative_slope={leaky_slope})'
-        return s.format(name=self.__class__.__name__, **self.__dict__)
+        s = '{name}({in_channels}, {out_channels}, kernel_size={kernel_size}, stride={stride}, padding={padding}, {relu})'
+        return s.format(name=self.__class__.__name__, relu=self.layers[2], **self.__dict__)
 
     def forward(self, x):
         x = self.layers(x)
@@ -83,8 +93,8 @@ class PaddedMaxPool2d(nn.Module):
         self.padding = padding
         self.dilation = dilation
 
-    def __repr__(self):
-        return f'{self.__class__.__name__} (kernel_size={self.kernel_size}, stride={self.stride}, padding={self.padding}, dilation={self.dilation})'
+    def extra_repr(self):
+        return f'kernel_size={self.kernel_size}, stride={self.stride}, padding={self.padding}, dilation={self.dilation}'
 
     def forward(self, x):
         x = F.max_pool2d(F.pad(x, self.padding, mode='replicate'), self.kernel_size, self.stride, 0, self.dilation)
@@ -105,8 +115,9 @@ class Reorg(nn.Module):
         self.stride = stride
         self.darknet = True
 
-    def __repr__(self):
-        return f'{self.__class__.__name__} (stride={self.stride}, darknet_compatible_mode={self.darknet})'
+    def extra_repr(self):
+        darknet_mode_str = ', darknet_compatible' if self.darknet else ''
+        return f'stride={self.stride}{darknet_mode_str}'
 
     def forward(self, x):
         assert(x.data.dim() == 4)

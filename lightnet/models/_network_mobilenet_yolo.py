@@ -38,7 +38,6 @@ class MobileNetYolo(lnn.module.Lightnet):
     """
     def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.5, alpha=1.0, input_channels=3,
                  anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
-        """ Network initialisation """
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
             raise TypeError('Anchors need to be a 2D list of numbers')
@@ -73,13 +72,13 @@ class MobileNetYolo(lnn.module.Lightnet):
 
             # Sequence 2 : input = sequence0
             OrderedDict([
-                ('14_convbatch',    lnn.layer.Conv2dBatchLeaky(int(alpha*512), 64, 1, 1, 0)),
+                ('14_convbatch',    lnn.layer.Conv2dBatchReLU(int(alpha*512), 64, 1, 1, 0)),
                 ('15_reorg',        lnn.layer.Reorg(2)),
             ]),
 
             # Sequence 3 : input = sequence2 + sequence1
             OrderedDict([
-                ('16_convbatch',    lnn.layer.Conv2dBatchLeaky((4*64)+int(alpha*1024), 1024, 3, 1, 1)),
+                ('16_convbatch',    lnn.layer.Conv2dBatchReLU((4*64)+int(alpha*1024), 1024, 3, 1, 1)),
                 ('17_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
             ])
         ]

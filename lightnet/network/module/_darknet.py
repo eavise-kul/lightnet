@@ -123,7 +123,7 @@ class WeightLoader:
         """ Load weights for a layer from the weights file """
         if type(layer) == nn.Conv2d:
             self._load_conv(layer)
-        elif type(layer) == Conv2dBatchLeaky:
+        elif type(layer) == Conv2dBatchReLU:
             self._load_convbatch(layer)
         elif type(layer) == nn.Linear:
             self._load_fc(layer)
@@ -201,7 +201,7 @@ class WeightSaver:
         """ save weights for a layer """
         if type(layer) == nn.Conv2d:
             self._save_conv(layer)
-        elif type(layer) == Conv2dBatchLeaky:
+        elif type(layer) == Conv2dBatchReLU:
             self._save_convbatch(layer)
         elif type(layer) == nn.Linear:
             self._save_fc(layer)

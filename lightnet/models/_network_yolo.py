@@ -48,46 +48,46 @@ class Yolo(lnn.module.Darknet):
         layer_list = [
             # Sequence 0 : input = image tensor
             OrderedDict([
-                ('1_convbatch',     lnn.layer.Conv2dBatchLeaky(input_channels, 32, 3, 1, 1)),
+                ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1)),
                 ('2_max',           nn.MaxPool2d(2, 2)),
-                ('3_convbatch',     lnn.layer.Conv2dBatchLeaky(32, 64, 3, 1, 1)),
+                ('3_convbatch',     lnn.layer.Conv2dBatchReLU(32, 64, 3, 1, 1)),
                 ('4_max',           nn.MaxPool2d(2, 2)),
-                ('5_convbatch',     lnn.layer.Conv2dBatchLeaky(64, 128, 3, 1, 1)),
-                ('6_convbatch',     lnn.layer.Conv2dBatchLeaky(128, 64, 1, 1, 0)),
-                ('7_convbatch',     lnn.layer.Conv2dBatchLeaky(64, 128, 3, 1, 1)),
+                ('5_convbatch',     lnn.layer.Conv2dBatchReLU(64, 128, 3, 1, 1)),
+                ('6_convbatch',     lnn.layer.Conv2dBatchReLU(128, 64, 1, 1, 0)),
+                ('7_convbatch',     lnn.layer.Conv2dBatchReLU(64, 128, 3, 1, 1)),
                 ('8_max',           nn.MaxPool2d(2, 2)),
-                ('9_convbatch',     lnn.layer.Conv2dBatchLeaky(128, 256, 3, 1, 1)),
-                ('10_convbatch',    lnn.layer.Conv2dBatchLeaky(256, 128, 1, 1, 0)),
-                ('11_convbatch',    lnn.layer.Conv2dBatchLeaky(128, 256, 3, 1, 1)),
+                ('9_convbatch',     lnn.layer.Conv2dBatchReLU(128, 256, 3, 1, 1)),
+                ('10_convbatch',    lnn.layer.Conv2dBatchReLU(256, 128, 1, 1, 0)),
+                ('11_convbatch',    lnn.layer.Conv2dBatchReLU(128, 256, 3, 1, 1)),
                 ('12_max',          nn.MaxPool2d(2, 2)),
-                ('13_convbatch',    lnn.layer.Conv2dBatchLeaky(256, 512, 3, 1, 1)),
-                ('14_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 256, 1, 1, 0)),
-                ('15_convbatch',    lnn.layer.Conv2dBatchLeaky(256, 512, 3, 1, 1)),
-                ('16_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 256, 1, 1, 0)),
-                ('17_convbatch',    lnn.layer.Conv2dBatchLeaky(256, 512, 3, 1, 1)),
+                ('13_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1)),
+                ('14_convbatch',    lnn.layer.Conv2dBatchReLU(512, 256, 1, 1, 0)),
+                ('15_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1)),
+                ('16_convbatch',    lnn.layer.Conv2dBatchReLU(512, 256, 1, 1, 0)),
+                ('17_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1)),
             ]),
 
             # Sequence 1 : input = sequence0
             OrderedDict([
                 ('18_max',          nn.MaxPool2d(2, 2)),
-                ('19_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 1024, 3, 1, 1)),
-                ('20_convbatch',    lnn.layer.Conv2dBatchLeaky(1024, 512, 1, 1, 0)),
-                ('21_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 1024, 3, 1, 1)),
-                ('22_convbatch',    lnn.layer.Conv2dBatchLeaky(1024, 512, 1, 1, 0)),
-                ('23_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 1024, 3, 1, 1)),
-                ('24_convbatch',    lnn.layer.Conv2dBatchLeaky(1024, 1024, 3, 1, 1)),
-                ('25_convbatch',    lnn.layer.Conv2dBatchLeaky(1024, 1024, 3, 1, 1)),
+                ('19_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
+                ('20_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0)),
+                ('21_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
+                ('22_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0)),
+                ('23_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
+                ('24_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 1024, 3, 1, 1)),
+                ('25_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 1024, 3, 1, 1)),
             ]),
 
             # Sequence 2 : input = sequence0
             OrderedDict([
-                ('26_convbatch',    lnn.layer.Conv2dBatchLeaky(512, 64, 1, 1, 0)),
+                ('26_convbatch',    lnn.layer.Conv2dBatchReLU(512, 64, 1, 1, 0)),
                 ('27_reorg',        lnn.layer.Reorg(2)),
             ]),
 
             # Sequence 3 : input = sequence2 + sequence1
             OrderedDict([
-                ('28_convbatch',    lnn.layer.Conv2dBatchLeaky((4*64)+1024, 1024, 3, 1, 1)),
+                ('28_convbatch',    lnn.layer.Conv2dBatchReLU((4*64)+1024, 1024, 3, 1, 1)),
                 ('29_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
             ])
         ]

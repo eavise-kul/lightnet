@@ -58,26 +58,21 @@ class Lightnet(nn.Module):
             If you are evaluating your network and you pass a target variable, the network will return a (output, loss) tuple.
             This is usefull for testing your network, as you usually want to know the validation loss.
         """
-        if self.training:
-            x = self._forward(x)
+        x = self._forward(x)
 
+        if self.training:
             if callable(self.loss):
                 return self.loss(x, target)
             else:
                 return x
         else:
-            x = self._forward(x)
-
             if target is not None and callable(self.loss):
                 loss = self.loss(x.clone(), target)
-            else:
-                loss = None
-
-            if callable(self.postprocess):
-                x = self.postprocess(x)
-
-            if loss is not None:
+                if callable(self.postprocess):
+                    x = self.postprocess(x)
                 return x, loss
+            elif callable(self.postprocess):
+                    return self.postprocess(x)
             else:
                 return x
 
