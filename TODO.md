@@ -24,9 +24,10 @@ TODO for version 100
   - [X] Implement weight mapping mechanism
   - [X] Drop pytorch 0.3 support
   - [X] Remove deprecated quick-fixes
-  - [ ] Update examples to new API
+  - [X] Update examples to new API
   - [ ] Check references and citations
   - [ ] Check everything is documented
   - [ ] Write more Doctests for new 'endpoints'
   - [ ] Update to new brambox-pandas version (if ready on time)
   - [ ] YoloV3
+
