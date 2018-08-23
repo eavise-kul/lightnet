@@ -33,8 +33,8 @@ class ColoredFormatter(logging.Formatter):
         self.color_codes = {
             'CRITICAL': ColorCode.RED,
             'ERROR': ColorCode.RED,
-            'TRAIN': ColorCode.WHITE,
-            'TEST': ColorCode.WHITE,
+            'TRAIN': ColorCode.BLUE,
+            'TEST': ColorCode.BLUE,
             'DEPRECATED': ColorCode.YELLOW,
             'WARNING': ColorCode.YELLOW,
             'INFO': ColorCode.WHITE,
@@ -64,7 +64,7 @@ class LevelFilter(logging.Filter):
         self.levels = levels
 
     def filter(self, record):
-        if record.levelname in self.levels:
+        if self.levels is None or record.levelname in self.levels:
             return True
         else:
             return False
@@ -110,12 +110,12 @@ else:
 
 
 # File Handler
-def createFileHandler(self, filename, levels=('TRAIN', 'TEST'), filemode='a'):
+def createFileHandler(self, filename, levels=None, filemode='a'):
     """ Create a file to write log messages of certaing levels """
     fh = logging.FileHandler(filename=filename, mode=filemode)
     fh.setLevel(logging.NOTSET)
     fh.addFilter(LevelFilter(levels))
-    fh.setFormatter(logging.Formatter('{levelname}  {message}', style='{'))
+    fh.setFormatter(logging.Formatter('{levelname} [{name}] {message}', style='{'))
     logger.addHandler(fh)
     return fh
 
