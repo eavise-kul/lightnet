@@ -69,7 +69,7 @@ class Darknet(Lightnet):
         if hasattr(self.loss, 'seen'):
             self.loss.seen = torch.tensor(weights.seen)
 
-        for module in self.modules_recurse():
+        for module in self.layer_loop():
             try:
                 weights.load_layer(module)
                 log.debug(f'Layer loaded: {module}')
@@ -86,7 +86,7 @@ class Darknet(Lightnet):
             seen = 0
         weights = WeightSaver(self.header, seen)
 
-        for module in self.modules_recurse():
+        for module in self.layer_loop():
             try:
                 weights.save_layer(module)
                 log.debug(f'Layer saved: {module}')

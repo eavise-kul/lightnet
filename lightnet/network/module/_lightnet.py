@@ -76,20 +76,41 @@ class Lightnet(nn.Module):
             else:
                 return x
 
-    def modules_recurse(self, mod=None):
-        """ This function will recursively loop over all module children.
+    def layer_loop(self, mod=None):
+        """ This function will recursively loop over all moduleList and Sequential children.
 
         Args:
             mod (torch.nn.Module, optional): Module to loop over; Default **self**
+
+        Returns:
+            (generator): Iterator that will loop over and yield the different layers
         """
         if mod is None:
             mod = self
 
         for module in mod.children():
             if isinstance(module, (nn.ModuleList, nn.Sequential)):
-                yield from self.modules_recurse(module)
+                yield from self.layer_loop(module)
             else:
                 yield module
+
+    def named_layer_loop(self, mod=None):
+        """ Named version of :func:`~lightnet.network.module.Lightnet.layer_loop`
+
+        Args:
+            mod (torch.nn.Module, optional): Module to loop over; Default **self**
+
+        Returns:
+            (generator): Iterator that will loop over and yield (name, layer) tuples
+        """
+        if mod is None:
+            mod = self
+
+        for name, module in mod.named_children():
+            if isinstance(module, (nn.ModuleList, nn.Sequential)):
+                yield from self.named_layer_loop(module)
+            else:
+                yield name, module
 
     def load_weights(self, weights_file, strict=False):
         """ This function will load the weights from a file.
