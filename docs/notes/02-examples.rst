@@ -57,7 +57,7 @@ You can check whether to annotation conversion was succesfull, by running the **
 .. code:: bash
 
    # Change the ROOT variable in labels.py to point to the root directory that contains VOCdevkit
-   ./labels.py
+   ./bin/labels.py
    bbox_view.py -lx .jpg anno_pickle ROOT/train.pkl ROOT/VOCdevkit
    bbox_view.py -lx .jpg anno_pickle ROOT/test.pkl ROOT/VOCdevkit
 
@@ -69,11 +69,16 @@ You can check whether to annotation conversion was succesfull, by running the **
 
 .. rubric:: Get weights
 
-For training, we use weights that are pretrained on ImageNet.
+For training, we use weights that are pretrained on ImageNet. |br|
+See :ref:`accuracy` for more information on the difference between darknet and lightnet pretrained weights.
 
-.. code:: bash
-
-   wget https://pjreddie.com/media/files/darknet19_448.conv.23
+========= ===
+Framework URL
+========= ===
+Darknet   https://pjreddie.com/media/files/darknet19_448.conv.23
+--------- ---
+Lightnet  https://mega.nz/#!ChsBkSQT!8Jpjzzi_tgPtd6gs079g4ea-XOUIr3LspOqAgk97hUA
+========= ===
 
 .. rubric:: Train model
 
@@ -82,7 +87,7 @@ Use the **train.py** script to train the model. You can use *train.py --help* fo
 .. code:: bash
 
    # Adapt the model parameters inside of train.py to suite your needs
-   ./train.py -cvn yolo darknet19_448.conv.23
+   ./bin/train.py -cv -n cfg/yolo.py <path/to/pretrained/weights>
 
 .. rubric:: Test model
 
@@ -94,9 +99,9 @@ Use the **test.py** script to test the model. You can again use *test.py --help*
    pip install tqdm 
    
    # Adapt the model parameters inside of test.py to suite your needs
-   ./test.py -cvn yolo backup/final.state.pt
+   ./bin/test.py -cv -n cfg/yolo.py backup/final.state.pt
 
 
 .. include:: ../links.rst
 .. _examples folder: https://gitlab.com/EAVISE/lightnet/tree/master/examples
-.. _darknet website: https://pjreddie.com/darknet/yolo/#train-voc
+.. _darknet website: https://pjreddie.com/darknet/yolov2/#train-voc
