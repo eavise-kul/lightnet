@@ -74,7 +74,7 @@ class Darknet19(lnn.module.Darknet):
         )
 
         # Post
-        self.loss = nn.CrossEntropyLoss()
+        self.loss = nn.CrossEntropyLoss(size_average=False)
         self.postprocess = lnd.transform.Compose([
             nn.Softmax(1)
         ])
