@@ -3,9 +3,10 @@
 #   Copyright EAVISE
 #
 
-import torch
 import logging
+import importlib.util
 from collections import Iterable
+import torch
 
 __all__ = ['HyperParameters']
 log = logging.getLogger(__name__)
@@ -79,6 +80,45 @@ class HyperParameters:
                 log.warn(f'{key} attribute already exists as a HyperParameter and will not be overwritten.')
                 if key in self.__no_serialize:
                     self.__no_serialize.remove(key)
+
+    @classmethod
+    def from_file(cls, path, variable='params', **kwargs):
+        """ Create a HyperParameter object from a dictionary in an external configuration file.
+        This function will import a file by its path and extract a variable to use as HyperParameters.
+
+        Args:
+            path (str or path-like object): Path to the configuration python file
+            variable (str, optional): Variable to extract from the configuration file; Default **'params'**
+            **kwargs (dict, optional): Extra parameters that are passed to the extracted variable if it is a callable object
+
+        Note:
+            The extracted variable can be one of the following:
+
+            - :class:`lightnet.engine.HyperParameters`: This object will simply be returned
+            - ``dictionary``: The dictionary will be expanded as the parameters for initializing a new :class:`lightnet.engine.HyperParameters` object
+            - ``callable``: The object will be called with the optional kwargs and should return either a :class:`lightnet.engine.HyperParameters` object or a ``dictionary``
+        """
+        try:
+            spec = importlib.util.spec_from_file_location('lightnet.cfg', path)
+            cfg = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(cfg)
+        except AttributeError as err:
+            raise ImportError(f'Failed to import the file [{path}]. Are you sure it is a valid python file?') from err
+
+        try:
+            params = getattr(cfg, variable)
+        except AttributeError as err:
+            raise AttributeError(f'Configuration variable [{variable}] not found in file [{path}]') from err
+
+        if callable(params):
+            params = params(**kwargs)
+
+        if isinstance(params, cls):
+            return params
+        elif isinstance(params, dict):
+            return cls(**params)
+        else:
+            raise TypeError(f'Unkown type for configuration variable {variable} [{type(params).__name__}]. This variable should be a dictionary or lightnet.engine.HyperParameters object.')
 
     @property
     def optimizer(self):
