@@ -26,15 +26,14 @@ Making a intermediate release because we are not ready for 100, but have made a 
   - [X] Drop pytorch 0.3 support
   - [X] Remove deprecated quick-fixes
   - [X] Update examples to new API
-  - [ ] Change version number
+  - [X] Change version number
   - [ ] Check everything is documented
   - [ ] Redo speed and score measurements
   - [ ] Add (speed and) score measurements for darknet19
 
 ## VER 1.0.0
 TODO for version 100
-  - [ ] Update to new brambox-pandas version
   - [ ] YoloV3
-  - [ ] Check everything is documented
-  - [ ] Write more Doctests for new 'endpoints'
+  - [ ] Update to new brambox-pandas version
+  - [ ] Check documentation is up-to-date
 
