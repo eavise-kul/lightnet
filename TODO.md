@@ -13,8 +13,9 @@ TODO for version 030
   - [X] Add linting with pycodestyle
   - [X] Update gitlab CI
 
-## VER 1.0.0
-TODO for version 100
+## VER 0.4.0
+TODO for version 040
+Making a intermediate release because we are not ready for 100, but have made a lot of progress since the previous release
   - [X] Make seen from RegionLoss a registered buffer
   - [X] Rework Engine with hooks
   - [X] Add HyperParameters class to serialize training info
@@ -25,9 +26,15 @@ TODO for version 100
   - [X] Drop pytorch 0.3 support
   - [X] Remove deprecated quick-fixes
   - [X] Update examples to new API
-  - [ ] Check references and citations
+  - [ ] Change version number
+  - [ ] Check everything is documented
+  - [ ] Redo speed and score measurements
+  - [ ] Add (speed and) score measurements for darknet19
+
+## VER 1.0.0
+TODO for version 100
+  - [ ] Update to new brambox-pandas version
+  - [ ] YoloV3
   - [ ] Check everything is documented
   - [ ] Write more Doctests for new 'endpoints'
-  - [ ] Update to new brambox-pandas version (if ready on time)
-  - [ ] YoloV3
 
