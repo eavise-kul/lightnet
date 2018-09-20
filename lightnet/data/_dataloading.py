@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 class Dataset(torchDataset):
     """ This class is a subclass of the base :class:`torch.utils.data.Dataset`,
-    that enables on the fly resizing of the ``input_dim`` with :class:`lightnet.data.DataLoader`.
+    that enables on the fly resizing of the ``input_dim`` with a :class:`lightnet.data.DataLoader`.
 
     Args:
         input_dimension (tuple): (width,height) tuple with default dimensions of the network
@@ -105,11 +105,13 @@ class DataLoader(torchDataLoader):
         [[(200, 200), (200, 200)]]
         [[(200, 200), (200, 200)]]
         >>> dl.change_input_dim(320, random_range=(1, 1))
+        (320, 320)
         >>> for d in dl:
         ...     d
         [[(320, 320), (320, 320)]]
         [[(320, 320), (320, 320)]]
         >>> dl.change_input_dim((480, 320), random_range=(1, 1))
+        (480, 320)
         >>> for d in dl:
         ...     d
         [[(480, 320), (480, 320)]]
