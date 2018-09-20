@@ -34,7 +34,7 @@ The second method is by using the :func:`lightnet.logger.setConsoleLevel` functi
 >>> 
 >>> # This line will only log TRAIN and TEST level messages to a file
 >>> # Note: this logfile will only consider messages from 'lightnet.*' loggers
->>> filehandler = ln.logger.setLogFile('file.log', filemode='w')  # doctest: +SKIP
+>>> filehandler = ln.logger.setLogFile('file.log', levels=('TRAIN', 'TEST'), filemode='w')  # doctest: +SKIP
 >>> 
 >>> # Use this function to enable/disable colored terminal output
 >>> ln.logger.setConsoleColor(False)
