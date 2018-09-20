@@ -119,6 +119,10 @@ class Lightnet(nn.Module):
         Args:
             weights_file (str): path to file
             strict (Boolean, optional): Whether the weight file should contain all layers of the model; Default **False**
+
+        Note:
+            This function will load the weights to CPU,
+            so you should use ``network.to(device)`` afterwards to send it to the device of your choice.
         """
         keys = self.state_dict().keys()
         state = torch.load(weights_file, lambda storage, loc: storage)

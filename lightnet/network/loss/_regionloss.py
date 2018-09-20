@@ -84,7 +84,7 @@ class RegionLoss(nn.modules.loss._Loss):
             >>> output = network._forward(im_data)
             >>> loss = float(region_loss(output, target))
             >>> print(f'loss = {loss:.2f}')
-            loss = 20.43
+            loss = 22.04
         """
         # Parameters
         nB = output.data.size(0)

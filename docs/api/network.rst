@@ -5,7 +5,6 @@ Network
 Layer
 ------
 .. automodule:: lightnet.network.layer
-.. autoclass:: lightnet.network.layer.Conv2dBatchLeaky
 .. autoclass:: lightnet.network.layer.Conv2dBatchReLU
 .. autoclass:: lightnet.network.layer.Conv2dDepthWise
 .. autoclass:: lightnet.network.layer.GlobalAvgPool2d
