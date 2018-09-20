@@ -26,13 +26,48 @@ class Engine(ABC):
        :dedent: 4
 
     Args:
-        params (lightnet.engine.HyperParameters): TODO
+        params (lightnet.engine.HyperParameters): Serializable hyperparameters for the engine to work with
         dataloader (torch.utils.data.DataLoader, optional): Dataloader for the training data
         **kwargs (dict, optional): Keywords arguments that will be set as attributes of the engine
 
     Attributes:
         self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send; Default **False**
         self.*: All values of the :class:`~lightnet.engine.HyperParameters` can be accessed in this class as well
+
+    Note:
+        This engine allows to define hook functions to run at certain points in the training *(epoch_start, epoch_end, batch_start, batch_end)*.
+        The functions can be defined as class methods of your engine without any extra arguments or as separate functions that take the engine as a single argument.
+
+        There are different functions to register a hook and they can be used as decorator functions or called straight away in code:
+
+        >>> class TrainingEngine(ln.engine.Engine):
+        ...     def start(self):
+        ...         pass
+        ...
+        ...     @ln.engine.Engine.epoch_end
+        ...     def backup(self):
+        ...         pass    # This method will be executed at the end of every epoch
+        ...
+        ...     @ln.engine.Engine.batch_start(100)
+        ...     def update_hyperparams(self):
+        ...         pass    # This method will be executed at the start of every 100th batch
+        ...
+        >>> # Create TrainingEngine object and run it
+
+        >>> def backup(engine):
+        ...     pass    # This function will be executed at the end of every Xth batch defined by a backup_rate variable at runtime
+        ...
+        >>> @ln.engine.Engine.epoch_start
+        ... def select_data_subset(engine):
+        ...     pass    # This function will be executed at the start of every epoch
+        ...
+        >>> class TrainingEngine(ln.engine.Engine):
+        ...     def start(self):
+        ...         if hasattr(self, 'backup_rate') and self.backup_rate is not None:
+        ...             self.batch_start(self.backup_rate)(backup)
+        ...
+        >>> # Create TrainingEngine object and run it
+
     """
     _init_done = False
     _epoch_start = {}
@@ -141,7 +176,7 @@ class Engine(ABC):
             self.__log.test(msg)
 
     def _run_hooks(self, value, hooks):
-        """ TODO """
+        """ Internal method that will execute registered hooks. """
         keys = list(hooks.keys())
         for k in keys:
             if value % k == 0:
@@ -153,7 +188,11 @@ class Engine(ABC):
 
     @classmethod
     def epoch_start(cls, interval=1):
-        """ TODO """
+        """ Register a hook to run at the start of an epoch.
+
+        Args:
+            interval (int, optional): Number dictating how often to run the hook; Default **1**
+        """
         def decorator(fn):
             if interval in cls._epoch_start:
                 cls._epoch_start[interval].append(fn)
@@ -165,7 +204,11 @@ class Engine(ABC):
 
     @classmethod
     def epoch_end(cls, interval=1):
-        """ TODO """
+        """ Register a hook to run at the end of an epoch.
+
+        Args:
+            interval (int, optional): Number dictating how often to run the hook; Default **1**
+        """
         def decorator(fn):
             if interval in cls._epoch_end:
                 cls._epoch_end[interval].append(fn)
@@ -177,7 +220,11 @@ class Engine(ABC):
 
     @classmethod
     def batch_start(cls, interval=1):
-        """ TODO """
+        """ Register a hook to run at the start of a batch.
+
+        Args:
+            interval (int, optional): Number dictating how often to run the hook; Default **1**
+        """
         def decorator(fn):
             if interval in cls._batch_start:
                 cls._batch_start[interval].append(fn)
@@ -189,7 +236,11 @@ class Engine(ABC):
 
     @classmethod
     def batch_end(cls, interval=1):
-        """ TODO """
+        """ Register a hook to run at the end of a batch.
+
+        Args:
+            interval (int, optional): Number dictating how often to run the hook; Default **1**
+        """
         def decorator(fn):
             if interval in cls._batch_end:
                 cls._batch_end[interval].append(fn)
@@ -201,7 +252,7 @@ class Engine(ABC):
 
     def start(self):
         """ First function that gets called when starting the engine. |br|
-            Use it to create your dataloader, set the correct starting values for your rates, etc.
+        Any required setup code can come in here.
         """
         pass
 

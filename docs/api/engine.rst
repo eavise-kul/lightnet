@@ -2,13 +2,15 @@ Engine
 ======
 .. automodule:: lightnet.engine
 
-Engine
-------
 .. autoclass:: Engine
    :members:
 
-Visualisation
--------------
+.. autoclass:: HyperParameters
+   :members:
+
+.. autoclass:: SchedulerCompositor
+   :members:
+
 .. autoclass:: LinePlotter
    :members:
    :special-members: __call__

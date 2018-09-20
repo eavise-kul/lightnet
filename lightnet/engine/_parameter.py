@@ -27,20 +27,21 @@ class HyperParameters:
     Attributes:
         self.batch: Number of batches processed; Gets initialized to **0**
         self.epoch: Number of epochs processed; Gets initialized to **0**
+        self.*: All arguments passed to the initialization function can be accessed as attributes of this object
 
     Note:
         If you pass a ``kwarg`` that starts with an **_**,
         the parameter class will store it as a regular property without the leading **_**, but it will not serialize this variable.
         This allows you to store all parameters in this object, regardless of whether you want to serialize it.
 
+    Note:
+        ``batch_size`` must be a multiple of ``mini_batch_size``.
+
     Warning:
         The :class:`~torch.optim.lr_scheduler.ReduceLROnPlateau` LR scheduler does not follow the regular LR scheduler classes.
         Therefore this class will not work with this HyperParameter function.
         If you are using this class, save it as a regular variable, through another name (via kwargs). |br|
         I know this solution is suboptimal, but I am not willing to hack around this, as I believe this is something dirty in the torch codebase itself and should be handled there.
-
-    Note:
-        ``batch_size`` must be a multiple of ``mini_batch_size``.
     """
     def __init__(self, network=None, optimizers=None, schedulers=None, batch_size=1, mini_batch_size=None, **kwargs):
         self.network = network
@@ -48,9 +49,9 @@ class HyperParameters:
         self.batch = 0
         self.epoch = 0
 
-        if mini_batch_size is None or mini_batch_size > batch_size:
+        if mini_batch_size is None:
             self.mini_batch_size = batch_size
-        elif batch_size % mini_batch_size != 0:
+        elif batch_size % mini_batch_size != 0 or mini_batch_size > batch_size:
             raise ValueError('batch_size should be a multiple of mini_batch_size')
         else:
             self.mini_batch_size = mini_batch_size
@@ -68,18 +69,19 @@ class HyperParameters:
         self.__no_serialize = ['network', 'optimizers', 'schedulers']
         for key in kwargs:
             if key.startswith('_'):
+                serialize = False
                 val = kwargs[key]
                 key = key[1:]
-                self.__no_serialize.append(key)
             else:
+                serialize = True
                 val = kwargs[key]
 
             if not hasattr(self, key):
                 setattr(self, key, val)
+                if not serialize:
+                    self.__no_serialize.append(key)
             else:
-                log.warn(f'{key} attribute already exists as a HyperParameter and will not be overwritten.')
-                if key in self.__no_serialize:
-                    self.__no_serialize.remove(key)
+                log.error(f'{key} attribute already exists as a HyperParameter and will not be overwritten.')
 
     @classmethod
     def from_file(cls, path, variable='params', **kwargs):
@@ -95,8 +97,8 @@ class HyperParameters:
             The extracted variable can be one of the following:
 
             - :class:`lightnet.engine.HyperParameters`: This object will simply be returned
-            - ``dictionary``: The dictionary will be expanded as the parameters for initializing a new :class:`lightnet.engine.HyperParameters` object
-            - ``callable``: The object will be called with the optional kwargs and should return either a :class:`lightnet.engine.HyperParameters` object or a ``dictionary``
+            - ``dictionary``: The dictionary will be expanded as the parameters for initializing a new :class:`~lightnet.engine.HyperParameters` object
+            - ``callable``: The object will be called with the optional kwargs and should return either a :class:`~lightnet.engine.HyperParameters` object or a ``dictionary``
         """
         try:
             spec = importlib.util.spec_from_file_location('lightnet.cfg', path)
@@ -122,14 +124,29 @@ class HyperParameters:
 
     @property
     def optimizer(self):
+        """ Convenience property to access the first optimizer.
+
+        Return:
+            torch.optim.Optimizer: self.optimizers[0]
+        """
         return self.optimizers[0]
 
     @property
     def scheduler(self):
+        """ Convenience property to access the first scheduler.
+
+        Return:
+            torch.optim.lr_scheduler: self.schedulers[0]
+        """
         return self.schedulers[0]
 
     @property
     def batch_subdivisions(self):
+        """ Get number of mini-batches per batch.
+
+        Return:
+            int: Computed as self.batch_size // self.mini_batch_size
+        """
         return self.batch_size // self.mini_batch_size
 
     def add_optimizer(self, optimizer):
@@ -145,6 +162,9 @@ class HyperParameters:
             self.schedulers.append(scheduler)
 
     def save(self, filename):
+        """ Serialize all the hyperparameters to a pickle file. |br|
+        The network, optimizers and schedulers objects are serialized using their ``state_dict()`` functions.
+        """
         state = {k: v for k, v in vars(self).items() if k not in self.__no_serialize}
 
         state['network'] = self.network.state_dict()
@@ -156,6 +176,11 @@ class HyperParameters:
         torch.save(state, filename)
 
     def load(self, filename, strict=False):
+        """ Load the hyperparameters from a serialized pickle file.
+
+        Warning:
+            This function expects a serialized file with hyperparameters for the same network, optimizers and schedulers.
+        """
         state = torch.load(filename, lambda storage, loc: storage)
 
         self.network.load_state_dict(state.pop('network'), strict=strict)
@@ -172,6 +197,7 @@ class HyperParameters:
             setattr(self, key, value)
 
     def to(self, device):
+        """ Cast the parameters from the network, optimizers and schedulers to a given device. """
         self.network.to(device)
 
         for optim in self.optimizers:

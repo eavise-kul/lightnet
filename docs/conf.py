@@ -41,7 +41,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.doctest',
-    ]
+]
 
 todo_include_todos = True
 napoleon_use_ivar = True
@@ -56,6 +56,8 @@ intersphinx_mapping = {
 doctest_global_setup = """
 import torch
 import lightnet as ln
+import warnings
+warnings.filterwarnings("ignore")
 ln.logger.setConsoleLevel('ERROR')
 """
 
