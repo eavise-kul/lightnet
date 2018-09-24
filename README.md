@@ -4,6 +4,7 @@ LIGHTNET
 
 Building blocks to recreate Darknet networks in Pytorch  
 [![Version][version-badge]][documentation-url]
+[![PyTorch][pytorch-badge]][pytorch-url]
 [![Pipeline][pipeline-badge]][pipeline-badge]
 
 
@@ -50,6 +51,8 @@ Here is a list of people that made noteworthy contributions and helped to get th
   - [John Crall](https://gitlab.com/Erotemic)
 
 
-[version-badge]: https://img.shields.io/badge/version-0.4.0-F05732.svg
+[version-badge]: https://img.shields.io/badge/version-0.4.0-blue.svg
+[pytorch-badge]: https://img.shields.io/badge/PyTorch-0.4.1-F05732.svg
+[pytorch-url]: https://pytorch.org
 [pipeline-badge]: https://gitlab.com/EAVISE/lightnet/badges/master/pipeline.svg
 [documentation-url]: https://eavise.gitlab.io/lightnet
