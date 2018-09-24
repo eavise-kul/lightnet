@@ -28,8 +28,8 @@ Making a intermediate release because we are not ready for 100, but have made a 
   - [X] Update examples to new API
   - [X] Change version number
   - [ ] Check everything is documented
-  - [ ] Redo speed and score measurements
-  - [ ] Add (speed and) score measurements for darknet19
+  - [X] Redo speed and score measurements
+  - [X] Add (speed and) score measurements for darknet19
 
 ## VER 1.0.0
 TODO for version 100
