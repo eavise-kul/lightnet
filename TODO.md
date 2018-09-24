@@ -27,7 +27,7 @@ Making a intermediate release because we are not ready for 100, but have made a 
   - [X] Remove deprecated quick-fixes
   - [X] Update examples to new API
   - [X] Change version number
-  - [ ] Check everything is documented
+  - [X] Check everything is documented
   - [X] Redo speed and score measurements
   - [X] Add (speed and) score measurements for darknet19
 
