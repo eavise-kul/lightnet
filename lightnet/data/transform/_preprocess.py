@@ -345,15 +345,15 @@ class HSVShift(BaseTransform):
         img = img.convert('HSV')
         channels = list(img.split())
 
-        def change_hue(x):
+        def wrap_hue(x):
             x += int(dh * 255)
             if x > 255:
                 x -= 255
             elif x < 0:
-                x += 0
+                x += 255
             return x
 
-        channels[0] = channels[0].point(change_hue)
+        channels[0] = channels[0].point(wrap_hue)
         channels[1] = channels[1].point(lambda i: min(255, max(0, int(i*ds))))
         channels[2] = channels[2].point(lambda i: min(255, max(0, int(i*dv))))
 
