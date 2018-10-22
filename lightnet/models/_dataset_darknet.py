@@ -45,8 +45,8 @@ class DarknetDataset(BramboxDataset):
 
         lb = lnd.transform.Letterbox(dataset=self)
         rf = lnd.transform.RandomFlip(flip)
-        rc = lnd.transform.RandomCrop(jitter, True)
-        hsv = lnd.transform.HSVShift(hue, saturation, value)
+        rc = lnd.transform.RandomJitter(jitter, True)
+        hsv = lnd.transform.RandomHSV(hue, saturation, value)
         it = tf.ToTensor()
         if augment:
             img_tf = lnd.transform.Compose([hsv, rc, rf, lb, it])

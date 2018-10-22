@@ -39,7 +39,7 @@ class TestEngine:
             collate_fn = ln.data.list_collate,
         )
 
-    def __call__(self, csv_file, det_file):
+    def __call__(self, csv_file):
         if self.loss == 'none':
             anno, det = self.test_none()
         else:
@@ -56,20 +56,6 @@ class TestEngine:
             m_ap = self.ap(det, anno, csv=csv_file)
 
         print(f'mAP: {m_ap:.2f}%')
-
-        if det_file is not None:
-            bbb.filter_discard(det, [lambda b: b.confidence > .25])
-            
-            det_epfl = {k:v for k,v in det.items() if 'epfl' in k}
-            for k,v in det_epfl.items():
-                det_epfl[k] = ln.data.transform.ReverseLetterbox.apply([v], self.params.input_dimension, (512,424))[0]
-            det_frei = {k:v for k,v in det.items() if 'frei' in k}
-            for k,v in det_frei.items():
-                det_frei[k] = ln.data.transform.ReverseLetterbox.apply([v], self.params.input_dimension, (960,540))[0]
-            det = dict(det_epfl, **det_frei)
-
-            base_path = Path(det_file)
-            bbb.generate('det_pickle', det, str(base_path.parent / (base_path.stem + '.pkl')))
 
     def ap(self, det, anno, iou=.5, csv=None):
         if csv is not None:
@@ -168,13 +154,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test trained network')
     parser.add_argument('weight', help='Path to weight file', default=None)
     parser.add_argument('--csv', help='Path for the csv file with the results', default=None)
-    parser.add_argument('--det', help='Path for the detection file', default=None)
     parser.add_argument('-n', '--network', help='network config file')
-    parser.add_argument('-s', '--save', help='File to store network weights', default=None)
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
     parser.add_argument('-f', '--fast-pr', action='store_true', help='Use faster but less accurate PR computation method')
     parser.add_argument('-l', '--loss', help='How to display loss', choices=['abs', 'percent', 'none'], default='abs')
     parser.add_argument('-t', '--thresh', help='Detection Threshold', type=float, default=None)
+    parser.add_argument('-s', '--save', help='File to store network weights', default=None)
 
     args = parser.parse_args()
 
@@ -200,4 +185,4 @@ if __name__ == '__main__':
 
     # Start test
     eng = TestEngine(params, device=device, loss=args.loss, fast_pr=args.fast_pr)
-    eng(args.csv, args.det)
+    eng(args.csv)

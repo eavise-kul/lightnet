@@ -27,8 +27,8 @@ class VOCData(ln.models.BramboxDataset):
 
         if augment:
             rf  = ln.data.transform.RandomFlip(params.flip)
-            rc  = ln.data.transform.RandomCrop(params.jitter, True, 0.1)
-            hsv = ln.data.transform.HSVShift(params.hue, params.saturation, params.value)
+            rc  = ln.data.transform.RandomJitter(params.jitter, True, 0.1)
+            hsv = ln.data.transform.RandomHSV(params.hue, params.saturation, params.value)
             img_tf[0:0] = [hsv, rc, rf]
             anno_tf[0:0] = [rc, rf]
 
