@@ -15,16 +15,18 @@ class RegionLoss(nn.modules.loss._Loss):
     """ Computes region loss from darknet network output and target annotation.
 
     Args:
-        num_classes (int): number of categories
+        num_classes (int): number of classes to detect
         anchors (list): 2D list representing anchor boxes (see :class:`lightnet.network.Darknet`)
-        coord_scale (float): weight of bounding box coordinates
-        noobject_scale (float): weight of regions without target boxes
-        object_scale (float): weight of regions with target boxes
-        class_scale (float): weight of categorical predictions
-        thresh (float): minimum iou between a predicted box and ground truth for them to be considered matching
-        seen (torch.Tensor): How many images the network has already been trained on.
+        reduction (optional, int): The downsampling factor of the network; Default **32**
+        seen (optional, torch.Tensor): How many images the network has already been trained on; Default **0**
+        coord_scale (optional, float): weight of bounding box coordinates; Default **1.0**
+        noobject_scale (optional, float): weight of regions without target boxes; Default **1.0**
+        object_scale (optional, float): weight of regions with target boxes; Default **5.0**
+        class_scale (optional, float): weight of categorical predictions; Default **1.0**
+        thresh (optional, float): minimum iou between a predicted box and ground truth for them to be considered matching; Default **0.6**
+        coord_prefill (optional, int): This parameter controls for how many images the network will prefill the target coordinates, biassing the network to predict the center at **.5,.5**; Default **12800**
     """
-    def __init__(self, num_classes, anchors, reduction=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6):
+    def __init__(self, num_classes, anchors, reduction=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6, coord_prefill=12800):
         super().__init__()
         self.num_classes = num_classes
         self.num_anchors = len(anchors)
@@ -38,6 +40,7 @@ class RegionLoss(nn.modules.loss._Loss):
         self.object_scale = object_scale
         self.class_scale = class_scale
         self.thresh = thresh
+        self.coord_prefill = coord_prefill
 
     def extra_repr(self):
         repr_str = f'classes={self.num_classes}, reduction={self.reduction}, threshold={self.thresh}, seen={self.seen.item()}\n'
@@ -169,7 +172,7 @@ class RegionLoss(nn.modules.loss._Loss):
         tconf = torch.zeros(nB, nA, nPixels, requires_grad=False)
         tcls = torch.zeros(nB, nA, nPixels, requires_grad=False)
 
-        if self.seen < 12800:
+        if self.seen < self.coord_prefill:
             coord_mask.fill_(1)
             # coord_mask.fill_(.01 / self.coord_scale)
 
@@ -244,7 +247,7 @@ class RegionLoss(nn.modules.loss._Loss):
         tconf = torch.zeros(nB, nA, nPixels, requires_grad=False)
         tcls = torch.zeros(nB, nA, nPixels, requires_grad=False)
 
-        if self.seen < 12800:
+        if self.seen < self.coord_prefill:
             coord_mask.fill_(1)
             # coord_mask.fill_(.01 / self.coord_scale)
 
