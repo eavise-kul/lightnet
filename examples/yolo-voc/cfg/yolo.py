@@ -13,9 +13,9 @@ params = ln.engine.HyperParameters(
     max_batches = 80200,
 
     # Dataset
-    _train_set = 'data/tt/train.pkl',
+    _train_set = 'data/train.pkl',
     _valid_set = None,
-    _test_set = 'data/tt/test.pkl',
+    _test_set = 'data/test.pkl',
     _filter_anno = 'ignore',
 
     # Data Augmentation

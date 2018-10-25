@@ -12,7 +12,7 @@ import lightnet as ln
 import brambox.boxes as bbb
 from dataset import *
 
-log = logging.getLogger('lightnet.RGBD.test')
+log = logging.getLogger('lightnet.VOC.test')
 
 
 class TestEngine:
