@@ -6,7 +6,7 @@ Layer
 ------
 .. automodule:: lightnet.network.layer
 .. autoclass:: lightnet.network.layer.Conv2dBatchReLU
-.. autoclass:: lightnet.network.layer.Conv2dDepthWise
+.. .. autoclass:: lightnet.network.layer.Conv2dDepthWise
 .. autoclass:: lightnet.network.layer.GlobalAvgPool2d
 .. autoclass:: lightnet.network.layer.PaddedMaxPool2d
 .. autoclass:: lightnet.network.layer.Reorg
