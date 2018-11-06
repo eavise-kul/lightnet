@@ -104,13 +104,13 @@ class DataLoader(torchDataLoader):
         ...     d
         [[(200, 200), (200, 200)]]
         [[(200, 200), (200, 200)]]
-        >>> dl.change_input_dim(320, random_range=(1, 1))
+        >>> dl.change_input_dim(320, random_range=None)
         (320, 320)
         >>> for d in dl:
         ...     d
         [[(320, 320), (320, 320)]]
         [[(320, 320), (320, 320)]]
-        >>> dl.change_input_dim((480, 320), random_range=(1, 1))
+        >>> dl.change_input_dim((480, 320), random_range=None)
         (480, 320)
         >>> for d in dl:
         ...     d
@@ -176,8 +176,15 @@ class DataLoader(torchDataLoader):
             We then multiply that number with the ``multiple`` argument, which gives our final new input size. |br|
             If ``multiple`` is an integer we generate a square size. If you give a tuple of **(width, height)**,
             the size is computed as :math:`rng * multiple[0], rng * multiple[1]`.
+
+        Note:
+            You can set the ``random_range`` argument to **None** to set an exact size of multiply. |br|
+            See the example above for how this works.
         """
-        size = random.randint(*random_range)
+        if random_range is None:
+            size = 1
+        else:
+            size = random.randint(*random_range)
 
         if isinstance(multiple, int):
             size = (size * multiple, size * multiple)
