@@ -25,7 +25,7 @@ class Darknet19(lnn.module.Darknet):
     Attributes:
         self.loss (fn): loss function; Default :class:`torch.nn.Crossentropyloss`
         self.postprocess (fn): Postprocessing function; Default :class:`torch.nn.Softmax`
-        self.remap_yolo (list): Remapping sequences for :func:`~lightnet.network.module.Lightnet.save_weights` that allow to save the first 23 layers for using them with :class:`~lightnet.models.Yolo`.
+        self.remap_yolo (list): Remapping sequences for :func:`~lightnet.network.module.Lightnet.save` that allow to save the first 23 layers for using them with :class:`~lightnet.models.Yolo`.
 
     .. _Darknet19: https://github.com/pjreddie/darknet/blob/master/cfg/darknet19.cfg
     """
@@ -80,7 +80,7 @@ class Darknet19(lnn.module.Darknet):
         ])
 
         if weights_file is not None:
-            self.load_weights(weights_file)
+            self.load(weights_file)
 
     def _forward(self, x):
         return self.layers(x)

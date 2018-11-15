@@ -92,7 +92,7 @@ class MobileNetYolo(lnn.module.Lightnet):
         ])
 
         if weights_file is not None:
-            self.load_weights(weights_file)
+            self.load(weights_file)
 
     def _forward(self, x):
         outputs = []

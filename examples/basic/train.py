@@ -170,7 +170,7 @@ if __name__ == '__main__':
         if args.weight.endswith('.state.pt'):
             params.load(args.weight)
         else:
-            params.network.load_weights(args.weight)
+            params.network.load(args.weight)
 
     # Dataloaders
     train_loader = ln.data.DataLoader(

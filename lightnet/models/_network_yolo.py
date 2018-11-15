@@ -100,7 +100,7 @@ class Yolo(lnn.module.Darknet):
         ])
 
         if weights_file is not None:
-            self.load_weights(weights_file)
+            self.load(weights_file)
 
     def _forward(self, x):
         outputs = []

@@ -126,7 +126,7 @@ class YoloLateFusion(lnn.module.Darknet):
         ])
 
         if weights_file is not None:
-            self.load_weights(weights_file)
+            self.load(weights_file)
 
     def _forward(self, x):
         if x.size(1) != self.input_channels + self.fusion_channels:
@@ -260,7 +260,7 @@ class YoloMidFusion(lnn.module.Darknet):
         ])
 
         if weights_file is not None:
-            self.load_weights(weights_file)
+            self.load(weights_file)
 
     def _forward(self, x):
         if x.size(1) != self.input_channels + self.fusion_channels:

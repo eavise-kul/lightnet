@@ -176,12 +176,12 @@ if __name__ == '__main__':
         if args.weight.endswith('.state.pt'):
             params.load(args.weight)
         else:
-            params.network.load_weights(args.weight)
+            params.network.load(args.weight)
     if args.thresh is not None:
         params.network.postprocess[0].conf_thresh = args.thresh
 
     if args.save is not None:
-        params.network.save_weights(args.save)
+        params.network.save(args.save)
 
     # Start test
     eng = TestEngine(params, device=device, loss=args.loss, fast_pr=args.fast_pr)

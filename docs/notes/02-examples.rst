@@ -99,7 +99,7 @@ Use the **test.py** script to test the model. You can again use *test.py --help*
    pip install tqdm 
    
    # Adapt the model parameters inside of test.py to suite your needs
-   ./bin/test.py -cv -n cfg/yolo.py backup/final.state.pt
+   ./bin/test.py -c -n cfg/yolo.py backup/final.pt
 
 
 .. include:: ../links.rst

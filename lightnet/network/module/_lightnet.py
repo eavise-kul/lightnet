@@ -112,7 +112,7 @@ class Lightnet(nn.Module):
             else:
                 yield name, module
 
-    def load_weights(self, weights_file, strict=False):
+    def load(self, weights_file, strict=False):
         """ This function will load the weights from a file.
         It also allows to load in weights file with only a part of the weights in.
 
@@ -133,7 +133,7 @@ class Lightnet(nn.Module):
 
         log.info(f'Loaded weights from {weights_file}')
 
-    def save_weights(self, weights_file, remap=None):
+    def save(self, weights_file, remap=None):
         """ This function will save the weights to a file.
 
         Args:
