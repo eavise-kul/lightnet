@@ -19,7 +19,6 @@ class YoloLateFusion(lnn.module.Darknet):
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
-        weights_file (str, optional): Path to the saved weights; Default **None**
         conf_thresh (Number, optional): Confidence threshold for postprocessing of the boxes; Default **0.25**
         nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
         input_channels (Number, optional): Number of input channels for the main subnetwork; Default **3**
@@ -30,7 +29,7 @@ class YoloLateFusion(lnn.module.Darknet):
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
     """
-    def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3, fusion_channels=1,
+    def __init__(self, num_classes=20, conf_thresh=.25, nms_thresh=.4, input_channels=3, fusion_channels=1,
                  anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         """ Network initialisation """
         super().__init__()
@@ -125,9 +124,6 @@ class YoloLateFusion(lnn.module.Darknet):
             lnd.transform.NonMaxSupression(nms_thresh, False)
         ])
 
-        if weights_file is not None:
-            self.load(weights_file)
-
     def _forward(self, x):
         if x.size(1) != self.input_channels + self.fusion_channels:
             raise TypeError('This network requires {self.input_channels+self.fusion_channels} channel input images')
@@ -155,7 +151,6 @@ class YoloMidFusion(lnn.module.Darknet):
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
-        weights_file (str, optional): Path to the saved weights; Default **None**
         conf_thresh (Number, optional): Confidence threshold for postprocessing of the boxes; Default **0.25**
         nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
         input_channels (Number, optional): Number of input channels for the main subnetwork; Default **3**
@@ -166,7 +161,7 @@ class YoloMidFusion(lnn.module.Darknet):
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
     """
-    def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.4, input_channels=3, fusion_channels=1,
+    def __init__(self, num_classes=20, conf_thresh=.25, nms_thresh=.4, input_channels=3, fusion_channels=1,
                  anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         """ Network initialisation """
         super().__init__()
@@ -258,9 +253,6 @@ class YoloMidFusion(lnn.module.Darknet):
             lnd.transform.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
             lnd.transform.NonMaxSupression(nms_thresh)
         ])
-
-        if weights_file is not None:
-            self.load(weights_file)
 
     def _forward(self, x):
         if x.size(1) != self.input_channels + self.fusion_channels:

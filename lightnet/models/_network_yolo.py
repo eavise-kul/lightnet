@@ -19,7 +19,6 @@ class Yolo(lnn.module.Darknet):
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
-        weights_file (str, optional): Path to the saved weights; Default **None**
         conf_thresh (Number, optional): Confidence threshold for postprocessing of the boxes; Default **0.25**
         nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
         input_channels (Number, optional): Number of input channels; Default **3**
@@ -31,7 +30,7 @@ class Yolo(lnn.module.Darknet):
 
     .. _Yolo v2: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/yolo-voc.cfg
     """
-    def __init__(self, num_classes=20, weights_file=None, conf_thresh=.25, nms_thresh=.5, input_channels=3,
+    def __init__(self, num_classes=20, conf_thresh=.25, nms_thresh=.5, input_channels=3,
                  anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         """ Network initialisation """
         super().__init__()
@@ -98,9 +97,6 @@ class Yolo(lnn.module.Darknet):
             lnd.transform.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
             lnd.transform.NonMaxSupression(nms_thresh)
         ])
-
-        if weights_file is not None:
-            self.load(weights_file)
 
     def _forward(self, x):
         outputs = []

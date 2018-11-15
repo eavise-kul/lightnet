@@ -19,7 +19,6 @@ class Darknet19(lnn.module.Darknet):
 
     Args:
         num_classes (Number, optional): Number of classes; Default **1000**
-        weights_file (str, optional): Path to the saved weights; Default **None**
         input_channels (Number, optional): Number of input channels; Default **3**
 
     Attributes:
@@ -35,7 +34,7 @@ class Darknet19(lnn.module.Darknet):
         (r'^layers.([12][890-3]_)', r'layers.1.\1'),
     ]
 
-    def __init__(self, num_classes=1000, weights_file=None, input_channels=3):
+    def __init__(self, num_classes=1000, input_channels=3):
         """ Network initialisation """
         super().__init__()
 
@@ -78,9 +77,6 @@ class Darknet19(lnn.module.Darknet):
         self.postprocess = lnd.transform.Compose([
             nn.Softmax(1)
         ])
-
-        if weights_file is not None:
-            self.load(weights_file)
 
     def _forward(self, x):
         return self.layers(x)
