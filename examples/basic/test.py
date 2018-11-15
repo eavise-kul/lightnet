@@ -14,7 +14,6 @@ from pathlib import Path
 from statistics import mean
 import numpy as np
 from tqdm import tqdm
-import visdom
 import torch
 import brambox.boxes as bbb
 import lightnet as ln

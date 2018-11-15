@@ -129,6 +129,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
     parser.add_argument('-v', '--visdom', action='store_true', help='Visualize training data with visdom')
     parser.add_argument('-e', '--visdom_env', help='Visdom environment to plot to', default='main')
+    parser.add_argument('-p', '--visdom_port', help='Port of the visdom server', type=int, default=8097)
     args = parser.parse_args()
 
     # Parse arguments
@@ -148,7 +149,7 @@ if __name__ == '__main__':
             raise ValueError('Backup path is not a folder')
     
     if args.visdom:
-        visdom = visdom.Visdom(port=8080, env=args.visdom_env)
+        visdom = visdom.Visdom(port=args.visdom_port, env=args.visdom_env)
     else:
         visdom = None
 
