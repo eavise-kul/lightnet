@@ -4,6 +4,7 @@
 #
 
 import os
+import sys
 import types
 import logging
 import copy
@@ -127,3 +128,10 @@ logger.addHandler(ch)
 logger.setConsoleLevel = ch.setLevel
 logger.setConsoleColor = ch.formatter.setColor
 logger.setLogFile = types.MethodType(createFileHandler, logger)
+
+# Disable color if ANSI not supported -> Code taken from django.core.management.color.supports_color
+# Note that if you use the colorama plugin, you can reenable the colors
+supported_platform = sys.platform != 'Pocket PC' and (sys.platform != 'win32' or 'ANSICON' in os.environ)
+is_a_tty = hasattr(ch.stream, 'isatty') and ch.stream.isatty()
+if not supported_platform or not is_a_tty:
+    logger.setConsoleColor(False)

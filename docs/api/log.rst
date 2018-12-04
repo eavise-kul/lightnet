@@ -62,6 +62,19 @@ TRAIN      This is a special logging level that prefixes the message with `TRAIN
 >>> log.test('This is a special logging level that prefixes the message with `TEST`')  # doctest: +NORMALIZE_WHITESPACE
 TEST       This is a special logging level that prefixes the message with `TEST`
 
+.. Note:: 
+   On systems that do not support ANSI color codes *(mainly Windows < 10)*, the logger wil not use colors by default. |br|
+   If you want colored log output on these systems, you can install the colorama_ package and use the following code:
+
+   .. doctest:: 
+      :options: +SKIP
+
+      >>> from colorama import init
+      >>> import lightnet as ln
+      >>> 
+      >>> init()
+      >>> ln.logger.setConsoleColor(True)
+
 
 .. rubric:: API
 .. automethod:: lightnet.logger.setConsoleLevel
@@ -71,3 +84,4 @@ TEST       This is a special logging level that prefixes the message with `TEST`
 
 .. include:: ../links.rst
 .. _official documentation: https://docs.python.org/3/library/logging.html
+.. _colorama: https://pypi.org/project/colorama/

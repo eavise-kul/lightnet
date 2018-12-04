@@ -10,13 +10,10 @@ __all__ = ['VOCData']
 log = logging.getLogger('lightnet.VOC.dataset')
 
 def identify_file(img_id):
-    return 'data/' + img_id + '.png'
+    return f'data/VOCdevkit/{img_id}.jpg'
 
 class VOCData(ln.models.BramboxDataset):
     def __init__(self, anno, params, augment):
-        def identify(img_id):
-            return f'data/VOCdevkit/{img_id}.jpg'
-
         self.filter = params.filter_anno
         if not self.filter in ('ignore', 'rm', 'none'):
             log.error(f'{self.filter} is not one of (ignore, rm, none). Choosing default "none" value')
@@ -32,7 +29,7 @@ class VOCData(ln.models.BramboxDataset):
             img_tf[0:0] = [hsv, rc, rf]
             anno_tf[0:0] = [rc, rf]
 
-        super().__init__('anno_pickle', anno, params.input_dimension, params.class_label_map, identify, img_tf, anno_tf)
+        super().__init__('anno_pickle', anno, params.input_dimension, params.class_label_map, identify_file, img_tf, anno_tf)
 
     @ln.models.BramboxDataset.resize_getitem
     def __getitem__(self, index):
