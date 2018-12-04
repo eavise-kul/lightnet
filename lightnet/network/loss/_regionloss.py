@@ -140,7 +140,10 @@ class RegionLoss(nn.modules.loss._Loss):
         self.loss_coord = self.coord_scale * mse(coord*coord_mask, tcoord*coord_mask) / nB
         self.loss_conf = mse(conf*conf_mask, tconf*conf_mask) / nB
         if nC > 1:
-            self.loss_cls = self.class_scale * 2 * nn.CrossEntropyLoss(size_average=False)(cls, tcls) / nB
+            if tcls.numel() > 0:
+                self.loss_cls = self.class_scale * 2 * nn.CrossEntropyLoss(size_average=False)(cls, tcls) / nB
+            else:
+                self.loss_cls = torch.tensor(0.0).to(device)
             self.loss_tot = self.loss_coord + self.loss_conf + self.loss_cls
         else:
             self.loss_cls = None
