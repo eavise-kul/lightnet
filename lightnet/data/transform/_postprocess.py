@@ -253,7 +253,7 @@ class ReverseLetterbox(BaseTransform):
         self.image_size = image_size
 
     def __call__(self, boxes):
-        im_w, im_h = image_size[:2]
+        im_w, im_h = self.image_size[:2]
         net_w, net_h = self.network_size[:2]
 
         if im_w == net_w and im_h == net_h:

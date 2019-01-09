@@ -193,7 +193,7 @@ class Letterbox(BaseMultiTransform):
         pad_w = (net_w - im_w) / 2
         pad_h = (net_h - im_h) / 2
         self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=(self.fill_color,)*channels)
+        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=self.fill_color)
         return img
 
     def _tf_anno(self, annos):
@@ -327,7 +327,7 @@ class RandomHSV(BaseTransform):
             x[x < 0.0] += 360.0
             return x
 
-        img[:, :, 0] = wrap_hue(hsv[:, :, 0] + (360.0 * dh))
+        img[:, :, 0] = wrap_hue(img[:, :, 0] + (360.0 * dh))
         img[:, :, 1] = np.clip(ds * img[:, :, 1], 0.0, 1.0)
         img[:, :, 2] = np.clip(dv * img[:, :, 2], 0.0, 1.0)
 
