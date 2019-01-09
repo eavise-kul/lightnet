@@ -48,7 +48,7 @@ If you use Lightnet in your research, please cite it.
 ## Main Contributors
 Here is a list of people that made noteworthy contributions and helped to get this project where it stands today!
   - [Tanguy Ophoff](https://gitlab.com/0phoff)
-  - [John Crall](https://gitlab.com/Erotemic)
+  - [Jon Crall](https://gitlab.com/Erotemic)
 
 
 [version-badge]: https://img.shields.io/badge/version-0.4.0-blue.svg
