@@ -103,8 +103,9 @@ logging.Logger.train = train
 ch = logging.StreamHandler()
 ch.setFormatter(ColoredFormatter('{levelname} {message}', style='{'))
 if 'LN_LOGLVL' in os.environ:
-    ch.setLevel(os.environ['LN_LOGLVL'])
-    if os.environ['LN_LOGLVL'] == 'DEBUG':
+    lvl = os.environ['LN_LOGLVL'].upper()
+    ch.setLevel(lvl)
+    if lvl == 'DEBUG':
         ch.setFormatter(ColoredFormatter('{levelname} [{name}] {message}', style='{'))
 else:
     ch.setLevel(logging.INFO)
