@@ -29,12 +29,18 @@ class DarknetDataset(BramboxDataset):
         value (Number, optional): Determines value (exposure) shift; Default **1.5**
         class_label_map (list, optional): class label map to convert class names to an index; Default **None**
 
+    Warning:
+        As darknet annotation contain coordinates relative to the image's width and height,
+        this dataset will only work correctly if all images have the same size. |br|
+        Upon creation of this dataset, it will get the width and height from the first image in `data_file`
+        and use that for every annotation file.
+
     Returns:
         tuple: image_tensor, list of brambox boxes
     """
     def __init__(self, data_file, augment=True, input_dimension=(416, 416), jitter=.2, flip=.5, hue=.1, saturation=1.5, value=1.5, class_label_map=None):
         def identify(name):
-            return self.img_paths[self.anno_paths.index(name)]
+            return self.img_paths[self.anno_paths.get_loc(name)]
 
         with open(data_file, 'r') as f:
             self.img_paths = f.read().splitlines()

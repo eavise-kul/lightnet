@@ -7,7 +7,7 @@ import os
 import copy
 import logging
 from PIL import Image
-import brambox.boxes as bbb
+import brambox as bb
 import lightnet.data as lnd
 
 __all__ = ['BramboxDataset']
@@ -37,21 +37,14 @@ class BramboxDataset(lnd.Dataset):
             self.id = lambda name: os.path.splitext(name)[0] + '.png'
 
         # Get annotations
-        self.annos = bbb.parse(anno_format, anno_filename, identify=lambda f: f, class_label_map=class_label_map, **kwargs)
-        self.keys = list(self.annos)
+        self.annos = bb.io.load(anno_format, anno_filename, identify=lambda f: f, class_label_map=class_label_map, **kwargs)
+        self.keys = self.annos.image.cat.categories
 
         # Add class_ids
         if class_label_map is None:
             log.warn(f'No class_label_map given, annotations wont have a class_id values for eg. loss function')
-        for k, annos in self.annos.items():
-            for a in annos:
-                if class_label_map is not None:
-                    try:
-                        a.class_id = class_label_map.index(a.class_label)
-                    except ValueError as err:
-                        raise ValueError(f'{a.class_label} is not found in the class_label_map') from err
-                else:
-                    a.class_id = 0
+        else:
+            self.annos['class_id'] = self.annos.class_label.map(dict((l, i) for i, l in enumerate(class_label_map)))
 
         log.info(f'Dataset loaded: {len(self.keys)} images')
 
@@ -73,7 +66,7 @@ class BramboxDataset(lnd.Dataset):
 
         # Load
         img = Image.open(self.id(self.keys[index]))
-        anno = copy.deepcopy(self.annos[self.keys[index]])
+        anno = bb.util.select_images(self.annos, [self.keys[index]])
 
         # Transform
         if self.img_tf is not None:
