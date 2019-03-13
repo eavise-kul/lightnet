@@ -6,6 +6,8 @@
 import random
 import logging
 from functools import wraps
+import pandas as pd
+import brambox as bb
 import torch
 from torch.utils.data.dataset import Dataset as torchDataset
 from torch.utils.data.sampler import BatchSampler as torchBatchSampler
@@ -13,7 +15,7 @@ from torch.utils.data.dataloader import DataLoader as torchDataLoader
 from torch.utils.data.dataloader import default_collate
 
 
-__all__ = ['Dataset', 'DataLoader', 'list_collate']
+__all__ = ['Dataset', 'DataLoader', 'brambox_collate', 'list_collate']
 log = logging.getLogger(__name__)
 
 
@@ -220,14 +222,48 @@ class BatchSampler(torchBatchSampler):
             self.new_input_dim = None
 
 
-def list_collate(batch):
-    """ Function that collates lists or tuples together into one list (of lists/tuples).
-    Use this as the collate function in a Dataloader, if you want to have a list of items as an output, as opposed to tensors (eg. Brambox.boxes).
+def brambox_collate(batch):
+    """ Function that collates dataframes by concatenating them.
+
+    Note:
+        If the dataframes contain an 'image' categorical column (aka. brambox dataframes),
+        they will be concatenated with the :func:`brambox.util.concat` function.
     """
     items = list(zip(*batch))
 
     for i in range(len(items)):
-        if isinstance(items[i][0], (list, tuple)):
+        first = items[i][0]
+        if isinstance(first, (pd.DataFrame)):
+            for ii, df in enumerate(items[i]):
+                df['batch_number'] = ii
+            if 'image' in first.columns and first.image.dtype == 'category':
+                items[i] = bb.util.concat(items[i], ignore_index=True, sort=False)
+            else:
+                items[i] = pd.concat(items[i], ignore_index=True, sort=False)
+        else:
+            items[i] = default_collate(items[i])
+
+    return items
+
+
+def list_collate(batch):
+    """ Function that collates lists or tuples together into one list (of lists/tuples) and concatenates dataframes together.
+    Use this as the collate function in a Dataloader, if you want to have a list of items as an output, as opposed to tensors (eg. Brambox.boxes).
+
+    Deprecated:
+        This function is deprecated in favor of the new :func:`~lightnet.data._dataloading.brambox_collate`.
+    """
+    log.deprecated('This function is deprecated and will be removed in future version, please use "brambox_collate"')
+    items = list(zip(*batch))
+
+    for i in range(len(items)):
+        first = items[i][0]
+        if isinstance(first, (pd.DataFrame)):
+            if 'image' in first.columns and first.image.dtype == 'category':
+                items[i] = bb.util.concat(items[i], ignore_index=True)
+            else:
+                items[i] = pd.concat(items[i], ignore_index=True)
+        elif isinstance(first, (list, tuple)):
             items[i] = list(items[i])
         else:
             items[i] = default_collate(items[i])

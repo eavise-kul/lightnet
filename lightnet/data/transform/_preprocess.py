@@ -1,18 +1,18 @@
 #
 #   Image and annotations preprocessing for lightnet networks
 #   The image transformations work with both Pillow and OpenCV images
-#   The annotation transformations work with brambox.annotations.Annotation objects
+#   The annotation transformations work with brambox 2 annotations dataframes
 #   Copyright EAVISE
 #
 
 import random
 import collections
 import logging
-import torch
 import math
 import numpy as np
+import pandas as pd
 from PIL import Image, ImageOps
-import brambox.boxes as bbb
+import torch
 from .util import BaseTransform, BaseMultiTransform
 
 log = logging.getLogger(__name__)
@@ -37,33 +37,46 @@ class Crop(BaseMultiTransform):
         dimension (tuple, optional): Default size for the letterboxing, expressed as a (width, height) tuple; Default **None**
         dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
         center (Boolean, optional): Whether to take the crop from the center or randomly.
+        intersection_threshold(number, optional): Minimal percentage of the annotation's box area that still needs to be inside the crop; Default **0.001**
+
+    Note:
+        If the `intersection_threshold` is a tuple of 2 numbers, then they are to be considered as **(width, height)** threshold values.
+        Ohterwise the threshold is to be considered as an area threshold.
 
     Note:
         Create 1 Crop object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
+
+    Warning:
+        This modifier changes the annotation dataframe inplace! |br|
+        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
-    def __init__(self, dimension=None, dataset=None, center=True):
+    def __init__(self, dimension=None, dataset=None, center=True, intersection_threshold=0.001):
         self.dimension = dimension
         self.dataset = dataset
         self.center = center
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
 
-        self.scale = None
-        self.dx = 0
-        self.dy = 0
+        self.scale = 1
+        self.crop = None
 
     def _get_crop(self, im_w, im_h, net_w, net_h):
         if im_w / net_w >= im_h / net_h:
             self.scale = net_h / im_h
-            self.dy = 0
             dw = int(im_w * self.scale - net_w)
-            self.dx = dw // 2 if self.center else random.randint(0, dw)
+            dx = dw // 2 if self.center else random.randint(0, dw)
+            dy = 0
         else:
             self.scale = net_w / im_w
-            self.dx = 0
             dh = int(im_h * self.scale - net_h)
-            self.dy = dh // 2 if self.center else random.randint(0, dh)
+            dx = 0
+            dy = dh // 2 if self.center else random.randint(0, dh)
+
+        if dx == 0 and dy == 0:
+            self.crop is None
+        else:
+            self.crop = (dx, dy, dx + net_w, df + net_h)
 
     def _tf_pil(self, img):
         if self.dataset is not None:
@@ -81,7 +94,9 @@ class Crop(BaseMultiTransform):
             im_w, im_h = img.size
 
         # Crop
-        img = img.crop((self.dx, self.dy, self.dx+net_w, self.dy+net_h))
+        if self.crop is not None:
+            img = img.crop(self.crop)
+
         return img
 
     def _tf_cv(self, img):
@@ -97,11 +112,50 @@ class Crop(BaseMultiTransform):
             img = cv2.resize(img, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_CUBIC)
 
         # Crop
-        img = img[dy:dy+net_h, dx:dx+net_w]
+        if self.crop is not None:
+            img = img[self.crop[1]:self.crop[3], self.crop[0]:self.crop[2]]
+
         return img
 
-    def _tf_anno(self, annos):
-        raise NotImplementedError('This transformation does not work with annotations yet. Sorry!')
+    def _tf_anno(self, anno):
+        """ Change coordinates of an annotation, according to the previous crop """
+        # Rescale
+        if self.scale != 1:
+            anno.x_top_left *= self.scale
+            anno.y_top_left *= self.scale
+            anno.width *= self.scale
+            anno.height *= self.scale
+
+        # Filter and Crop
+        if self.crop is not None:
+            cropped = np.empty((4, len(anno.index)), dtype=np.float64)
+            cropped[0] = anno.x_top_left.clip(lower=self.crop[0]).values
+            cropped[1] = anno.y_top_left.clip(lower=self.crop[1]).values
+            cropped[2] = (anno.x_top_left + anno.width).clip(upper=self.crop[2]).values - cropped[0]
+            cropped[3] = (anno.y_top_left + anno.height).clip(upper=self.crop[3]).values - cropped[1]
+
+            if isinstance(self.intersection_threshold, collections.Sequence):
+                mask = ((cropped[2] / anno.width.values) >= self.intersection_threshold[0]) & ((cropped[3] / anno.height.values) >= self.intersection_threshold[1])
+            else:
+                mask = ((cropped[2] * cropped[3]) / (anno.width.values * anno.height.values)) >= self.intersection_threshold
+            mask = mask & (cropped[2] > 0) & (cropped[3] > 0)
+
+            anno = anno[mask].copy()
+            if len(anno.index) == 0:
+                return anno
+
+            if self.crop_anno:
+                cropped = cropped[:, mask]
+                anno.truncated = (cropped[2] * cropped[3]) / ((anno.width * anno.height) / (1 - anno.truncated)).clip(lower=0)
+                anno.x_top_left = cropped[0]
+                anno.y_top_left = cropped[1]
+                anno.width = cropped[2]
+                anno.height = cropped[3]
+
+            anno.x_top_left -= self.crop[0]
+            anno.y_top_left -= self.crop[1]
+
+            return anno
 
 
 class Letterbox(BaseMultiTransform):
@@ -114,6 +168,10 @@ class Letterbox(BaseMultiTransform):
     Note:
         Create 1 Letterbox object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
+
+    Warning:
+        This modifier changes the annotation dataframe inplace! |br|
+        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, dimension=None, dataset=None, fill_color=127):
         self.dimension = dimension
@@ -196,18 +254,18 @@ class Letterbox(BaseMultiTransform):
         img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=self.fill_color)
         return img
 
-    def _tf_anno(self, annos):
+    def _tf_anno(self, anno):
         """ Change coordinates of an annotation, according to the previous letterboxing """
-        for anno in annos:
-            if self.scale is not None:
-                anno.x_top_left *= self.scale
-                anno.y_top_left *= self.scale
-                anno.width *= self.scale
-                anno.height *= self.scale
-            if self.pad is not None:
-                anno.x_top_left += self.pad[0]
-                anno.y_top_left += self.pad[1]
-        return annos
+        if self.scale is not None:
+            anno.x_top_left *= self.scale
+            anno.y_top_left *= self.scale
+            anno.width *= self.scale
+            anno.height *= self.scale
+        if self.pad is not None:
+            anno.x_top_left += self.pad[0]
+            anno.y_top_left += self.pad[1]
+
+        return anno
 
 
 #
@@ -222,6 +280,10 @@ class RandomFlip(BaseMultiTransform):
     Note:
         Create 1 RandomFlip object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
+
+    Warning:
+        This modifier changes the annotation dataframe inplace! |br|
+        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, threshold):
         self.threshold = threshold
@@ -247,13 +309,12 @@ class RandomFlip(BaseMultiTransform):
             img = cv2.flip(img, 1)
         return img
 
-    def _tf_anno(self, annos):
+    def _tf_anno(self, anno):
         """ Change coordinates of an annotation, according to the previous flip """
         if self.flip and self.im_w is not None:
-            for anno in annos:
-                anno.x_top_left = self.im_w - anno.x_top_left - anno.width
+            anno.x_top_left = self.im_w - anno.x_top_left - anno.width
 
-        return annos
+        return anno
 
 
 class RandomHSV(BaseTransform):
@@ -342,17 +403,26 @@ class RandomJitter(BaseMultiTransform):
     Args:
         jitter (Number [0-1]): Indicates how much of the image we can crop
         crop_anno(Boolean, optional): Whether we crop the annotations inside the image crop; Default **False**
-        intersection_threshold(number or list, optional): Argument passed on to :class:`brambox.boxes.util.modifiers.CropModifier`
+        intersection_threshold(tuple(number) or number, optional): Minimal percentage of the annotation's box area that still needs to be inside the crop; Default **0.001**
+
+    Note:
+        If the `intersection_threshold` is a tuple of 2 numbers, then they are to be considered as **(width, height)** threshold values.
+        Ohterwise the threshold is to be considered as an area threshold.
 
     Note:
         Create 1 RandomCrop object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
+
+    Warning:
+        This modifier changes the annotation dataframe inplace! |br|
+        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001, fill_color=127):
         self.jitter = jitter
         self.crop_anno = crop_anno
         self.fill_color = fill_color
-        self.crop_modifier = bbb.CropModifier(float('Inf'), intersection_threshold)
+        self.intersection_threshold = intersection_threshold
+        self.crop = None
 
     def _get_crop(self, im_w, im_h):
         dw, dh = int(im_w*self.jitter), int(im_h*self.jitter)
@@ -360,10 +430,9 @@ class RandomJitter(BaseMultiTransform):
         crop_right = random.randint(-dw, dw)
         crop_top = random.randint(-dh, dh)
         crop_bottom = random.randint(-dh, dh)
-        crop = (crop_left, crop_top, im_w-crop_right, im_h-crop_bottom)
 
-        self.crop_modifier.area = crop
-        return crop
+        self.crop = (crop_left, crop_top, im_w-crop_right, im_h-crop_bottom)
+        return self.crop
 
     def _tf_pil(self, img):
         """ Take random crop from image """
@@ -401,33 +470,38 @@ class RandomJitter(BaseMultiTransform):
 
         return img_crop
 
-    def _tf_anno(self, annos):
+    def _tf_anno(self, anno):
         """ Change coordinates of an annotation, according to the previous crop """
-        if self.crop_anno:
-            bbb.modify(annos, [self.crop_modifier])
+        # Filter annotations inside crop
+        cropped = np.empty((4, len(anno.index)), dtype=np.float64)
+        cropped[0] = anno.x_top_left.clip(lower=self.crop[0]).values
+        cropped[1] = anno.y_top_left.clip(lower=self.crop[1]).values
+        cropped[2] = (anno.x_top_left + anno.width).clip(upper=self.crop[2]).values - cropped[0]
+        cropped[3] = (anno.y_top_left + anno.height).clip(upper=self.crop[3]).values - cropped[1]
+
+        if isinstance(self.intersection_threshold, collections.Sequence):
+            mask = ((cropped[2] / anno.width.values) >= self.intersection_threshold[0]) & ((cropped[3] / anno.height.values) >= self.intersection_threshold[1])
         else:
-            crop = self.crop_modifier.area
-            for i in range(len(annos)-1, -1, -1):
-                anno = annos[i]
-                x1 = max(crop[0], anno.x_top_left)
-                x2 = min(crop[2], anno.x_top_left+anno.width)
-                y1 = max(crop[1], anno.y_top_left)
-                y2 = min(crop[3], anno.y_top_left+anno.height)
-                w = x2-x1
-                h = y2-y1
+            mask = ((cropped[2] * cropped[3]) / (anno.width.values * anno.height.values)) >= self.intersection_threshold
+        mask = mask & (cropped[2] > 0) & (cropped[3] > 0)
 
-                if self.crop_modifier.inter_area:
-                    ratio = ((w * h) / (anno.width * anno.height)) < self.crop_modifier.inter_thresh
-                else:
-                    ratio = (w / anno.width) < self.crop_modifier.inter_thresh[0] or (h / anno.height) < self.crop_modifier.inter_thresh[1]
-                if w <= 0 or h <= 0 or ratio:
-                    del annos[i]
-                    continue
+        anno = anno[mask].copy()
+        if len(anno.index) == 0:
+            return anno
 
-                annos[i].x_top_left -= crop[0]
-                annos[i].y_top_left -= crop[1]
+        # Crop annotations
+        if self.crop_anno:
+            cropped = cropped[:, mask]
+            anno.truncated = (cropped[2] * cropped[3]) * (1 - anno.truncated) / (anno.width * anno.height)
+            anno.x_top_left = cropped[0]
+            anno.y_top_left = cropped[1]
+            anno.width = cropped[2]
+            anno.height = cropped[3]
 
-        return annos
+        anno.x_top_left -= self.crop[0]
+        anno.y_top_left -= self.crop[1]
+
+        return anno
 
 
 class RandomRotate(BaseMultiTransform):
@@ -440,6 +514,10 @@ class RandomRotate(BaseMultiTransform):
     Note:
         Create 1 RandomRotate object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
+
+    Warning:
+        This modifier changes the annotation dataframe inplace! |br|
+        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, jitter):
         self.jitter = jitter
@@ -463,40 +541,36 @@ class RandomRotate(BaseMultiTransform):
         M = cv2.getRotationMatrix2D((im_w/2, im_h/2), self.angle, 1)
         return cv2.warpAffine(img, M, (im_w, im_h))
 
-    def _tf_anno(self, annos):
+    def _tf_anno(self, anno):
         cx, cy = self.im_w/2, self.im_h/2
         rad = math.radians(-self.angle)
         cos_a = math.cos(rad)
         sin_a = math.sin(rad)
 
-        for anno in annos:
-            # Rotate anno
-            x1_c = anno.x_top_left - cx
-            y1_c = anno.y_top_left - cy
-            x2_c = x1_c + anno.width
-            y2_c = y1_c + anno.height
+        # Rotate anno
+        x1_c = anno.x_top_left - cx
+        y1_c = anno.y_top_left - cy
+        x2_c = x1_c + anno.width
+        y2_c = y1_c + anno.height
 
-            x1_r = (x1_c * cos_a - y1_c * sin_a) + cx
-            y1_r = (x1_c * sin_a + y1_c * cos_a) + cy
-            x2_r = (x2_c * cos_a - y1_c * sin_a) + cx
-            y2_r = (x2_c * sin_a + y1_c * cos_a) + cy
-            x3_r = (x2_c * cos_a - y2_c * sin_a) + cx
-            y3_r = (x2_c * sin_a + y2_c * cos_a) + cy
-            x4_r = (x1_c * cos_a - y2_c * sin_a) + cx
-            y4_r = (x1_c * sin_a + y2_c * cos_a) + cy
+        x1_r = (x1_c * cos_a - y1_c * sin_a) + cx
+        y1_r = (x1_c * sin_a + y1_c * cos_a) + cy
+        x2_r = (x2_c * cos_a - y1_c * sin_a) + cx
+        y2_r = (x2_c * sin_a + y1_c * cos_a) + cy
+        x3_r = (x2_c * cos_a - y2_c * sin_a) + cx
+        y3_r = (x2_c * sin_a + y2_c * cos_a) + cy
+        x4_r = (x1_c * cos_a - y2_c * sin_a) + cx
+        y4_r = (x1_c * sin_a + y2_c * cos_a) + cy
+        rot_x = np.stack([x1_r, x2_r, x3_r, x4_r])
+        rot_y = np.stack([y1_r, y2_r, y3_r, y4_r])
 
-            # Max rect box
-            x1_n = min(x1_r, x2_r, x3_r, x4_r)
-            y1_n = min(y1_r, y2_r, y3_r, y4_r)
-            x2_n = max(x1_r, x2_r, x3_r, x4_r)
-            y2_n = max(y1_r, y2_r, y3_r, y4_r)
+        # Max rect box
+        anno.x_top_left = rot_x.min(axis=0)
+        anno.y_top_left = rot_y.min(axis=0)
+        anno.width = rot_x.max(axis=0) - anno.x_top_left
+        anno.height = rot_y.max(axis=0) - anno.y_top_left
 
-            anno.x_top_left = x1_n
-            anno.y_top_left = y1_n
-            anno.width = x2_n - x1_n
-            anno.height = y2_n - y1_n
-
-        return annos
+        return anno
 
 
 #
@@ -515,7 +589,11 @@ class BramboxToTensor(BaseTransform):
         torch.Tensor: tensor of dimension [max_anno, 5] containing [class_idx,center_x,center_y,width,height] for every detection
 
     Warning:
-        If no class_label_map is given, this function will first try to convert the class_label to an integer. If that fails, it is simply given the number 0.
+        To convert annotations to a torch Tensor, you need to convert the `class_label` to an integer. |br|
+        For this purpose, this function will first check if the dataframe has a `class_index` column to use.
+        Otherwise, it will convert the strings by mapping them to the index of the `class_label_map` argument.
+        If no class_label_map is given, it will then try to convert the class_label to an integer, using `astype(int)`.
+        If that fails, it is simply given the number 0.
     """
     def __init__(self, dimension=None, dataset=None, max_anno=50, class_label_map=None):
         self.dimension = dimension
@@ -526,7 +604,7 @@ class BramboxToTensor(BaseTransform):
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
         if self.class_label_map is None:
-            log.warn('No class_label_map given. If the class_labels are not integers, they will be set to zero.')
+            log.warn('No class_label_map given. If there is no class_index column or if the class_labels are not integers, they will be set to zero.')
 
     def __call__(self, data):
         if self.dataset is not None:
@@ -537,13 +615,13 @@ class BramboxToTensor(BaseTransform):
 
     @classmethod
     def apply(cls, data, dimension, max_anno=None, class_label_map=None):
-        if not isinstance(data, collections.Sequence):
-            raise TypeError(f'BramboxToTensor only works with <brambox annotation list> [{type(data)}]')
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError(f'BramboxToTensor only works with brambox annotation dataframes [{type(data)}]')
 
-        anno_np = np.array([cls._tf_anno(anno, dimension, class_label_map) for anno in data], dtype=np.float32)
+        anno_np = cls._tf_anno(data, dimension, class_label_map)
 
         if max_anno is not None:
-            anno_len = len(data)
+            anno_len = len(anno_np)
             if anno_len > max_anno:
                 raise ValueError(f'More annotations than maximum allowed [{anno_len}/{max_anno}]')
 
@@ -562,16 +640,20 @@ class BramboxToTensor(BaseTransform):
         """ Transforms brambox annotation to list """
         net_w, net_h = dimension
 
-        if class_label_map is not None:
-            cls = class_label_map.index(anno.class_label)
+        if 'class_index' not in anno.columns:
+            if class_label_map is not None:
+                cls_idx = anno.class_label.map(dict((l, i) for i, l in enumerate(class_label_map))).values
+            else:
+                try:
+                    cls_idx = anno.class_label.astype(int).values
+                except ValueError:
+                    cls_idx = np.array([0] * len(anno))
         else:
-            try:
-                cls = int(anno.class_label)
-            except ValueError:
-                cls = 0
+            cls_idx = anno['class_index'].values
 
-        cx = (anno.x_top_left + (anno.width / 2)) / net_w
-        cy = (anno.y_top_left + (anno.height / 2)) / net_h
-        w = anno.width / net_w
-        h = anno.height / net_h
-        return [cls, cx, cy, w, h]
+        w = anno.width.values / net_w
+        h = anno.height.values / net_h
+        cx = anno.x_top_left.values / net_w + (w / 2)
+        cy = anno.y_top_left.values / net_h + (h / 2)
+
+        return np.stack([cls_idx, cx, cy, w, h], axis=-1).astype(np.float32)

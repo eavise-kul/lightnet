@@ -5,10 +5,10 @@
 #
 
 import logging
-import collections
 from abc import ABC, abstractmethod
 from PIL import Image
 import numpy as np
+import pandas as pd
 
 __all__ = ['Compose']
 log = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class BaseMultiTransform(ABC):
     def __call__(self, data):
         if data is None:
             return None
-        elif isinstance(data, collections.Sequence):
+        elif isinstance(data, pd.DataFrame):
             return self._tf_anno(data)
         elif isinstance(data, Image.Image):
             return self._tf_pil(data)
@@ -123,5 +123,5 @@ class BaseMultiTransform(ABC):
         return img
 
     @abstractmethod
-    def _tf_anno(self, annos):
-        return annos
+    def _tf_anno(self, anno):
+        return anno

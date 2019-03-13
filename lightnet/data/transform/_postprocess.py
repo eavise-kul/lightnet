@@ -1,13 +1,14 @@
 #
 #   Lightnet related postprocessing
-#   These are functions to transform the output of the network to brambox detection objects
+#   These are functions to transform the output of the network to brambox detection dataframes
 #   Copyright EAVISE
 #
 
 import logging
+import numpy as np
+import pandas as pd
 import torch
 from torch.autograd import Variable
-from brambox.boxes.detections.detection import *
 from .util import BaseTransform
 
 __all__ = ['GetBoundingBoxes', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
@@ -71,35 +72,21 @@ class GetBoundingBoxes(BaseTransform):
             cls_max_idx = torch.zeros_like(cls_max)
 
         score_thresh = cls_max > self.conf_thresh
-        score_thresh_flat = score_thresh.view(-1)
-
         if score_thresh.sum() == 0:
-            boxes = []
-            for i in range(batch):
-                boxes.append(torch.tensor([]))
-            return boxes
+            return torch.tensor([])
 
         # Mask select boxes > conf_thresh
         coords = network_output.transpose(2, 3)[..., 0:4]
         coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
         scores = cls_max[score_thresh]
         idx = cls_max_idx[score_thresh]
-        detections = torch.cat([coords, scores[:, None], idx[:, None]], dim=1)
 
-        # Get indices of splits between images of batch
-        max_det_per_batch = self.num_anchors * h * w
-        slices = [slice(max_det_per_batch * i, max_det_per_batch * (i+1)) for i in range(batch)]
-        det_per_batch = torch.IntTensor([score_thresh_flat[s].int().sum() for s in slices])
-        split_idx = torch.cumsum(det_per_batch, dim=0)
+        # Get batch numbers of the detections
+        batch_num = score_thresh.view(batch, -1)
+        nums = torch.arange(1, batch+1, dtype=batch_num.dtype, device=batch_num.device)
+        batch_num = (batch_num * nums[:, None])[batch_num] - 1
 
-        # Group detections per image of batch
-        boxes = []
-        start = 0
-        for end in split_idx:
-            boxes.append(detections[start: end])
-            start = end
-
-        return boxes
+        return torch.cat([batch_num[:, None].float(), coords, scores[:, None], idx[:, None]], dim=1)
 
 
 class NonMaxSupression(BaseTransform):
@@ -110,7 +97,7 @@ class NonMaxSupression(BaseTransform):
         class_nms (Boolean, optional): Whether to perform nms per class; Default **True**
 
     Returns:
-        (list [Batch x Tensor [Boxes x 6]]): **[x_center, y_center, width, height, confidence, class_id]** for every bounding box
+        (Tensor [Boxes x 7]]): **[batch_num, x_center, y_center, width, height, confidence, class_id]** for every bounding box
 
     Note:
         This post-processing function expects the input to be bounding boxes,
@@ -121,7 +108,13 @@ class NonMaxSupression(BaseTransform):
         self.class_nms = class_nms
 
     def __call__(self, boxes):
-        return [self._nms(box) for box in boxes]
+        batches = boxes[:, 0]
+        keep = torch.empty(boxes.shape[0], dtype=torch.uint8, device=boxes.device)
+        for batch in torch.unique(batches, sorted=False):
+            mask = batches == batch
+            keep[mask] = self._nms(boxes[mask])
+
+        return boxes[keep]
 
     def _nms(self, boxes):
         """ Non maximum suppression.
@@ -130,16 +123,16 @@ class NonMaxSupression(BaseTransform):
           boxes (tensor): Bounding boxes of one image
 
         Return:
-          (tensor): Pruned boxes
+            torch.ByteTensor: Mask containing 1 if a box is being kept and 0 for boxes that are pruned
         """
         if boxes.numel() == 0:
             return boxes
 
-        a = boxes[:, :2]
-        b = boxes[:, 2:4]
+        a = boxes[:, 1:3]
+        b = boxes[:, 3:5]
         bboxes = torch.cat([a-b/2, a+b/2], 1)
-        scores = boxes[:, 4]
-        classes = boxes[:, 5]
+        scores = boxes[:, 5]
+        classes = boxes[:, 6]
 
         # Sort coordinates by descending score
         scores, order = scores.sort(0, descending=True)
@@ -171,7 +164,8 @@ class NonMaxSupression(BaseTransform):
                 keep[i] = 1
                 supress[row] = 1
 
-        return boxes[order][keep[:, None].expand_as(boxes)].view(-1, 6).contiguous()
+        keep = keep.to(boxes.device)
+        return keep.scatter(0, order, keep)
 
 
 class TensorToBrambox(BaseTransform):
@@ -182,7 +176,7 @@ class TensorToBrambox(BaseTransform):
         class_label_map (list, optional): List of class labels to transform the class id's in actual names; Default **None**
 
     Returns:
-        (list [list [brambox.boxes.Detection]]): list of brambox detections per image
+        pandas.DataFrame: brambox detection dataframe where the `image` column contains the batch number (int column).
 
     Note:
         If no `class_label_map` is given, this transform will simply convert the class id's in a string.
@@ -198,36 +192,26 @@ class TensorToBrambox(BaseTransform):
             log.warn('No class_label_map given. The indexes will be used as class_labels.')
 
     def __call__(self, boxes):
-        converted_boxes = []
-        for box in boxes:
-            if box.numel() == 0:
-                converted_boxes.append([])
-            else:
-                converted_boxes.append(self._convert(box))
-        return converted_boxes
+        """ Convert torch tensor to brambox dataframe """
+        # coords: relative -> absolute
+        boxes[:, 1:4:2].mul_(self.width)
+        boxes[:, 2:5:2].mul_(self.height)
 
-    def _convert(self, boxes):
-        boxes[:, 0:3:2].mul_(self.width)
-        boxes[:, 0] -= boxes[:, 2] / 2
-        boxes[:, 1:4:2].mul_(self.height)
-        boxes[:, 1] -= boxes[:, 3] / 2
+        # X/Y: center -> top_left
+        boxes[:, 1:3] -= boxes[:, 3:5] / 2
 
-        brambox = []
-        for box in boxes:
-            det = Detection()
-            det.x_top_left = box[0].item()
-            det.y_top_left = box[1].item()
-            det.width = box[2].item()
-            det.height = box[3].item()
-            det.confidence = box[4].item()
-            if self.class_label_map is not None:
-                det.class_label = self.class_label_map[int(box[5].item())]
-            else:
-                det.class_label = str(int(box[5].item()))
+        # Convert to brambox df
+        boxes = boxes.cpu().numpy()
+        boxes = pd.DataFrame(boxes, columns=['image', 'x_top_left', 'y_top_left', 'width', 'height', 'confidence', 'class_label'])
+        boxes[['image', 'class_label']] = boxes[['image', 'class_label']].astype(int)
+        boxes['id'] = np.nan
+        boxes[['x_top_left', 'y_top_left', 'width', 'height', 'confidence']] = boxes[['x_top_left', 'y_top_left', 'width', 'height', 'confidence']].astype(float)
+        if self.class_label_map is not None:
+            boxes.class_label = boxes.class_label.map(dict((i, l) for i, l in enumerate(self.class_label_map)))
+        else:
+            boxes.class_label = boxes.class_label.astype(str)
 
-            brambox.append(det)
-
-        return brambox
+        return boxes[['image', 'class_label', 'id', 'x_top_left', 'y_top_left', 'width', 'height', 'confidence']]
 
 
 class ReverseLetterbox(BaseTransform):
@@ -238,15 +222,19 @@ class ReverseLetterbox(BaseTransform):
         image_size (tuple): Tuple containing the width and height of the original images
 
     Returns:
-        (list [list [brambox.boxes.Detection]]): list of brambox detections per image
+        pandas.DataFrame: brambox detection dataframe.
 
     Note:
-        This transform works on :class:`brambox.boxes.Detection` objects,
+        This transform works on a brambox detection dataframe,
         so you need to apply the :class:`~lightnet.data.TensorToBrambox` transform first.
 
     Note:
         Just like everything in PyTorch, this transform only works on batches of images.
         This means you need to wrap your tensor of detections in a list if you want to run this transform on a single image.
+
+    Warning:
+        This modifier changes the detection dataframe inplace! |br|
+        This is done for performance reasons, but means you need to pass a copy of the dataframe, if you want to keep the original.
     """
     def __init__(self, network_size, image_size):
         self.network_size = network_size
@@ -264,19 +252,16 @@ class ReverseLetterbox(BaseTransform):
             scale = im_h/net_h
         pad = int((net_w - im_w/scale) / 2), int((net_h - im_h/scale) / 2)
 
-        converted_boxes = []
-        for b in boxes:
-            converted_boxes.append(self._transform(b, scale, pad))
-        return converted_boxes
+        return self._transform(boxes, scale, pad)
 
     @staticmethod
     def _transform(boxes, scale, pad):
-        for box in boxes:
-            box.x_top_left -= pad[0]
-            box.y_top_left -= pad[1]
+        boxes.x_top_left -= pad[0]
+        boxes.y_top_left -= pad[1]
 
-            box.x_top_left *= scale
-            box.y_top_left *= scale
-            box.width *= scale
-            box.height *= scale
+        boxes.x_top_left *= scale
+        boxes.y_top_left *= scale
+        boxes.width *= scale
+        boxes.height *= scale
+
         return boxes
