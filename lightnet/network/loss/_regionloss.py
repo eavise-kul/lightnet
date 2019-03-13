@@ -4,6 +4,8 @@
 #
 
 import math
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -125,7 +127,7 @@ class RegionLoss(nn.modules.loss._Loss):
         pred_boxes = pred_boxes.cpu()
 
         # Get target values
-        coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls = self.build_targets(pred_boxes, target, nH, nW)
+        coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls = self.build_targets(pred_boxes, target, nB, nH, nW)
         coord_mask = coord_mask.expand_as(tcoord).to(device).sqrt()
         conf_mask = conf_mask.to(device).sqrt()
         tcoord = tcoord.to(device)
@@ -151,34 +153,33 @@ class RegionLoss(nn.modules.loss._Loss):
 
         return self.loss_tot
 
-    def build_targets(self, pred_boxes, ground_truth, nH, nW):
+    def build_targets(self, pred_boxes, ground_truth, nB, nH, nW):
         """ Compare prediction boxes and targets, convert targets to network output tensors """
         if torch.is_tensor(ground_truth):
-            return self.__build_targets_tensor(pred_boxes, ground_truth, nH, nW)
+            return self.__build_targets_tensor(pred_boxes, ground_truth, nB, nH, nW)
+        elif isinstance(ground_truth, pd.DataFrame):
+            return self.__build_targets_brambox(pred_boxes, ground_truth, nB, nH, nW)
         else:
-            return self.__build_targets_brambox(pred_boxes, ground_truth, nH, nW)
+            raise TypeError(f'Unkown ground truth format [{type(ground_truth)}]')
 
-    def __build_targets_tensor(self, pred_boxes, ground_truth, nH, nW):
+    def __build_targets_tensor(self, pred_boxes, ground_truth, nB, nH, nW):
         """ Compare prediction boxes and ground truths, convert ground truths to network output tensors """
         # Parameters
-        nB = ground_truth.size(0)
         nT = ground_truth.size(1)
         nA = self.num_anchors
         nAnchors = nA*nH*nW
         nPixels = nH*nW
 
         # Tensors
-        conf_mask = torch.ones(nB, nA, nPixels, requires_grad=False) * self.noobject_scale
-        coord_mask = torch.zeros(nB, nA, 1, nPixels, requires_grad=False)
-        cls_mask = torch.zeros(nB, nA, nPixels, requires_grad=False).byte()
-        tcoord = torch.zeros(nB, nA, 4, nPixels, requires_grad=False)
-        tconf = torch.zeros(nB, nA, nPixels, requires_grad=False)
-        tcls = torch.zeros(nB, nA, nPixels, requires_grad=False)
+        coord_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False)
+        conf_mask = torch.ones(nB, nA, nH, nW, requires_grad=False) * self.noobject_scale
+        cls_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False).byte()
+        tcoord = torch.zeros(nB, nA, 4, nH, nW, requires_grad=False)
+        tconf = torch.zeros(nB, nA, nH, nW, requires_grad=False)
+        tcls = torch.zeros(nB, nA, nH, nW, requires_grad=False)
 
-        if self.seen < self.coord_prefill:
+        if self.training and self.seen < self.coord_prefill:
             coord_mask.fill_(1)
-            # coord_mask.fill_(.01 / self.coord_scale)
-
             if self.anchor_step == 4:
                 tcoord[:, :, 0] = self.anchors[:, 2].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nPixels)
                 tcoord[:, :, 1] = self.anchors[:, 3].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nPixels)
@@ -209,51 +210,50 @@ class RegionLoss(nn.modules.loss._Loss):
             conf_mask[b][mask.view_as(conf_mask[b])] = 0
 
             # Find best anchor for each gt
-            gt_wh = gt.clone()
-            gt_wh[:, :2] = 0
-            iou_gt_anchors = bbox_ious(gt_wh, anchors)
+            iou_gt_anchors = bbox_wh_ious(gt, anchors)
             _, best_anchors = iou_gt_anchors.max(1)
 
             # Set masks and target values for each gt
-            gt_size = gt.size(0)
-            for i in range(gt_size):
-                gi = min(nW-1, max(0, int(gt[i, 0])))
-                gj = min(nH-1, max(0, int(gt[i, 1])))
-                best_n = best_anchors[i]
-                iou = iou_gt_pred[i][best_n*nPixels+gj*nW+gi]
+            nGT = gt.shape[0]
+            gi = gt[:, 0].clamp(0, nW-1).long()
+            gj = gt[:, 1].clamp(0, nH-1).long()
 
-                coord_mask[b][best_n][0][gj*nW+gi] = 2 - (gt[i, 2] * gt[i, 3]) / nPixels
-                cls_mask[b][best_n][gj*nW+gi] = 1
-                conf_mask[b][best_n][gj*nW+gi] = self.object_scale
-                tcoord[b][best_n][0][gj*nW+gi] = gt[i, 0] - gi
-                tcoord[b][best_n][1][gj*nW+gi] = gt[i, 1] - gj
-                tcoord[b][best_n][2][gj*nW+gi] = math.log(gt[i, 2]/self.anchors[best_n, 0])
-                tcoord[b][best_n][3][gj*nW+gi] = math.log(gt[i, 3]/self.anchors[best_n, 1])
-                tconf[b][best_n][gj*nW+gi] = iou
-                tcls[b][best_n][gj*nW+gi] = ground_truth[b, i, 0]
+            conf_mask[b, best_anchors, gj, gi] = self.object_scale
+            tconf[b, best_anchors, gj, gi] = iou_gt_pred.view(nGT, nA, nH, nW)[torch.arange(nGT), best_anchors, gj, gi]
+            coord_mask[b, best_anchors, gj, gi] = 2 - (gt[:, 2] * gt[:, 3]) / nPixels
+            tcoord[b, best_anchors, 0, gj, gi] = gt[:, 0] - gi.float()
+            tcoord[b, best_anchors, 1, gj, gi] = gt[:, 1] - gj.float()
+            tcoord[b, best_anchors, 2, gj, gi] = (gt[:, 2] / self.anchors[best_anchors, 0]).log()
+            tcoord[b, best_anchors, 3, gj, gi] = (gt[:, 3] / self.anchors[best_anchors, 1]).log()
+            cls_mask[b, best_anchors, gj, gi] = 1
+            tcls[b, best_anchors, gj, gi] = ground_truth[b, torch.arange(nGT), 0]
 
-        return coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls
+        return (
+            coord_mask.view(nB, nA, 1, nPixels),
+            conf_mask.view(nB, nA, nPixels),
+            cls_mask.view(nB, nA, nPixels),
+            tcoord.view(nB, nA, 4, nPixels),
+            tconf.view(nB, nA, nPixels),
+            tcls.view(nB, nA, nPixels)
+        )
 
-    def __build_targets_brambox(self, pred_boxes, ground_truth, nH, nW):
+    def __build_targets_brambox(self, pred_boxes, ground_truth, nB, nH, nW):
         """ Compare prediction boxes and ground truths, convert ground truths to network output tensors """
         # Parameters
-        nB = len(ground_truth)
         nA = self.num_anchors
         nAnchors = nA*nH*nW
         nPixels = nH*nW
 
         # Tensors
-        conf_mask = torch.ones(nB, nA, nPixels, requires_grad=False) * self.noobject_scale
-        coord_mask = torch.zeros(nB, nA, 1, nPixels, requires_grad=False)
-        cls_mask = torch.zeros(nB, nA, nPixels, requires_grad=False).byte()
-        tcoord = torch.zeros(nB, nA, 4, nPixels, requires_grad=False)
-        tconf = torch.zeros(nB, nA, nPixels, requires_grad=False)
-        tcls = torch.zeros(nB, nA, nPixels, requires_grad=False)
+        coord_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False)
+        conf_mask = torch.ones(nB, nA, nH, nW, requires_grad=False) * self.noobject_scale
+        cls_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False).byte()
+        tcoord = torch.zeros(nB, nA, 4, nH, nW, requires_grad=False)
+        tconf = torch.zeros(nB, nA, nH, nW, requires_grad=False)
+        tcls = torch.zeros(nB, nA, nH, nW, requires_grad=False)
 
-        if self.seen < self.coord_prefill:
+        if self.training and self.seen < self.coord_prefill:
             coord_mask.fill_(1)
-            # coord_mask.fill_(.01 / self.coord_scale)
-
             if self.anchor_step == 4:
                 tcoord[:, :, 0] = self.anchors[:, 2].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nPixels)
                 tcoord[:, :, 1] = self.anchors[:, 3].contiguous().view(1, nA, 1, 1).repeat(nB, 1, 1, nPixels)
@@ -261,23 +261,20 @@ class RegionLoss(nn.modules.loss._Loss):
                 tcoord[:, :, 0].fill_(0.5)
                 tcoord[:, :, 1].fill_(0.5)
 
-        for b in range(nB):
-            if len(ground_truth[b]) == 0:   # No gt for this image
-                continue
-
-            # Build up tensors
+        for b, gt_filtered in ground_truth.groupby('batch_number', sort=False):
             cur_pred_boxes = pred_boxes[b*nAnchors:(b+1)*nAnchors]
             if self.anchor_step == 4:
                 anchors = self.anchors.clone()
                 anchors[:, :2] = 0
             else:
                 anchors = torch.cat([torch.zeros_like(self.anchors), self.anchors], 1)
-            gt = torch.zeros(len(ground_truth[b]), 4)
-            for i, anno in enumerate(ground_truth[b]):
-                gt[i, 0] = (anno.x_top_left + anno.width/2) / self.reduction
-                gt[i, 1] = (anno.y_top_left + anno.height/2) / self.reduction
-                gt[i, 2] = anno.width / self.reduction
-                gt[i, 3] = anno.height / self.reduction
+
+            # Create ground_truth tensor
+            gt = torch.empty((gt_filtered.shape[0], 4), requires_grad=False)
+            gt[:, 2] = torch.from_numpy(gt_filtered.width.values) / self.reduction
+            gt[:, 3] = torch.from_numpy(gt_filtered.height.values) / self.reduction
+            gt[:, 0] = torch.from_numpy(gt_filtered.x_top_left.values).float() / self.reduction + (gt[:, 2] / 2)
+            gt[:, 1] = torch.from_numpy(gt_filtered.y_top_left.values).float() / self.reduction + (gt[:, 3] / 2)
 
             # Set confidence mask of matching detections to 0
             iou_gt_pred = bbox_ious(gt, cur_pred_boxes)
@@ -285,33 +282,43 @@ class RegionLoss(nn.modules.loss._Loss):
             conf_mask[b][mask.view_as(conf_mask[b])] = 0
 
             # Find best anchor for each gt
-            gt_wh = gt.clone()
-            gt_wh[:, :2] = 0
-            iou_gt_anchors = bbox_ious(gt_wh, anchors)
+            iou_gt_anchors = bbox_wh_ious(gt, anchors)
             _, best_anchors = iou_gt_anchors.max(1)
 
             # Set masks and target values for each gt
-            for i, anno in enumerate(ground_truth[b]):
-                gi = min(nW-1, max(0, int(gt[i, 0])))
-                gj = min(nH-1, max(0, int(gt[i, 1])))
-                best_n = best_anchors[i]
-                iou = iou_gt_pred[i][best_n*nPixels+gj*nW+gi]
+            nGT = gt.shape[0]
+            gi = gt[:, 0].clamp(0, nW-1).long()
+            gj = gt[:, 1].clamp(0, nH-1).long()
 
-                if anno.ignore:
-                    conf_mask[b][best_n][gj*nW+gi] = 0
-                    coord_mask[b][best_n][0][gj*nW+gi] = 0  # Explicitely set to zero for when seen < 12800
-                else:
-                    coord_mask[b][best_n][0][gj*nW+gi] = 2 - (gt[i, 2] * gt[i, 3]) / nPixels
-                    cls_mask[b][best_n][gj*nW+gi] = 1
-                    conf_mask[b][best_n][gj*nW+gi] = self.object_scale
-                    tcoord[b][best_n][0][gj*nW+gi] = gt[i, 0] - gi
-                    tcoord[b][best_n][1][gj*nW+gi] = gt[i, 1] - gj
-                    tcoord[b][best_n][2][gj*nW+gi] = math.log(gt[i, 2]/self.anchors[best_n, 0])
-                    tcoord[b][best_n][3][gj*nW+gi] = math.log(gt[i, 3]/self.anchors[best_n, 1])
-                    tconf[b][best_n][gj*nW+gi] = iou
-                    tcls[b][best_n][gj*nW+gi] = anno.class_id
+            conf_mask[b, best_anchors, gj, gi] = self.object_scale
+            tconf[b, best_anchors, gj, gi] = iou_gt_pred.view(nGT, nA, nH, nW)[torch.arange(nGT), best_anchors, gj, gi]
+            coord_mask[b, best_anchors, gj, gi] = 2 - (gt[:, 2] * gt[:, 3]) / nPixels
+            tcoord[b, best_anchors, 0, gj, gi] = gt[:, 0] - gi.float()
+            tcoord[b, best_anchors, 1, gj, gi] = gt[:, 1] - gj.float()
+            tcoord[b, best_anchors, 2, gj, gi] = (gt[:, 2] / self.anchors[best_anchors, 0]).log()
+            tcoord[b, best_anchors, 3, gj, gi] = (gt[:, 3] / self.anchors[best_anchors, 1]).log()
+            cls_mask[b, best_anchors, gj, gi] = 1
+            tcls[b, best_anchors, gj, gi] = torch.from_numpy(gt_filtered.class_id.values).float()
 
-        return coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls
+            # Set masks of ignored to zero
+            if gt_filtered.ignore.any():
+                ignore_mask = torch.from_numpy(gt_filtered.ignore.values.astype(np.uint8))
+                gi = gi[ignore_mask]
+                gj = gj[ignore_mask]
+                best_anchors = best_anchors[ignore_mask]
+
+                conf_mask[b, best_anchors, gj, gi] = 0
+                coord_mask[b, best_anchors, gj, gi] = 0
+                cls_mask[b, best_anchors, gj, gi] = 0
+
+        return (
+            coord_mask.view(nB, nA, 1, nPixels),
+            conf_mask.view(nB, nA, nPixels),
+            cls_mask.view(nB, nA, nPixels),
+            tcoord.view(nB, nA, 4, nPixels),
+            tconf.view(nB, nA, nPixels),
+            tcls.view(nB, nA, nPixels)
+        )
 
 
 def bbox_ious(boxes1, boxes2):
@@ -321,12 +328,12 @@ def bbox_ious(boxes1, boxes2):
         boxes1 (torch.Tensor): List of bounding boxes
         boxes2 (torch.Tensor): List of bounding boxes
 
-    Note:
-        List format: [[xc, yc, w, h],...]
-    """
-    b1_len = boxes1.size(0)
-    b2_len = boxes2.size(0)
+    Returns:
+        torch.Tensor[len(boxes1) X len(boxes2)]: IOU values
 
+    Note:
+        Tensor format: [[xc, yc, w, h],...]
+    """
     b1x1, b1y1 = (boxes1[:, :2] - (boxes1[:, 2:4] / 2)).split(1, 1)
     b1x2, b1y2 = (boxes1[:, :2] + (boxes1[:, 2:4] / 2)).split(1, 1)
     b2x1, b2y1 = (boxes2[:, :2] - (boxes2[:, 2:4] / 2)).split(1, 1)
@@ -339,5 +346,30 @@ def bbox_ious(boxes1, boxes2):
     areas1 = (b1x2 - b1x1) * (b1y2 - b1y1)
     areas2 = (b2x2 - b2x1) * (b2y2 - b2y1)
     unions = (areas1 + areas2.t()) - intersections
+
+    return intersections / unions
+
+
+def bbox_wh_ious(boxes1, boxes2):
+    """ Shorter version of :func:`lightnet.network.loss._regionloss.bbox_ious`
+    for when we are only interested in W/H of the bounding boxes and not X/Y.
+
+    Args:
+        boxes1 (torch.Tensor): List of bounding boxes
+        boxes2 (torch.Tensor): List of bounding boxes
+
+    Returns:
+        torch.Tensor[len(boxes1) X len(boxes2)]: IOU values when discarding X/Y offsets (aka. as if they were zero)
+
+    Note:
+        Tensor format: [[xc, yc, w, h],...]
+    """
+    b1w = boxes1[:, 2].unsqueeze(1)
+    b1h = boxes1[:, 3].unsqueeze(1)
+    b2w = boxes2[:, 2]
+    b2h = boxes2[:, 3]
+
+    intersections = b1w.min(b2w) * b1h.min(b2h)
+    unions = (b1w * b1h) + (b2w * b2h) - intersections
 
     return intersections / unions
