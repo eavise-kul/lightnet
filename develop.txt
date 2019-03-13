@@ -1,5 +1,5 @@
 # Runtime dependencies
-git+https://gitlab.com/EAVISE/brambox
+git+https://gitlab.com/EAVISE/brambox@develop
 
 # Development dependencies
 sphinx

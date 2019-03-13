@@ -72,7 +72,7 @@ class Lightnet(nn.Module):
                     x = self.postprocess(x)
                 return x, loss
             elif callable(self.postprocess):
-                    return self.postprocess(x)
+                return self.postprocess(x)
             else:
                 return x
 

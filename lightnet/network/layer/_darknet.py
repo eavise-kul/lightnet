@@ -34,7 +34,7 @@ class Conv2dBatchReLU(nn.Module):
         ... )   # doctest: +SKIP
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
-                 momentum=0.01, relu=lambda: nn.LeakyReLU(0.1, inplace = True)):
+                 momentum=0.01, relu=lambda: nn.LeakyReLU(0.1, inplace=True)):
         super().__init__()
 
         # Parameters

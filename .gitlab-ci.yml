@@ -20,7 +20,8 @@ stages:
 lint:
   stage: test
   script:
-    - pycodestyle --max-line-length=250 lightnet/ test/
+    - pycodestyle --max-line-length=250 lightnet/
+    - pycodestyle --max-line-length=250 test/
 
 unittest:
   stage: test
