@@ -5,7 +5,6 @@
 
 import logging
 import numpy as np
-import brambox.boxes as bbb
 
 
 __all__ = ['LinePlotter']
