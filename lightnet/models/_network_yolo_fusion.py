@@ -19,8 +19,6 @@ class YoloLateFusion(lnn.module.Darknet):
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
-        conf_thresh (Number, optional): Confidence threshold for postprocessing of the boxes; Default **0.25**
-        nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
         input_channels (Number, optional): Number of input channels for the main subnetwork; Default **3**
         fusion_channels (Number, optional): Number of input channels for the fusion subnetwork; Default **1**
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
@@ -29,8 +27,7 @@ class YoloLateFusion(lnn.module.Darknet):
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
     """
-    def __init__(self, num_classes=20, conf_thresh=.25, nms_thresh=.4, input_channels=3, fusion_channels=1,
-                 anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
+    def __init__(self, num_classes=20, input_channels=3, fusion_channels=1, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         """ Network initialisation """
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
@@ -117,14 +114,7 @@ class YoloLateFusion(lnn.module.Darknet):
         ]
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
 
-        # Post
-        self.loss = lnn.loss.RegionLoss(self.num_classes, self.anchors, self.reduction, self.seen)
-        self.postprocess = lnd.transform.Compose([
-            lnd.transform.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
-            lnd.transform.NonMaxSupression(nms_thresh, False)
-        ])
-
-    def _forward(self, x):
+    def forward(self, x):
         if x.size(1) != self.input_channels + self.fusion_channels:
             raise TypeError('This network requires {self.input_channels+self.fusion_channels} channel input images')
         main = x[:, :self.input_channels]
@@ -151,19 +141,11 @@ class YoloMidFusion(lnn.module.Darknet):
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
-        conf_thresh (Number, optional): Confidence threshold for postprocessing of the boxes; Default **0.25**
-        nms_thresh (Number, optional): Non-maxima suppression threshold for postprocessing; Default **0.4**
         input_channels (Number, optional): Number of input channels for the main subnetwork; Default **3**
         fusion_channels (Number, optional): Number of input channels for the fusion subnetwork; Default **1**
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
-
-    Attributes:
-        self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
-        self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
     """
-    def __init__(self, num_classes=20, conf_thresh=.25, nms_thresh=.4, input_channels=3, fusion_channels=1,
-                 anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
-        """ Network initialisation """
+    def __init__(self, num_classes=20, input_channels=3, fusion_channels=1, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
             raise TypeError('Anchors need to be a 2D list of numbers')
@@ -247,14 +229,7 @@ class YoloMidFusion(lnn.module.Darknet):
         ]
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
 
-        # Post
-        self.loss = lnn.loss.RegionLoss(self.num_classes, self.anchors, self.reduction)
-        self.postprocess = lnd.transform.Compose([
-            lnd.transform.GetBoundingBoxes(self.num_classes, self.anchors, conf_thresh),
-            lnd.transform.NonMaxSupression(nms_thresh)
-        ])
-
-    def _forward(self, x):
+    def forward(self, x):
         if x.size(1) != self.input_channels + self.fusion_channels:
             raise TypeError('This network requires {self.input_channels+self.fusion_channels} channel input images')
         main = x[:, :self.input_channels]

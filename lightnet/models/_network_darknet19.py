@@ -21,11 +21,6 @@ class Darknet19(lnn.module.Darknet):
         num_classes (Number, optional): Number of classes; Default **1000**
         input_channels (Number, optional): Number of input channels; Default **3**
 
-    Attributes:
-        self.loss (fn): loss function; Default :class:`torch.nn.Crossentropyloss`
-        self.postprocess (fn): Postprocessing function; Default :class:`torch.nn.Softmax`
-        self.remap_yolo (list): Remapping sequences for :func:`~lightnet.network.module.Lightnet.save` that allow to save the first 23 layers for using them with :class:`~lightnet.models.Yolo`.
-
     .. _Darknet19: https://github.com/pjreddie/darknet/blob/master/cfg/darknet19.cfg
     """
     remap_yolo = [
@@ -35,7 +30,6 @@ class Darknet19(lnn.module.Darknet):
     ]
 
     def __init__(self, num_classes=1000, input_channels=3):
-        """ Network initialisation """
         super().__init__()
 
         # Parameters
@@ -71,12 +65,3 @@ class Darknet19(lnn.module.Darknet):
                 ('25_avgpool',      lnn.layer.GlobalAvgPool2d())
             ])
         )
-
-        # Post
-        self.loss = nn.CrossEntropyLoss(size_average=False)
-        self.postprocess = lnd.transform.Compose([
-            nn.Softmax(1)
-        ])
-
-    def _forward(self, x):
-        return self.layers(x)
