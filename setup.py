@@ -1,3 +1,5 @@
+import os
+import subprocess
 import setuptools as setup
 from pkg_resources import get_distribution, DistributionNotFound
 
@@ -14,6 +16,14 @@ def find_packages():
 def get_version():
     with open('VERSION', 'r') as f:
         version = f.read().splitlines()[0]
+    if version[-1] == 'a':  # Alpha dev-build
+        try:
+            cwd = os.path.dirname(os.path.abspath(__file__))
+            sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cwd).decode('ascii').strip()
+            version += '-' + sha[:7]
+        except Exception:
+            pass
+
     with open('lightnet/version.py', 'w') as f:
         f.write('#\n')
         f.write('#   Lightnet version: Automatically generated version file\n')
