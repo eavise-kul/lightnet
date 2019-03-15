@@ -52,7 +52,7 @@ class Compose(list):
     def __repr__(self):
         format_string = self.__class__.__name__ + ' ['
         for tf in self:
-            format_string += '\n  {tf}'
+            format_string += f'\n  {tf.__name__}'
         format_string += '\n]'
         return format_string
 
