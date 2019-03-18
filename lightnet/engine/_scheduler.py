@@ -65,14 +65,6 @@ class SchedulerCompositor:
 
     def state_dict(self):
         state_dict = [s.state_dict() for s in self.sched]
-
-        # Dont save lambdas/functions
-        # -> it is pointless as you need the definitions before unpickling, so you have the functions already
-        # TODO: Remove this quickfix once https://github.com/pytorch/pytorch/pull/9927 lands in a release
-        for sd in state_dict:
-            if 'lr_lambdas' in sd:
-                del sd['lr_lambdas']
-
         return state_dict
 
     def load_state_dict(self, state):
