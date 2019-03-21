@@ -38,7 +38,7 @@ class YoloLateFusion(lnn.module.Darknet):
         # Parameters
         self.num_classes = num_classes
         self.anchors = anchors
-        self.reduction = 32     # input_dim/output_dim
+        self.stride = 32
         self.input_channels = input_channels
         self.fusion_channels = fusion_channels
 
@@ -155,7 +155,7 @@ class YoloMidFusion(lnn.module.Darknet):
         # Parameters
         self.num_classes = num_classes
         self.anchors = anchors
-        self.reduction = 32     # input_dim/output_dim
+        self.stride = 32
         self.input_channels = input_channels
         self.fusion_channels = fusion_channels
 

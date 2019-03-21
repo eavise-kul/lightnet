@@ -37,7 +37,7 @@ class MobileNetYolo(lnn.module.Lightnet):
         # Parameters
         self.num_classes = num_classes
         self.anchors = anchors
-        self.reduction = 32     # input_dim/output_dim
+        self.stride = 32
 
         # Network
         layer_list = [

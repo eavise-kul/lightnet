@@ -19,7 +19,7 @@ class RegionLoss(nn.modules.loss._Loss):
     Args:
         num_classes (int): number of classes to detect
         anchors (list): 2D list representing anchor boxes (see :class:`lightnet.network.Darknet`)
-        reduction (optional, int): The downsampling factor of the network; Default **32**
+        stride (optional, int): The downsampling factor of the network (input_dimension / output_dimension); Default **32**
         seen (optional, torch.Tensor): How many images the network has already been trained on; Default **0**
         coord_scale (optional, float): weight of bounding box coordinates; Default **1.0**
         noobject_scale (optional, float): weight of regions without target boxes; Default **1.0**
@@ -28,13 +28,13 @@ class RegionLoss(nn.modules.loss._Loss):
         thresh (optional, float): minimum iou between a predicted box and ground truth for them to be considered matching; Default **0.6**
         coord_prefill (optional, int): This parameter controls for how many images the network will prefill the target coordinates, biassing the network to predict the center at **.5,.5**; Default **12800**
     """
-    def __init__(self, num_classes, anchors, reduction=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6, coord_prefill=12800):
+    def __init__(self, num_classes, anchors, stride=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6, coord_prefill=12800):
         super().__init__()
         self.num_classes = num_classes
         self.num_anchors = len(anchors)
         self.anchor_step = len(anchors[0])
         self.anchors = torch.Tensor(anchors)
-        self.reduction = reduction
+        self.stride = stride
         self.register_buffer('seen', torch.tensor(seen))
 
         self.coord_scale = coord_scale
@@ -45,7 +45,7 @@ class RegionLoss(nn.modules.loss._Loss):
         self.coord_prefill = coord_prefill
 
     def extra_repr(self):
-        repr_str = f'classes={self.num_classes}, reduction={self.reduction}, threshold={self.thresh}, seen={self.seen.item()}\n'
+        repr_str = f'classes={self.num_classes}, stride={self.stride}, threshold={self.thresh}, seen={self.seen.item()}\n'
         repr_str += f'coord_scale={self.coord_scale}, object_scale={self.object_scale}, noobject_scale={self.noobject_scale}, class_scale={self.class_scale}\n'
         repr_str += f'anchors='
         for a in self.anchors:
@@ -271,10 +271,10 @@ class RegionLoss(nn.modules.loss._Loss):
 
             # Create ground_truth tensor
             gt = torch.empty((gt_filtered.shape[0], 4), requires_grad=False)
-            gt[:, 2] = torch.from_numpy(gt_filtered.width.values) / self.reduction
-            gt[:, 3] = torch.from_numpy(gt_filtered.height.values) / self.reduction
-            gt[:, 0] = torch.from_numpy(gt_filtered.x_top_left.values).float() / self.reduction + (gt[:, 2] / 2)
-            gt[:, 1] = torch.from_numpy(gt_filtered.y_top_left.values).float() / self.reduction + (gt[:, 3] / 2)
+            gt[:, 2] = torch.from_numpy(gt_filtered.width.values) / self.stride
+            gt[:, 3] = torch.from_numpy(gt_filtered.height.values) / self.stride
+            gt[:, 0] = torch.from_numpy(gt_filtered.x_top_left.values).float() / self.stride + (gt[:, 2] / 2)
+            gt[:, 1] = torch.from_numpy(gt_filtered.y_top_left.values).float() / self.stride + (gt[:, 3] / 2)
 
             # Set confidence mask of matching detections to 0
             iou_gt_pred = bbox_ious(gt, cur_pred_boxes)

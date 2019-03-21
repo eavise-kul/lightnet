@@ -34,7 +34,7 @@ class TinyYolo(lnn.module.Darknet):
         # Parameters
         self.num_classes = num_classes
         self.anchors = anchors
-        self.reduction = 32
+        self.stride = 32
 
         # Network
         self.layers = nn.Sequential(
