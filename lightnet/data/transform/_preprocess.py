@@ -275,7 +275,8 @@ class RandomFlip(BaseMultiTransform):
     """ Randomly flip image.
 
     Args:
-        threshold (Number [0-1]): Chance of flipping the image
+        horizontal (Number [0-1]): Chance of flipping the image horizontally
+        vertical (Number [0-1], optional): Chance of flipping the image vertically; Default **0**
 
     Note:
         Create 1 RandomFlip object and use it for both image and annotation transforms.
@@ -285,34 +286,52 @@ class RandomFlip(BaseMultiTransform):
         This modifier changes the annotation dataframe inplace! |br|
         This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
-    def __init__(self, threshold):
-        self.threshold = threshold
-        self.flip = False
+    def __init__(self, horizontal, vertical=0):
+        self.horizontal = horizontal
+        self.vertical = vertical
+        self.flip_h = False
+        self.flip_v = False
         self.im_w = None
+        self.im_h = None
 
     def _get_flip(self):
-        self.flip = random.random() < self.threshold
+        self.flip_h = random.random() < self.horizontal
+        self.flip_v = random.random() < self.vertical
 
     def _tf_pil(self, img):
         """ Randomly flip image """
         self._get_flip()
-        self.im_w = img.size[0]
-        if self.flip:
+        self.im_w, self.im_h = img.size
+
+        if self.flip_h and self.flip_v:
+            img = img.transpose(Image.ROTATE_180)
+        elif self.flip_h:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
+        elif self.flip_v:
+            img = img.transpose(Image.FLIP_TOP_BOTTOM)
+
         return img
 
     def _tf_cv(self, img):
         """ Randomly flip image """
         self._get_flip()
-        self.im_w = img.shape[1]
-        if self.flip:
+        self.im_h, self.im_w = img.shape[:2]
+
+        if self.flip_h and self.flip_v:
+            img = cv2.flip(img, -1)
+        elif self.flip_h:
             img = cv2.flip(img, 1)
+        elif self.flip_v:
+            img = cv2.flip(img, 0)
+
         return img
 
     def _tf_anno(self, anno):
         """ Change coordinates of an annotation, according to the previous flip """
-        if self.flip and self.im_w is not None:
+        if self.flip_h and self.im_w is not None:
             anno.x_top_left = self.im_w - anno.x_top_left - anno.width
+        if self.flip_v and self.im_h is not None:
+            anno.y_top_left = self.im_h - anno.y_top_left - anno.height
 
         return anno
 
