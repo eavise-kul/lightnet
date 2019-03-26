@@ -35,6 +35,11 @@ class Darknet(Lightnet):
         Note:
             The ``strict`` parameter only works for pytorch pickle files.
             See :class:`~lightnet.network.module.Lightnet` for more information.
+
+        Note:
+            Darknet weight files also contain the number of images the network has been trained on. |br|
+            In Lightnet however, this is a parameter from the loss function and as such this value cannot be correctly set on that object.
+            This value will thus be ignored by lightnet and when saving a darknet file, this value will be set to zero.
         """
         if os.path.splitext(weights_file)[1] == '.pt':
             log.debug('Loading weights from pytorch file')
@@ -66,8 +71,6 @@ class Darknet(Lightnet):
     def _load_darknet_weights(self, weights_file):
         weights = WeightLoader(weights_file)
         self.header = weights.header
-        if hasattr(self.loss, 'seen'):
-            self.loss.seen = torch.tensor(weights.seen)
 
         for module in self.layer_loop():
             try:
@@ -80,11 +83,7 @@ class Darknet(Lightnet):
                 log.debug(f'Layer skipped: {module.__class__.__name__}')
 
     def _save_darknet_weights(self, weights_file):
-        if hasattr(self.loss, 'seen'):
-            seen = self.loss.seen.item()
-        else:
-            seen = 0
-        weights = WeightSaver(self.header, seen)
+        weights = WeightSaver(self.header, 0)
 
         for module in self.layer_loop():
             try:
