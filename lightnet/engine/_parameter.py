@@ -34,6 +34,11 @@ class HyperParameters:
         the parameter class will store it as a regular property without the leading **_**, but it will not serialize this variable.
         This allows you to store all parameters in this object, regardless of whether you want to serialize it.
 
+        This also works when assigning new values after the object creation:
+            >>> param = ln.engine.HyperParameters()
+            >>> param._dummy = 666  # This wil store it as .dummy and add it to the list that does not need to be serialized.
+            >>> print(param.dummy)  # 666
+
     Note:
         ``batch_size`` must be a multiple of ``mini_batch_size``.
 
@@ -43,6 +48,8 @@ class HyperParameters:
         If you are using this class, save it as a regular variable, through another name (via kwargs). |br|
         I know this solution is suboptimal, but I am not willing to hack around this, as I believe this is something dirty in the torch codebase itself and should be handled there.
     """
+    __init_done = False
+
     def __init__(self, network=None, optimizers=None, schedulers=None, batch_size=1, mini_batch_size=None, **kwargs):
         self.network = network
         self.batch_size = batch_size
@@ -82,6 +89,67 @@ class HyperParameters:
                     self.__no_serialize.append(key)
             else:
                 log.error(f'{key} attribute already exists as a HyperParameter and will not be overwritten.')
+
+        self.__init_done = True
+
+    def __setattr__(self, item, value):
+        """ Store extra variables in this container class.
+        This custom function allows to store objects after creation and mark whether are not you want to serialize them,
+        by prefixing them with an underscore.
+        """
+        if item in self.__dict__ or not self.__init_done:
+            super().__setattr__(item, value)
+        elif item[0] == '_':
+            if item[1:] in self.__dict__:
+                log.error(f'{item} already stored in this object, not overwriting! Use {item[1:]} to access and modify it.')
+                return
+            self.__no_serialize.append(item[1:])
+            super().__setattr__(item[1:], value)
+        else:
+            super().__setattr__(item, value)
+
+    def __repr__(self):
+        """ Print all values stored in the object.
+        Objects that will not be serialized are marked with an asterisk.
+        """
+        s = f'{self.__class__.__name__}(\n'
+        if self.network is None:
+            s += '  [No Network]\n  '
+        else:
+            s += f'  {self.network.__class__.__name__}\n  '
+
+        if self.optimizers is None:
+            s += '[No Optimizers]\n  '
+        else:
+            for i, o in enumerate(self.optimizers):
+                if i != 0:
+                    s += ', '
+                s += o.__class__.__name__
+            s += '\n  '
+
+        if self.schedulers is None:
+            s += '[No Schedulers]\n'
+        else:
+            for i, sc in enumerate(self.schedulers):
+                if i != 0:
+                    s += ', '
+                s += sc.__class__.__name__
+            s += '\n'
+
+        for k in sorted(self.__dict__.keys()):
+            if k.startswith('_HyperParameters__') or k in ['network', 'optimizers', 'schedulers']:
+                continue
+
+            val = self.__dict__[k]
+            valrepr = str(val)
+            if '\n' in valrepr:
+                valrepr = val.__class__.__name__
+            if k in self.__no_serialize:
+                k += '*'
+
+            s += f'\n  {k} = {valrepr}'
+
+        return s + '\n)'
 
     @classmethod
     def from_file(cls, path, variable='params', **kwargs):
@@ -167,7 +235,8 @@ class HyperParameters:
         """
         state = {k: v for k, v in vars(self).items() if k not in self.__no_serialize}
 
-        state['network'] = self.network.state_dict()
+        if self.network is not None:
+            state['network'] = self.network.state_dict()
         if self.optimizers is not None:
             state['optimizers'] = [optim.state_dict() for optim in self.optimizers]
         if self.schedulers is not None:
@@ -183,12 +252,13 @@ class HyperParameters:
         """
         state = torch.load(filename, lambda storage, loc: storage)
 
-        self.network.load_state_dict(state.pop('network'), strict=strict)
-        if self.optimizers is not None:
+        if self.network is not None and 'network' in state:
+            self.network.load_state_dict(state.pop('network'), strict=strict)
+        if self.optimizers is not None and 'optimizers' in state:
             optim_state = state.pop('optimizers')
             for i, optim in enumerate(self.optimizers):
                 optim.load_state_dict(optim_state[i])
-        if self.schedulers is not None:
+        if self.schedulers is not None and 'schedulers' in state:
             sched_state = state.pop('schedulers')
             for i, sched in enumerate(self.schedulers):
                 sched.load_state_dict(sched_state[i])
@@ -198,24 +268,27 @@ class HyperParameters:
 
     def to(self, device):
         """ Cast the parameters from the network, optimizers and schedulers to a given device. """
-        self.network.to(device)
+        if self.network is not None:
+            self.network.to(device)
 
-        for optim in self.optimizers:
-            for param in optim.state.values():
-                if isinstance(param, torch.Tensor):
-                    param.data = param.data.to(device)
-                    if param._grad is not None:
-                        param._grad.data = param._grad.data.to(device)
-                elif isinstance(param, dict):
-                    for subparam in param.values():
-                        if isinstance(subparam, torch.Tensor):
-                            subparam.data = subparam.data.to(device)
-                            if subparam._grad is not None:
-                                subparam._grad.data = subparam._grad.data.to(device)
+        if self.optimizers is not None:
+            for optim in self.optimizers:
+                for param in optim.state.values():
+                    if isinstance(param, torch.Tensor):
+                        param.data = param.data.to(device)
+                        if param._grad is not None:
+                            param._grad.data = param._grad.data.to(device)
+                    elif isinstance(param, dict):
+                        for subparam in param.values():
+                            if isinstance(subparam, torch.Tensor):
+                                subparam.data = subparam.data.to(device)
+                                if subparam._grad is not None:
+                                    subparam._grad.data = subparam._grad.data.to(device)
 
-        for sched in self.schedulers:
-            for param in sched.__dict__.values():
-                if isinstance(param, torch.Tensor):
-                    param.data = param.data.to(device)
-                    if param._grad is not None:
-                        param._grad.data = param._grad.data.to(device)
+        if self.schedulers is not None:
+            for sched in self.schedulers:
+                for param in sched.__dict__.values():
+                    if isinstance(param, torch.Tensor):
+                        param.data = param.data.to(device)
+                        if param._grad is not None:
+                            param._grad.data = param._grad.data.to(device)
