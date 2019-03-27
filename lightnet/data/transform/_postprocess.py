@@ -11,7 +11,7 @@ import torch
 from torch.autograd import Variable
 from .util import BaseTransform
 
-__all__ = ['GetBoundingBoxes', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
+__all__ = ['GetBoundingBoxes', 'NonMaxSuppression', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
 log = logging.getLogger(__name__)
 
 
@@ -24,7 +24,7 @@ class GetBoundingBoxes(BaseTransform):
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
 
     Returns:
-        (list [Batch x Tensor [Boxes x 6]]): **[x_center, y_center, width, height, confidence, class_id]** for every bounding box
+        (Tensor [Boxes x 7]]): **[batch_num, x_center, y_center, width, height, confidence, class_id]** for every bounding box
 
     Note:
         The output tensor uses relative values for its coordinates.
@@ -89,7 +89,7 @@ class GetBoundingBoxes(BaseTransform):
         return torch.cat([batch_num[:, None].float(), coords, scores[:, None], idx[:, None]], dim=1)
 
 
-class NonMaxSupression(BaseTransform):
+class NonMaxSuppression(BaseTransform):
     """ Performs nms on the bounding boxes, filtering boxes with a high overlap.
 
     Args:
@@ -166,6 +166,11 @@ class NonMaxSupression(BaseTransform):
 
         keep = keep.to(boxes.device)
         return keep.scatter(0, order, keep)
+
+
+def NonMaxSupression(*args, **kwargs):
+    log.deprecated('NonMaxSupression is deprecated, please use the correctly spelled NonMaxSuppression (2 p\'s)!')
+    return NonMaxSuppression(*args, **kwargs)
 
 
 class TensorToBrambox(BaseTransform):
