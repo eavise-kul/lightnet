@@ -108,6 +108,9 @@ class NonMaxSuppression(BaseTransform):
         self.class_nms = class_nms
 
     def __call__(self, boxes):
+        if boxes.numel() == 0:
+            return boxes
+
         batches = boxes[:, 0]
         keep = torch.empty(boxes.shape[0], dtype=torch.uint8, device=boxes.device)
         for batch in torch.unique(batches, sorted=False):
