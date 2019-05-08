@@ -198,6 +198,12 @@ class TensorToBrambox(BaseTransform):
 
     def __call__(self, boxes):
         """ Convert torch tensor to brambox dataframe """
+        if boxes.numel() == 0:
+            df = pd.DataFrame(columns=['image', 'class_label', 'id', 'x_top_left', 'y_top_left', 'width', 'height', 'confidence'])
+            df.image = df.image.astype(int)
+            df.class_label = df.class_label.astype(str)
+            return df
+
         # coords: relative -> absolute
         boxes[:, 1:4:2].mul_(self.width)
         boxes[:, 2:5:2].mul_(self.height)
