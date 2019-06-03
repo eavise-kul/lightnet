@@ -5,6 +5,7 @@
 
 import random
 import logging
+import collections
 from functools import wraps
 import pandas as pd
 import brambox as bb
@@ -229,21 +230,18 @@ def brambox_collate(batch):
         If the dataframes contain an 'image' categorical column (aka. brambox dataframes),
         they will be concatenated with the :func:`brambox.util.concat` function.
     """
-    items = list(zip(*batch))
-
-    for i in range(len(items)):
-        first = items[i][0]
-        if isinstance(first, (pd.DataFrame)):
-            for ii, df in enumerate(items[i]):
-                df['batch_number'] = ii
-            if 'image' in first.columns and first.image.dtype == 'category':
-                items[i] = bb.util.concat(items[i], ignore_index=True, sort=False)
-            else:
-                items[i] = pd.concat(items[i], ignore_index=True, sort=False)
+    if isinstance(batch[0], pd.DataFrame):
+        for i, df in enumerate(batch):
+            df['batch_number'] = i
+        if 'image' in batch[0].columns and batch[0].image.dtype == 'category':
+            return bb.util.concat(batch, ignore_index=True, sort=False)
         else:
-            items[i] = default_collate(items[i])
-
-    return items
+            return pd.concat(batch, ignore_index=True, sort=False)
+    elif isinstance(batch[0], collections.abc.Sequence) and not isinstance(batch[0], (str, bytes)):
+        transposed = zip(*batch)
+        return [brambox_collate(samples) for samples in transposed]
+    else:
+        return default_collate(batch)
 
 
 def list_collate(batch):
