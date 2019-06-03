@@ -27,6 +27,8 @@ class YoloLateFusion(lnn.module.Darknet):
         self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
         self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
     """
+    stride = 32
+
     def __init__(self, num_classes=20, input_channels=3, fusion_channels=1, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         """ Network initialisation """
         super().__init__()
@@ -38,7 +40,6 @@ class YoloLateFusion(lnn.module.Darknet):
         # Parameters
         self.num_classes = num_classes
         self.anchors = anchors
-        self.stride = 32
         self.input_channels = input_channels
         self.fusion_channels = fusion_channels
 
@@ -145,6 +146,8 @@ class YoloMidFusion(lnn.module.Darknet):
         fusion_channels (Number, optional): Number of input channels for the fusion subnetwork; Default **1**
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
     """
+    stride = 32
+
     def __init__(self, num_classes=20, input_channels=3, fusion_channels=1, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
@@ -155,7 +158,6 @@ class YoloMidFusion(lnn.module.Darknet):
         # Parameters
         self.num_classes = num_classes
         self.anchors = anchors
-        self.stride = 32
         self.input_channels = input_channels
         self.fusion_channels = fusion_channels
 

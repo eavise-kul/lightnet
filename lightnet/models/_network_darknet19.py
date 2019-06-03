@@ -23,6 +23,7 @@ class Darknet19(lnn.module.Darknet):
 
     .. _Darknet19: https://github.com/pjreddie/darknet/blob/master/cfg/darknet19.cfg
     """
+    stride = 32
     remap_yolo = [
         (r'^layers.([1-9]_)', r'layers.0.\1'),
         (r'^layers.(1[0-7]_)', r'layers.0.\1'),

@@ -26,6 +26,8 @@ class TinyYolo(lnn.module.Darknet):
 
     .. _Tiny Yolo v2: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/tiny-yolo-voc.cfg
     """
+    stride = 32
+
     def __init__(self, num_classes=20, input_channels=3, anchors=[(1.08, 1.19), (3.42, 4.41), (6.63, 11.38), (9.42, 5.11), (16.62, 10.52)]):
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
@@ -34,7 +36,6 @@ class TinyYolo(lnn.module.Darknet):
         # Parameters
         self.num_classes = num_classes
         self.anchors = anchors
-        self.stride = 32
 
         # Network
         self.layers = nn.Sequential(
