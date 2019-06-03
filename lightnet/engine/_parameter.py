@@ -229,18 +229,23 @@ class HyperParameters:
         else:
             self.schedulers.append(scheduler)
 
-    def save(self, filename):
+    def save(self, filename, store_optim_sched=True):
         """ Serialize all the hyperparameters to a pickle file. |br|
         The network, optimizers and schedulers objects are serialized using their ``state_dict()`` functions.
+
+        Args:
+            filename (str or path): File to store the hyperparameters
+            store_optim_sched (bool, optional): Whether to store the optimizers and schedulers; Default **True**
         """
         state = {k: v for k, v in vars(self).items() if k not in self.__no_serialize}
 
         if self.network is not None:
             state['network'] = self.network.state_dict()
-        if self.optimizers is not None:
-            state['optimizers'] = [optim.state_dict() for optim in self.optimizers]
-        if self.schedulers is not None:
-            state['schedulers'] = [sched.state_dict() for sched in self.schedulers]
+        if store_optim_sched:
+            if self.optimizers is not None:
+                state['optimizers'] = [optim.state_dict() for optim in self.optimizers]
+            if self.schedulers is not None:
+                state['schedulers'] = [sched.state_dict() for sched in self.schedulers]
 
         torch.save(state, filename)
 
