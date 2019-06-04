@@ -44,6 +44,9 @@ class RegionLoss(nn.modules.loss._Loss):
         self.thresh = thresh
         self.coord_prefill = coord_prefill
 
+        self.mse = nn.MSELoss(size_average=False)
+        self.cel = nn.CrossEntropyLoss(size_average=False)
+
     def extra_repr(self):
         repr_str = f'classes={self.num_classes}, stride={self.stride}, threshold={self.thresh}, seen={self.seen.item()}\n'
         repr_str += f'coord_scale={self.coord_scale}, object_scale={self.object_scale}, noobject_scale={self.noobject_scale}, class_scale={self.class_scale}\n'
@@ -138,12 +141,11 @@ class RegionLoss(nn.modules.loss._Loss):
             cls = cls[cls_mask].view(-1, nC)
 
         # Compute losses
-        mse = nn.MSELoss(size_average=False)
-        self.loss_coord = self.coord_scale * mse(coord*coord_mask, tcoord*coord_mask) / nB
-        self.loss_conf = mse(conf*conf_mask, tconf*conf_mask) / nB
+        self.loss_coord = self.coord_scale * self.mse(coord*coord_mask, tcoord*coord_mask) / nB
+        self.loss_conf = self.mse(conf*conf_mask, tconf*conf_mask) / nB
         if nC > 1:
             if tcls.numel() > 0:
-                self.loss_cls = self.class_scale * 2 * nn.CrossEntropyLoss(size_average=False)(cls, tcls) / nB
+                self.loss_cls = self.class_scale * 2 * self.cel(cls, tcls) / nB
             else:
                 self.loss_cls = torch.tensor(0.0).to(device)
             self.loss_tot = self.loss_coord + self.loss_conf + self.loss_cls
