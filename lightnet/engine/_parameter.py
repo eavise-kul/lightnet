@@ -18,6 +18,7 @@ class HyperParameters:
 
     Args:
         network (torch.nn.Module, optional): Network module; Default **None**
+        loss (torch.nn.Module, optional): Loss module; Default **None**
         optimizers (torch.optim.Optimizer or list of torch.optim.Optimizer, optional): Optimizer(s) for the network; Default **None**
         schedulers (torch.optim._LRScheduler or list of torch.optim._LRScheduler, optional): Scheduler(s) for the network; Default; **None**
         batch_size (int, optional): Size of a batch for training; Default **1**
@@ -73,7 +74,7 @@ class HyperParameters:
         else:
             self.schedulers = [schedulers]
 
-        self.__no_serialize = ['network', 'optimizers', 'schedulers']
+        self.__no_serialize = ['network', 'loss', 'optimizers', 'schedulers']
         for key in kwargs:
             if key.startswith('_'):
                 serialize = False
@@ -273,6 +274,10 @@ class HyperParameters:
 
     def to(self, device):
         """ Cast the parameters from the network, optimizers and schedulers to a given device. """
+        for key, value in self.__dict__.items():
+            if key not in ('network', 'optimizers', 'schedulers') and isinstance(value, torch.nn.Module):
+                value.to(device)
+
         if self.network is not None:
             self.network.to(device)
 
