@@ -245,10 +245,6 @@ class ReverseLetterbox(BaseTransform):
     Note:
         Just like everything in PyTorch, this transform only works on batches of images.
         This means you need to wrap your tensor of detections in a list if you want to run this transform on a single image.
-
-    Warning:
-        This modifier changes the detection dataframe inplace! |br|
-        This is done for performance reasons, but means you need to pass a copy of the dataframe, if you want to keep the original.
     """
     def __init__(self, network_size, image_size):
         self.network_size = network_size
@@ -266,7 +262,7 @@ class ReverseLetterbox(BaseTransform):
             scale = im_h/net_h
         pad = int((net_w - im_w/scale) / 2), int((net_h - im_h/scale) / 2)
 
-        return self._transform(boxes, scale, pad)
+        return self._transform(boxes.copy(), scale, pad)
 
     @staticmethod
     def _transform(boxes, scale, pad):
