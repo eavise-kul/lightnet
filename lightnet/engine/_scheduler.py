@@ -67,5 +67,18 @@ class SchedulerCompositor:
         state_dict = [s.state_dict() for s in self.sched]
         return state_dict
 
-    def load_state_dict(self, state):
+    def load_state_dict(self, state, strict=True):
         [self.sched[i].load_state_dict(s) for i, s in enumerate(state)]
+
+    def to(self, device):
+        """ Cast schedulers to a certain device.
+
+        Args:
+            device (torch.device): Device to cast the scheduler to.
+        """
+        for sched in self.sched:
+            for param in sched.__dict__.values():
+                if isinstance(param, torch.Tensor):
+                    param.data = param.data.to(device)
+                    if param._grad is not None:
+                        param._grad.data = param._grad.data.to(device)

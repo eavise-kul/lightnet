@@ -17,12 +17,6 @@ class HyperParameters:
     It allows to save the state of a training and reload it at a later stage.
 
     Args:
-        network (torch.nn.Module, optional): Network module; Default **None**
-        loss (torch.nn.Module, optional): Loss module; Default **None**
-        optimizers (torch.optim.Optimizer or list of torch.optim.Optimizer, optional): Optimizer(s) for the network; Default **None**
-        schedulers (torch.optim._LRScheduler or list of torch.optim._LRScheduler, optional): Scheduler(s) for the network; Default; **None**
-        batch_size (int, optional): Size of a batch for training; Default **1**
-        mini_batch_size (int, optional): Size of a mini-batch for training; Default **batch_size**
         **kwargs (dict, optional): Keywords arguments that will be set as attributes of the instance and serialized as well
 
     Attributes:
@@ -39,42 +33,14 @@ class HyperParameters:
             >>> param = ln.engine.HyperParameters()
             >>> param._dummy = 666  # This wil store it as .dummy and add it to the list that does not need to be serialized.
             >>> print(param.dummy)  # 666
-
-    Note:
-        ``batch_size`` must be a multiple of ``mini_batch_size``.
-
-    Warning:
-        The :class:`~torch.optim.lr_scheduler.ReduceLROnPlateau` LR scheduler does not follow the regular LR scheduler classes.
-        Therefore this class will not work with this HyperParameter function.
-        If you are using this class, save it as a regular variable, through another name (via kwargs). |br|
-        I know this solution is suboptimal, but I am not willing to hack around this, as I believe this is something dirty in the torch codebase itself and should be handled there.
     """
     __init_done = False
 
-    def __init__(self, network=None, optimizers=None, schedulers=None, batch_size=1, mini_batch_size=None, **kwargs):
-        self.network = network
-        self.batch_size = batch_size
+    def __init__(self, **kwargs):
         self.batch = 0
         self.epoch = 0
 
-        if mini_batch_size is None:
-            self.mini_batch_size = batch_size
-        elif batch_size % mini_batch_size != 0 or mini_batch_size > batch_size:
-            raise ValueError('batch_size should be a multiple of mini_batch_size')
-        else:
-            self.mini_batch_size = mini_batch_size
-
-        if optimizers is None or isinstance(optimizers, Iterable):
-            self.optimizers = optimizers
-        else:
-            self.optimizers = [optimizers]
-
-        if schedulers is None or isinstance(schedulers, Iterable):
-            self.schedulers = schedulers
-        else:
-            self.schedulers = [schedulers]
-
-        self.__no_serialize = ['network', 'loss', 'optimizers', 'schedulers']
+        self.__no_serialize = []
         for key in kwargs:
             if key.startswith('_'):
                 serialize = False
@@ -102,8 +68,7 @@ class HyperParameters:
             super().__setattr__(item, value)
         elif item[0] == '_':
             if item[1:] in self.__dict__:
-                log.error(f'{item} already stored in this object, not overwriting! Use {item[1:]} to access and modify it.')
-                return
+                raise AttributeError(f'{item} already stored in this object! Use {item[1:]} to access and modify it.')
             self.__no_serialize.append(item[1:])
             super().__setattr__(item[1:], value)
         else:
@@ -114,31 +79,8 @@ class HyperParameters:
         Objects that will not be serialized are marked with an asterisk.
         """
         s = f'{self.__class__.__name__}(\n'
-        if self.network is None:
-            s += '  [No Network]\n  '
-        else:
-            s += f'  {self.network.__class__.__name__}\n  '
-
-        if self.optimizers is None:
-            s += '[No Optimizers]\n  '
-        else:
-            for i, o in enumerate(self.optimizers):
-                if i != 0:
-                    s += ', '
-                s += o.__class__.__name__
-            s += '\n  '
-
-        if self.schedulers is None:
-            s += '[No Schedulers]\n'
-        else:
-            for i, sc in enumerate(self.schedulers):
-                if i != 0:
-                    s += ', '
-                s += sc.__class__.__name__
-            s += '\n'
-
         for k in sorted(self.__dict__.keys()):
-            if k.startswith('_HyperParameters__') or k in ['network', 'optimizers', 'schedulers']:
+            if k.startswith('_HyperParameters__'):
                 continue
 
             val = self.__dict__[k]
@@ -191,99 +133,61 @@ class HyperParameters:
         else:
             raise TypeError(f'Unkown type for configuration variable {variable} [{type(params).__name__}]. This variable should be a dictionary or lightnet.engine.HyperParameters object.')
 
-    @property
-    def optimizer(self):
-        """ Convenience property to access the first optimizer.
-
-        Return:
-            torch.optim.Optimizer: self.optimizers[0]
-        """
-        return self.optimizers[0]
-
-    @property
-    def scheduler(self):
-        """ Convenience property to access the first scheduler.
-
-        Return:
-            torch.optim.lr_scheduler: self.schedulers[0]
-        """
-        return self.schedulers[0]
-
-    @property
-    def batch_subdivisions(self):
-        """ Get number of mini-batches per batch.
-
-        Return:
-            int: Computed as self.batch_size // self.mini_batch_size
-        """
-        return self.batch_size // self.mini_batch_size
-
-    def add_optimizer(self, optimizer):
-        if self.optimizers is None:
-            self.optimizers = [optimizer]
-        else:
-            self.optimizers.append(optimizer)
-
-    def add_scheduler(self, scheduler):
-        if self.schedulers is None:
-            self.schedulers = [scheduler]
-        else:
-            self.schedulers.append(scheduler)
-
-    def save(self, filename, store_optim_sched=True):
+    def save(self, filename):
         """ Serialize all the hyperparameters to a pickle file. |br|
         The network, optimizers and schedulers objects are serialized using their ``state_dict()`` functions.
 
         Args:
             filename (str or path): File to store the hyperparameters
-            store_optim_sched (bool, optional): Whether to store the optimizers and schedulers; Default **True**
-        """
-        state = {k: v for k, v in vars(self).items() if k not in self.__no_serialize}
 
-        if self.network is not None:
-            state['network'] = self.network.state_dict()
-        if store_optim_sched:
-            if self.optimizers is not None:
-                state['optimizers'] = [optim.state_dict() for optim in self.optimizers]
-            if self.schedulers is not None:
-                state['schedulers'] = [sched.state_dict() for sched in self.schedulers]
+        Note:
+            This function will first check if the existing attributes have a `state_dict()` function,
+            in which case it will use this function to get the values needed to save.
+        """
+        state = {}
+
+        for k, v in vars(self).items():
+            if k not in self.__no_serialize:
+                if hasattr(v, 'state_dict'):
+                    state[k] = v.state_dict()
+                else:
+                    state[k] = v
 
         torch.save(state, filename)
 
     def load(self, filename, strict=False):
         """ Load the hyperparameters from a serialized pickle file.
 
-        Warning:
-            This function expects a serialized file with hyperparameters for the same network, optimizers and schedulers.
+        Note:
+            This function will first check if the existing attributes have a `load_state_dict()` function,
+            in which case it will use this function with the saved state to restore the values. |br|
+            The `load_state_dict()` function will first be called with both the serialized value
+            and the `strict` argument as a keyword argument.
+            If that fails (TypeError), it is called with only the serialized value.
         """
-        state = torch.load(filename, lambda storage, loc: storage)
+        log.info(f'Loading state from file [{filename}]')
+        state = torch.load(filename, 'cpu')
 
-        if self.network is not None and 'network' in state:
-            self.network.load_state_dict(state.pop('network'), strict=strict)
-        if self.optimizers is not None and 'optimizers' in state:
-            optim_state = state.pop('optimizers')
-            for i, optim in enumerate(self.optimizers):
-                optim.load_state_dict(optim_state[i])
-        if self.schedulers is not None and 'schedulers' in state:
-            sched_state = state.pop('schedulers')
-            for i, sched in enumerate(self.schedulers):
-                sched.load_state_dict(sched_state[i])
-
-        for key, value in state.items():
-            setattr(self, key, value)
+        for k, v in state.items():
+            if hasattr(self, v):
+                current = getattr(self, v)
+                if hasattr(current, 'load_state_dict'):
+                    try:
+                        current.load_state_dict(v, strict=strict)
+                    except TypeError:
+                        current.load_state_dict(v)
+                else:
+                    setattr(self, k, v)
+            else:
+                setattr(self, k, v)
 
     def to(self, device):
         """ Cast the parameters from the network, optimizers and schedulers to a given device. """
         for key, value in self.__dict__.items():
-            if key not in ('network', 'optimizers', 'schedulers') and isinstance(value, torch.nn.Module):
+            if hasattr(value, 'to') and callable(value.to):
                 value.to(device)
-
-        if self.network is not None:
-            self.network.to(device)
-
-        if self.optimizers is not None:
-            for optim in self.optimizers:
-                for param in optim.state.values():
+            elif isinstance(value, torch.optim.Optimizer):
+                for param in value.state.values():
                     if isinstance(param, torch.Tensor):
                         param.data = param.data.to(device)
                         if param._grad is not None:
@@ -294,9 +198,7 @@ class HyperParameters:
                                 subparam.data = subparam.data.to(device)
                                 if subparam._grad is not None:
                                     subparam._grad.data = subparam._grad.data.to(device)
-
-        if self.schedulers is not None:
-            for sched in self.schedulers:
+            elif isinstance(value, (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)):
                 for param in sched.__dict__.values():
                     if isinstance(param, torch.Tensor):
                         param.data = param.data.to(device)

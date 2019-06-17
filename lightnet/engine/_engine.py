@@ -67,8 +67,8 @@ class Engine(ABC):
         ...             self.batch_start(self.backup_rate)(backup)
         ...
         >>> # Create TrainingEngine object and run it
-
     """
+    _required_attr = ['network', 'batch_size']
     _init_done = False
     _epoch_start = {}
     _epoch_end = {}
@@ -100,6 +100,7 @@ class Engine(ABC):
 
     def __call__(self):
         """ Start the training cycle. """
+        self.__check_attr()
         self.start()
 
         log.info('Start training')
@@ -162,6 +163,17 @@ class Engine(ABC):
         if not self.sigint:
             log.debug('SIGINT caught. Waiting for gracefull exit')
             self.sigint = True
+
+    def __check_attr(self):
+        for attr in self._required_attr:
+            if not hasattr(self, attr):
+                raise AttributeError(f'Engine requires attribute [{attr}] (through engine or hyperparameter attribute)')
+
+        if not hasattr(self, 'mini_batch_size'):
+            log.warn('No [mini_batch_size] attribute found, setting it to [batch_size]')
+            self.mini_batch_size = self.batch_size
+        elif batch_size % mini_batch_size != 0 or mini_batch_size > batch_size:
+            raise ValueError('batch_size should be a multiple of mini_batch_size')
 
     def log(self, msg):
         """ Log messages about training and testing.
@@ -249,6 +261,15 @@ class Engine(ABC):
             return fn
 
         return decorator
+
+    @property
+    def batch_subdivisions(self):
+        """ Get number of mini-batches per batch.
+
+        Return:
+            int: Computed as self.batch_size // self.mini_batch_size
+        """
+        return self.batch_size // self.mini_batch_size
 
     def start(self):
         """ First function that gets called when starting the engine. |br|
