@@ -23,7 +23,7 @@ class Darknet(Lightnet):
         super().__init__()
         self.header = [0, 2, 0]
 
-    def load(self, weights_file, strict=False):
+    def load(self, weights_file, strict=True):
         """ This function will load the weights from a file.
         If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/stable/notes/serialization.html#recommended-approach-for-saving-a-model>`_.
         Otherwise, the file is considered to be a darknet binary weight file.
@@ -46,6 +46,8 @@ class Darknet(Lightnet):
             super().load(weights_file, strict)
         else:
             log.debug('Loading weights from darknet file')
+            if strict:
+                log.warn('Cannot enforce strict behaviour for binary darknet weights')
             self._load_darknet_weights(weights_file)
 
     def save(self, weights_file, remap=None):

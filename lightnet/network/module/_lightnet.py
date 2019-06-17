@@ -72,7 +72,7 @@ class Lightnet(nn.Module):
             else:
                 yield name, module
 
-    def load(self, weights_file, strict=False):
+    def load(self, weights, strict=True):
         """ This function will load the weights from a file.
         It also allows to load in weights file with only a part of the weights in.
 
@@ -85,13 +85,12 @@ class Lightnet(nn.Module):
             so you should use ``network.to(device)`` afterwards to send it to the device of your choice.
         """
         keys = self.state_dict().keys()
-        state = torch.load(weights_file, lambda storage, loc: storage)
+        log.info(f'Loading weights from file [{weights}]')
+        state = torch.load(weights, 'cpu')
 
         if not strict and state.keys() != keys:
             log.warn('Modules not matching, performing partial update')
         self.load_state_dict(state, strict=strict)
-
-        log.info(f'Loaded weights from {weights_file}')
 
     def save(self, weights_file, remap=None):
         """ This function will save the weights to a file.

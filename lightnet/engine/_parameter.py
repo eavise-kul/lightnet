@@ -155,7 +155,7 @@ class HyperParameters:
 
         torch.save(state, filename)
 
-    def load(self, filename, strict=False):
+    def load(self, filename, strict=True):
         """ Load the hyperparameters from a serialized pickle file.
 
         Note:
