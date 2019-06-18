@@ -169,8 +169,8 @@ class HyperParameters:
         state = torch.load(filename, 'cpu')
 
         for k, v in state.items():
-            if hasattr(self, v):
-                current = getattr(self, v)
+            if hasattr(self, k):
+                current = getattr(self, k)
                 if hasattr(current, 'load_state_dict'):
                     try:
                         current.load_state_dict(v, strict=strict)
