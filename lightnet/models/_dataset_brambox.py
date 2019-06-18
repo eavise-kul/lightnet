@@ -7,8 +7,12 @@ import os
 import copy
 import logging
 from PIL import Image
-import brambox as bb
 import lightnet.data as lnd
+
+try:
+    import brambox as bb
+except ModuleNotFoundError:
+    bb = None
 
 __all__ = ['BramboxDataset']
 log = logging.getLogger(__name__)
@@ -28,6 +32,9 @@ class BramboxDataset(lnd.Dataset):
         kwargs (dict): Keyword arguments that are passed to the brambox parser
     """
     def __init__(self, anno_format, anno_filename, input_dimension, class_label_map=None, identify=None, img_transform=None, anno_transform=None, **kwargs):
+        if bb is None:
+            raise ImportError('Brambox needs to be installed for this dataset to work')
+
         super().__init__(input_dimension)
         self.img_tf = img_transform
         self.anno_tf = anno_transform

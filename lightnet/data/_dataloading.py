@@ -7,13 +7,18 @@ import random
 import logging
 import collections
 from functools import wraps
-import pandas as pd
-import brambox as bb
 import torch
 from torch.utils.data.dataset import Dataset as torchDataset
 from torch.utils.data.sampler import BatchSampler as torchBatchSampler
 from torch.utils.data.dataloader import DataLoader as torchDataLoader
 from torch.utils.data.dataloader import default_collate
+
+try:
+    import pandas as pd
+    import brambox as bb
+except ModuleNotFoundError:
+    pd = None
+    bb = None
 
 
 __all__ = ['Dataset', 'DataLoader', 'brambox_collate', 'list_collate']

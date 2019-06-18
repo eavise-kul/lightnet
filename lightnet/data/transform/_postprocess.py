@@ -6,10 +6,14 @@
 
 import logging
 import numpy as np
-import pandas as pd
 import torch
 from torch.autograd import Variable
 from .util import BaseTransform
+
+try:
+    import pandas as pd
+except ModuleNotFoundError:
+    pd = None
 
 __all__ = ['GetBoundingBoxes', 'NonMaxSuppression', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
 log = logging.getLogger(__name__)

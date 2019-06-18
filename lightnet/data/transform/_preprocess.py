@@ -10,12 +10,19 @@ import collections
 import logging
 import math
 import numpy as np
-import pandas as pd
 from PIL import Image, ImageOps
 import torch
 from .util import BaseTransform, BaseMultiTransform
 
 log = logging.getLogger(__name__)
+
+try:
+    import pandas as pd
+    import brambox as bb
+except ImportError:
+    log.warn('Brambox is not installed and thus all data functionality related to it cannot be used')
+    pd = None
+    bb = None
 
 try:
     import cv2

@@ -8,7 +8,11 @@ import logging
 from abc import ABC, abstractmethod
 from PIL import Image
 import numpy as np
-import pandas as pd
+
+try:
+    import pandas as pd
+except ModuleNotFoundError:
+    pd = None
 
 __all__ = ['Compose']
 log = logging.getLogger(__name__)
@@ -91,14 +95,14 @@ class BaseMultiTransform(ABC):
     def __call__(self, data):
         if data is None:
             return None
-        elif isinstance(data, pd.DataFrame):
+        elif pd is not None and isinstance(data, pd.DataFrame):
             return self._tf_anno(data)
         elif isinstance(data, Image.Image):
             return self._tf_pil(data)
         elif isinstance(data, np.ndarray):
             return self._tf_cv(data)
         else:
-            log.error(f'{self.__class__.__name__} only works with <brambox annotation lists>, <PIL images> or <OpenCV images> [{type(data)}]')
+            log.error(f'{self.__class__.__name__} only works with <brambox annotation dataframes>, <PIL images> or <OpenCV images> [{type(data)}]')
             return data
 
     @classmethod

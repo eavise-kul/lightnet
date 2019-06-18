@@ -5,10 +5,14 @@
 
 import math
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+
+try:
+    import pandas as pd
+except ModuleNotFoundError:
+    pd = None
 
 __all__ = ['RegionLoss']
 
@@ -159,7 +163,7 @@ class RegionLoss(nn.modules.loss._Loss):
         """ Compare prediction boxes and targets, convert targets to network output tensors """
         if torch.is_tensor(ground_truth):
             return self.__build_targets_tensor(pred_boxes, ground_truth, nB, nH, nW)
-        elif isinstance(ground_truth, pd.DataFrame):
+        elif pd is not None and isinstance(ground_truth, pd.DataFrame):
             return self.__build_targets_brambox(pred_boxes, ground_truth, nB, nH, nW)
         else:
             raise TypeError(f'Unkown ground truth format [{type(ground_truth)}]')
