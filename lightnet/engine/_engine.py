@@ -172,7 +172,7 @@ class Engine(ABC):
         if not hasattr(self, 'mini_batch_size'):
             log.warn('No [mini_batch_size] attribute found, setting it to [batch_size]')
             self.mini_batch_size = self.batch_size
-        elif batch_size % mini_batch_size != 0 or mini_batch_size > batch_size:
+        elif self.batch_size % self.mini_batch_size != 0 or self.mini_batch_size > self.batch_size:
             raise ValueError('batch_size should be a multiple of mini_batch_size')
 
     def log(self, msg):
