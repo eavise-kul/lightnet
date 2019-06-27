@@ -106,21 +106,23 @@ class Engine(ABC):
         log.info('Start training')
         self.network.train()
 
+        idx = 0
         while True:
             # Epoch Start
             self.epoch += 1
             self._run_hooks(self.epoch, self._epoch_start)
 
+            idx %= self.batch_subdivisions
             loader = self.dataloader
-            for idx, data in enumerate(loader):
+            for idx, data in enumerate(loader, idx+1):
                 # Batch Start
-                if (idx + 1) % self.batch_subdivisions == 0:
+                if idx % self.batch_subdivisions == 0:
                     self.batch += 1
                     self._run_hooks(self.batch, self._batch_start)
 
                 # Forward and backward on (mini-)batches
                 self.process_batch(data)
-                if (idx + 1) % self.batch_subdivisions != 0:
+                if idx % self.batch_subdivisions != 0:
                     continue
 
                 # Optimizer step
@@ -134,10 +136,6 @@ class Engine(ABC):
                     self.epoch -= 1     # Did not finish this epoch
                     log.info('Reached quitting criteria')
                     return
-
-                # Not enough mini-batches left to have an entire batch
-                if (len(loader) - idx) <= self.batch_subdivisions:
-                    break
 
             # Epoch End
             self._run_hooks(self.epoch, self._epoch_end)

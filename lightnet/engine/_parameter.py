@@ -78,7 +78,7 @@ class HyperParameters:
         """ Print all values stored in the object.
         Objects that will not be serialized are marked with an asterisk.
         """
-        s = f'{self.__class__.__name__}(\n'
+        s = f'{self.__class__.__name__}('
         for k in sorted(self.__dict__.keys()):
             if k.startswith('_HyperParameters__'):
                 continue
