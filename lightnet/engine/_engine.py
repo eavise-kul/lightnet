@@ -85,6 +85,7 @@ class Engine(ABC):
         # Sigint handling
         self.sigint = False
         signal.signal(signal.SIGINT, self.__sigint_handler)
+        signal.signal(signal.SIGTERM, self.__sigint_handler)
 
         # Logging
         self.__log = ln.logger
@@ -159,7 +160,7 @@ class Engine(ABC):
 
     def __sigint_handler(self, signal, frame):
         if not self.sigint:
-            log.debug('SIGINT caught. Waiting for gracefull exit')
+            log.debug('SIGINT/SIGTERM caught. Waiting for gracefull exit')
             self.sigint = True
 
     def __check_attr(self):
