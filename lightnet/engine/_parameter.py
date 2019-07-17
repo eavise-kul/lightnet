@@ -31,8 +31,9 @@ class HyperParameters:
 
         This also works when assigning new values after the object creation:
             >>> param = ln.engine.HyperParameters()
-            >>> param._dummy = 666  # This wil store it as .dummy and add it to the list that does not need to be serialized.
-            >>> print(param.dummy)  # 666
+            >>> param._dummy = 666
+            >>> print(param.dummy)
+            666
     """
     __init_done = False
 
