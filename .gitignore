@@ -1,6 +1,7 @@
 # Project specific
 docs/.build
 lightnet/version.py
+TODO.md
 
 # Python specific
 __pycache__/
