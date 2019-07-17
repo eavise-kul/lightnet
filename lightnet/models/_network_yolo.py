@@ -22,9 +22,18 @@ class Yolo(lnn.module.Darknet):
         input_channels (Number, optional): Number of input channels; Default **3**
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
 
+    Attributes:
+        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.remap_darknet19: Remapping rules for weights from the `~lightnet.models.Darknet19` model.
+
     .. _Yolo v2: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/yolo-voc.cfg
     """
     stride = 32
+    remap_darknet19 = [
+        (r'^layers.([1-9]_)', r'layers.0.\1'),
+        (r'^layers.(1[0-7]_)', r'layers.0.\1'),
+        (r'^layers.([12][890-3]_)', r'layers.1.\1'),
+    ]
 
     def __init__(self, num_classes=20, input_channels=3, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         super().__init__()
@@ -33,6 +42,7 @@ class Yolo(lnn.module.Darknet):
 
         # Parameters
         self.num_classes = num_classes
+        self.input_channels = input_channels
         self.anchors = anchors
 
         # Network

@@ -21,20 +21,19 @@ class Darknet19(lnn.module.Darknet):
         num_classes (Number, optional): Number of classes; Default **1000**
         input_channels (Number, optional): Number of input channels; Default **3**
 
+    Attributes:
+        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+
     .. _Darknet19: https://github.com/pjreddie/darknet/blob/master/cfg/darknet19.cfg
     """
     stride = 32
-    remap_yolo = [
-        (r'^layers.([1-9]_)', r'layers.0.\1'),
-        (r'^layers.(1[0-7]_)', r'layers.0.\1'),
-        (r'^layers.([12][890-3]_)', r'layers.1.\1'),
-    ]
 
     def __init__(self, num_classes=1000, input_channels=3):
         super().__init__()
 
         # Parameters
         self.num_classes = num_classes
+        self.input_channels = input_channels
 
         # Network
         self.layers = nn.Sequential(

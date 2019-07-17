@@ -15,7 +15,7 @@ __all__ = ['MobileNetYolo']
 
 
 class MobileNetYolo(lnn.module.Lightnet):
-    """ `Yolo v2`_ implementation with pytorch with a `mobilenets`_ backend.
+    """ `Yolo v2`_ implementation in pytorch with a `mobilenets`_ backend.
     This network uses :class:`~lightnet.network.RegionLoss` as its loss function
     and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
 
@@ -24,6 +24,9 @@ class MobileNetYolo(lnn.module.Lightnet):
         alpha (Number, optional): Number between [0-1] that controls the number of filters of the mobilenet convolutions; Default **1**
         input_channels (Number, optional): Number of input channels; Default **3**
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
+
+    Attributes:
+        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
 
     Warning:
         When changing the ``alpha`` value, you are changing the network architecture.

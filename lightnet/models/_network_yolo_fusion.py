@@ -24,8 +24,7 @@ class YoloLateFusion(lnn.module.Darknet):
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
 
     Attributes:
-        self.loss (fn): loss function. Usually this is :class:`~lightnet.network.RegionLoss`
-        self.postprocess (fn): Postprocessing function. By default this is :class:`~lightnet.data.GetBoundingBoxes` + :class:`~lightnet.data.NonMaxSupression`
+        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
     """
     stride = 32
 
@@ -39,9 +38,9 @@ class YoloLateFusion(lnn.module.Darknet):
 
         # Parameters
         self.num_classes = num_classes
-        self.anchors = anchors
         self.input_channels = input_channels
         self.fusion_channels = fusion_channels
+        self.anchors = anchors
 
         # Network
         layer_list = [
@@ -145,6 +144,9 @@ class YoloMidFusion(lnn.module.Darknet):
         input_channels (Number, optional): Number of input channels for the main subnetwork; Default **3**
         fusion_channels (Number, optional): Number of input channels for the fusion subnetwork; Default **1**
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
+
+    Attributes:
+        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
     """
     stride = 32
 

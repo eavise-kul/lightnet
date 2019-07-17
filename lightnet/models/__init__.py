@@ -9,6 +9,7 @@ from ._dataset_brambox import *
 
 # Darknet
 from ._dataset_darknet import *
+from ._network_darknet import *
 from ._network_darknet19 import *
 from ._network_tiny_yolo import *
 from ._network_yolo import *

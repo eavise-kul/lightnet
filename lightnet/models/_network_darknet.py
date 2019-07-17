@@ -1,50 +1,39 @@
 #
-#   Darknet Tiny YOLOv2 model
+#   Darknet Darknet19 model
 #   Copyright EAVISE
 #
 
 import os
-from collections import OrderedDict, Iterable
+from collections import OrderedDict
 import torch
 import torch.nn as nn
 
 import lightnet.network as lnn
 import lightnet.data as lnd
 
-__all__ = ['TinyYolo']
+__all__ = ['Darknet']
 
 
-class TinyYolo(lnn.module.Darknet):
-    """ `Tiny Yolo v2`_ implementation with pytorch.
-    This network uses :class:`~lightnet.network.RegionLoss` as its loss function
-    and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
+class Darknet(lnn.module.Darknet):
+    """ `Darknet`_ implementation with pytorch.
 
     Args:
-        num_classes (Number, optional): Number of classes; Default **20**
+        num_classes (Number, optional): Number of classes; Default **1000**
         input_channels (Number, optional): Number of input channels; Default **3**
-        anchors (list, optional): 2D list with anchor values; Default **Tiny yolo v2 anchors**
 
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
-        self.remap_darknet: Remapping rules for weights from the `~lightnet.models.Darknet` model.
 
-    .. _Tiny Yolo v2: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/tiny-yolo-voc.cfg
+    .. _Darknet: https://github.com/pjreddie/darknet/blob/master/cfg/darknet.cfg
     """
     stride = 32
-    remap_darknet = [
-        (r'^layers.([1-9]_)', r'layers.\1'),
-        (r'^layers.1([0-3]_)', r'layers.\1'),
-    ]
 
-    def __init__(self, num_classes=20, input_channels=3, anchors=[(1.08, 1.19), (3.42, 4.41), (6.63, 11.38), (9.42, 5.11), (16.62, 10.52)]):
+    def __init__(self, num_classes=1000, input_channels=3):
         super().__init__()
-        if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
-            raise TypeError('Anchors need to be a 2D list of numbers')
 
         # Parameters
         self.num_classes = num_classes
         self.input_channels = input_channels
-        self.anchors = anchors
 
         # Network
         self.layers = nn.Sequential(
@@ -60,9 +49,9 @@ class TinyYolo(lnn.module.Darknet):
                 ('9_convbatch',     lnn.layer.Conv2dBatchReLU(128, 256, 3, 1, 1)),
                 ('10_max',          nn.MaxPool2d(2, 2)),
                 ('11_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1)),
-                ('12_max',          lnn.layer.PaddedMaxPool2d(2, 1, (0, 1, 0, 1))),
+                ('12_max',          nn.MaxPool2d(2, 2)),
                 ('13_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
-                ('14_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 1024, 3, 1, 1)),
-                ('15_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
+                ('14_avgpool',      lnn.layer.GlobalAvgPool2d())
+                ('15_conv',         nn.Conv2d(1024, num_classes, 1, 1, 0)),
             ])
         )
