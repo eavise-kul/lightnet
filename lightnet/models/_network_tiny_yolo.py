@@ -15,7 +15,7 @@ __all__ = ['TinyYolo']
 
 
 class TinyYolo(lnn.module.Darknet):
-    """ Tiny Yolo v2 implementation cite:`yolo_v2`.
+    """ Tiny Yolo v2 implementation :cite:`yolo_v2`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**

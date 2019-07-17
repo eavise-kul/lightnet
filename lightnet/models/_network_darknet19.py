@@ -15,7 +15,7 @@ __all__ = ['Darknet19']
 
 
 class Darknet19(lnn.module.Darknet):
-    """ Darknet19 implementation cite:`yolo_v2`.
+    """ Darknet19 implementation :cite:`yolo_v2`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **1000**

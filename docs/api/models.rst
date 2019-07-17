@@ -15,8 +15,7 @@ Detection
 .. autoclass:: lightnet.models.TinyYolo
 .. .. autoclass:: lightnet.models.MobileNetYolo
 .. autoclass:: lightnet.models.Yolo
-.. autoclass:: lightnet.models.YoloMidFusion
-.. autoclass:: lightnet.models.YoloLateFusion
+.. autoclass:: lightnet.models.YoloFusion
 
 
 Data
