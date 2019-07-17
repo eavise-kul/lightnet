@@ -124,14 +124,6 @@ class NonMaxSuppression(BaseTransform):
         return boxes[keep]
 
     def _nms(self, boxes):
-        """ Non maximum suppression.
-
-        Args:
-          boxes (tensor): Bounding boxes of one image
-
-        Return:
-            torch.ByteTensor: Mask containing 1 if a box is being kept and 0 for boxes that are pruned
-        """
         if boxes.numel() == 0:
             return boxes
 
@@ -188,14 +180,14 @@ class TensorToBrambox(BaseTransform):
         class_label_map (list, optional): List of class labels to transform the class id's in actual names; Default **None**
 
     Returns:
-        pandas.DataFrame: brambox detection dataframe where the `image` column contains the batch number (int column).
-
-    Note:
-        If no `class_label_map` is given, this transform will simply convert the class id's in a string.
+        pandas.DataFrame: brambox detection dataframe where the `image` column contains the batch number (int column from 1st tensor column).
 
     Note:
         Just like everything in PyTorch, this transform only works on batches of images.
         This means you need to wrap your tensor of detections in a list if you want to run this transform on a single image.
+
+    Warning:
+        If no `class_label_map` is given, this transform will simply convert the class id's to a string.
     """
     def __init__(self, network_size, class_label_map=None):
         self.width, self.height = network_size
@@ -204,7 +196,6 @@ class TensorToBrambox(BaseTransform):
             log.warn('No class_label_map given. The indexes will be used as class_labels.')
 
     def __call__(self, boxes):
-        """ Convert torch tensor to brambox dataframe """
         if boxes.numel() == 0:
             df = pd.DataFrame(columns=['image', 'class_label', 'id', 'x_top_left', 'y_top_left', 'width', 'height', 'confidence'])
             df.image = df.image.astype(int)
@@ -221,9 +212,12 @@ class TensorToBrambox(BaseTransform):
         # Convert to brambox df
         boxes = boxes.cpu().numpy()
         boxes = pd.DataFrame(boxes, columns=['image', 'x_top_left', 'y_top_left', 'width', 'height', 'confidence', 'class_label'])
+
+        # Set column types
         boxes[['image', 'class_label']] = boxes[['image', 'class_label']].astype(int)
         boxes['id'] = np.nan
         boxes[['x_top_left', 'y_top_left', 'width', 'height', 'confidence']] = boxes[['x_top_left', 'y_top_left', 'width', 'height', 'confidence']].astype(float)
+
         if self.class_label_map is not None:
             boxes.class_label = boxes.class_label.map(dict((i, l) for i, l in enumerate(self.class_label_map)))
         else:
@@ -245,10 +239,6 @@ class ReverseLetterbox(BaseTransform):
     Note:
         This transform works on a brambox detection dataframe,
         so you need to apply the :class:`~lightnet.data.TensorToBrambox` transform first.
-
-    Note:
-        Just like everything in PyTorch, this transform only works on batches of images.
-        This means you need to wrap your tensor of detections in a list if you want to run this transform on a single image.
     """
     def __init__(self, network_size, image_size):
         self.network_size = network_size

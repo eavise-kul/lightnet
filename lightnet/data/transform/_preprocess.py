@@ -53,10 +53,6 @@ class Crop(BaseMultiTransform):
     Note:
         Create 1 Crop object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
-
-    Warning:
-        This modifier changes the annotation dataframe inplace! |br|
-        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, dimension=None, dataset=None, center=True, intersection_threshold=0.001):
         self.dimension = dimension
@@ -125,7 +121,8 @@ class Crop(BaseMultiTransform):
         return img
 
     def _tf_anno(self, anno):
-        """ Change coordinates of an annotation, according to the previous crop """
+        anno = anno.copy()
+
         # Rescale
         if self.scale != 1:
             anno.x_top_left *= self.scale
@@ -175,10 +172,6 @@ class Letterbox(BaseMultiTransform):
     Note:
         Create 1 Letterbox object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
-
-    Warning:
-        This modifier changes the annotation dataframe inplace! |br|
-        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, dimension=None, dataset=None, fill_color=127):
         self.dimension = dimension
@@ -191,7 +184,6 @@ class Letterbox(BaseMultiTransform):
         self.scale = None
 
     def _tf_pil(self, img):
-        """ Letterbox an image to fit in the network """
         if self.dataset is not None:
             net_w, net_h = self.dataset.input_dim
         else:
@@ -228,7 +220,6 @@ class Letterbox(BaseMultiTransform):
         return img
 
     def _tf_cv(self, img):
-        """ Letterbox and image to fit in the network """
         if self.dataset is not None:
             net_w, net_h = self.dataset.input_dim
         else:
@@ -262,7 +253,8 @@ class Letterbox(BaseMultiTransform):
         return img
 
     def _tf_anno(self, anno):
-        """ Change coordinates of an annotation, according to the previous letterboxing """
+        anno = anno.copy()
+
         if self.scale is not None:
             anno.x_top_left *= self.scale
             anno.y_top_left *= self.scale
@@ -288,10 +280,6 @@ class RandomFlip(BaseMultiTransform):
     Note:
         Create 1 RandomFlip object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
-
-    Warning:
-        This modifier changes the annotation dataframe inplace! |br|
-        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, horizontal, vertical=0):
         self.horizontal = horizontal
@@ -306,7 +294,6 @@ class RandomFlip(BaseMultiTransform):
         self.flip_v = random.random() < self.vertical
 
     def _tf_pil(self, img):
-        """ Randomly flip image """
         self._get_flip()
         self.im_w, self.im_h = img.size
 
@@ -320,7 +307,6 @@ class RandomFlip(BaseMultiTransform):
         return img
 
     def _tf_cv(self, img):
-        """ Randomly flip image """
         self._get_flip()
         self.im_h, self.im_w = img.shape[:2]
 
@@ -334,7 +320,8 @@ class RandomFlip(BaseMultiTransform):
         return img
 
     def _tf_anno(self, anno):
-        """ Change coordinates of an annotation, according to the previous flip """
+        anno = anno.copy()
+
         if self.flip_h and self.im_w is not None:
             anno.x_top_left = self.im_w - anno.x_top_left - anno.width
         if self.flip_v and self.im_h is not None:
@@ -383,7 +370,6 @@ class RandomHSV(BaseTransform):
 
     @staticmethod
     def _tf_pil(img, dh, ds, dv):
-        """ Random hsv shift """
         img = img.convert('HSV')
         channels = list(img.split())
 
@@ -405,7 +391,6 @@ class RandomHSV(BaseTransform):
 
     @staticmethod
     def _tf_cv(img, dh, ds, dv):
-        """ Random hsv shift """
         img = img.astype(np.float32) / 255.0
         img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
 
@@ -438,10 +423,6 @@ class RandomJitter(BaseMultiTransform):
     Note:
         Create 1 RandomCrop object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
-
-    Warning:
-        This modifier changes the annotation dataframe inplace! |br|
-        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001, fill_color=127):
         self.jitter = jitter
@@ -461,7 +442,6 @@ class RandomJitter(BaseMultiTransform):
         return self.crop
 
     def _tf_pil(self, img):
-        """ Take random crop from image """
         im_w, im_h = img.size
         crop = self._get_crop(im_w, im_h)
         crop_w = crop[2] - crop[0]
@@ -476,7 +456,6 @@ class RandomJitter(BaseMultiTransform):
         return img_crop
 
     def _tf_cv(self, img):
-        """ Take random crop from image """
         im_h, im_w = img.shape[:2]
         crop = self._get_crop(im_w, im_h)
 
@@ -497,7 +476,8 @@ class RandomJitter(BaseMultiTransform):
         return img_crop
 
     def _tf_anno(self, anno):
-        """ Change coordinates of an annotation, according to the previous crop """
+        anno = anno.copy()
+
         # Filter annotations inside crop
         cropped = np.empty((4, len(anno.index)), dtype=np.float64)
         cropped[0] = anno.x_top_left.clip(lower=self.crop[0]).values
@@ -540,10 +520,6 @@ class RandomRotate(BaseMultiTransform):
     Note:
         Create 1 RandomRotate object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
-
-    Warning:
-        This modifier changes the annotation dataframe inplace! |br|
-        This is done for performance reasons, but means you need to pass a copy of the dataframe to the transforms.
     """
     def __init__(self, jitter):
         self.jitter = jitter
@@ -568,6 +544,8 @@ class RandomRotate(BaseMultiTransform):
         return cv2.warpAffine(img, M, (im_w, im_h))
 
     def _tf_anno(self, anno):
+        anno = anno.copy()
+
         cx, cy = self.im_w/2, self.im_h/2
         rad = math.radians(-self.angle)
         cos_a = math.cos(rad)
@@ -663,7 +641,6 @@ class BramboxToTensor(BaseTransform):
 
     @staticmethod
     def _tf_anno(anno, dimension, class_label_map):
-        """ Transforms brambox annotation to list """
         net_w, net_h = dimension
 
         if 'class_index' not in anno.columns:

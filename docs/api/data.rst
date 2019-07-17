@@ -25,7 +25,7 @@ First you create an object and then you call the object with the network output 
 You can also call the ``apply()`` method on the classes to run the transformation once.
 
 .. autoclass:: lightnet.data.transform.GetBoundingBoxes
-.. autoclass:: lightnet.data.transform.NonMaxSupression
+.. autoclass:: lightnet.data.transform.NonMaxSuppression
 .. autoclass:: lightnet.data.transform.TensorToBrambox
 .. autoclass:: lightnet.data.transform.ReverseLetterbox
 
@@ -35,6 +35,7 @@ Data loading
    :members: input_dim, resize_getitem
 .. autoclass:: lightnet.data.DataLoader
    :members:
+.. autofunction:: lightnet.data.brambox_collate
 .. autofunction:: lightnet.data.list_collate
 
 Util
