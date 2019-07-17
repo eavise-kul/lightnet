@@ -41,6 +41,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.doctest',
+    'sphinxcontrib.bibtex',
 ]
 
 todo_include_todos = True

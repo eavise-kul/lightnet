@@ -15,9 +15,7 @@ __all__ = ['MobileNetYolo']
 
 
 class MobileNetYolo(lnn.module.Lightnet):
-    """ `Yolo v2`_ implementation in pytorch with a `mobilenets`_ backend.
-    This network uses :class:`~lightnet.network.RegionLoss` as its loss function
-    and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
+    """ Yolo v2 implementation with a mobilenet v1 backend :cite:`mobilenet_v1`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**

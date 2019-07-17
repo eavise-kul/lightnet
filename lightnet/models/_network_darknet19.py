@@ -15,7 +15,7 @@ __all__ = ['Darknet19']
 
 
 class Darknet19(lnn.module.Darknet):
-    """ `Darknet19`_ implementation with pytorch.
+    """ Darknet19 implementation cite:`yolo_v2`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **1000**
@@ -23,8 +23,6 @@ class Darknet19(lnn.module.Darknet):
 
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
-
-    .. _Darknet19: https://github.com/pjreddie/darknet/blob/master/cfg/darknet19.cfg
     """
     stride = 32
 

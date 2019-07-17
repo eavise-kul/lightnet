@@ -1,10 +1,11 @@
 # Runtime dependencies
-git+https://gitlab.com/EAVISE/brambox@develop
+brambox
 
 # Development dependencies
 sphinx
 sphinx_rtd_theme
 recommonmark
 pycodestyle
+sphinxcontrib-bibtex
 
 -e .[visual]

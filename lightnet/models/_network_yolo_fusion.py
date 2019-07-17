@@ -13,9 +13,7 @@ __all__ = ['YoloLateFusion', 'YoloMidFusion']
 
 
 class YoloLateFusion(lnn.module.Darknet):
-    """ Yolo v2 that processes multi-channel input images with late fusion.
-    This network uses :class:`~lightnet.network.RegionLoss` as its loss function
-    and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
+    """ Yolo v2 that processes multi-channel input images with late fusion :cite:`rgbd_fusion`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
@@ -135,9 +133,7 @@ class YoloLateFusion(lnn.module.Darknet):
 
 
 class YoloMidFusion(lnn.module.Darknet):
-    """ Yolo v2 that processes multi-channel input images with midway fusion.
-    This network uses :class:`~lightnet.network.RegionLoss` as its loss function
-    and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
+    """ Yolo v2 that processes multi-channel input images with midway fusion :cite:`rgbd_fusion`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**

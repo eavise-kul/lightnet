@@ -15,9 +15,7 @@ __all__ = ['TinyYolo']
 
 
 class TinyYolo(lnn.module.Darknet):
-    """ `Tiny Yolo v2`_ implementation with pytorch.
-    This network uses :class:`~lightnet.network.RegionLoss` as its loss function
-    and :class:`~lightnet.data.GetBoundingBoxes` as its default postprocessing function.
+    """ Tiny Yolo v2 implementation cite:`yolo_v2`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
@@ -27,8 +25,6 @@ class TinyYolo(lnn.module.Darknet):
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
         self.remap_darknet: Remapping rules for weights from the `~lightnet.models.Darknet` model.
-
-    .. _Tiny Yolo v2: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/tiny-yolo-voc.cfg
     """
     stride = 32
     remap_darknet = [
