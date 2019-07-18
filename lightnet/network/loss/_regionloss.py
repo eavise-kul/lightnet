@@ -129,7 +129,7 @@ class RegionLoss(nn.modules.loss._Loss):
                 self.loss_cls = torch.tensor(0.0).to(device)
             self.loss_tot = self.loss_coord + self.loss_conf + self.loss_cls
         else:
-            self.loss_cls = None
+            self.loss_cls = torch.tensor(0.0)
             self.loss_tot = self.loss_coord + self.loss_conf
 
         return self.loss_tot
