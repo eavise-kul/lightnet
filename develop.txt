@@ -8,4 +8,4 @@ recommonmark
 pycodestyle
 sphinxcontrib-bibtex
 
--e .[visual]
+-e .
