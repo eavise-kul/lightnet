@@ -210,7 +210,7 @@ class TensorToBrambox(BaseTransform):
         boxes[:, 1:3] -= boxes[:, 3:5] / 2
 
         # Convert to brambox df
-        boxes = boxes.cpu().numpy()
+        boxes = boxes.cpu().detach().numpy()
         boxes = pd.DataFrame(boxes, columns=['image', 'x_top_left', 'y_top_left', 'width', 'height', 'confidence', 'class_label'])
 
         # Set column types
