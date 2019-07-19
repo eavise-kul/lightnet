@@ -163,9 +163,10 @@ class HyperParameters:
         Note:
             This function will first check if the existing attributes have a `load_state_dict()` function,
             in which case it will use this function with the saved state to restore the values. |br|
-            The `load_state_dict()` function will first be called with both the serialized value
-            and the `strict` argument as a keyword argument.
-            If that fails (TypeError), it is called with only the serialized value.
+            The `load_state_dict()` function will first be called with both the serialized value and the `strict` argument as a keyword argument.
+            If that fails because of a TypeError, it is called with only the serialized value.
+            This means that you will still get an error if the strict rule is not being followed,
+            but functions that have a `load_state_dict()` function without `strict` argument can be loaded as well.
         """
         log.info(f'Loading state from file [{filename}]')
         state = torch.load(filename, 'cpu')
