@@ -30,10 +30,11 @@ class HyperParameters:
         This allows you to store all parameters in this object, regardless of whether you want to serialize it.
 
         This also works when assigning new values after the object creation:
-            >>> param = ln.engine.HyperParameters()
-            >>> param._dummy = 666
-            >>> print(param.dummy)
-            666
+
+        >>> param = ln.engine.HyperParameters()
+        >>> param._dummy = 666
+        >>> print(param.dummy)
+        666
     """
     __init_done = False
 
