@@ -231,10 +231,20 @@ class ReverseLetterbox(BaseTransform):
 
     Args:
         network_size (tuple): Tuple containing the width and height of the images going in the network
-        image_size (tuple): Tuple containing the width and height of the original images
+        image_size (tuple, callable or dict-like): Width and height of the original images (See Note)
 
     Returns:
         pandas.DataFrame: brambox detection dataframe.
+
+    Note:
+        The `image_size` argument can be one of three different types:
+
+        - tuple <width, height> : The same image size will be used for the entire dataframe
+        - callable : The argument will be called with the image column name and must return a (width, height) tuple
+        - dict-like : This is similar to the callable, but instead of calling the argument, it will use dictionary accessing (self.image_size[img_name])
+
+        Note that if your dimensions are the same for all images, it is faster to pass a tuple,
+        as the transformation will be applied to the entire dataframe at once as opposed to grouping it per image and applying the tranform to each group individually.
 
     Note:
         This transform works on a brambox detection dataframe,
@@ -245,9 +255,31 @@ class ReverseLetterbox(BaseTransform):
         self.image_size = image_size
 
     def __call__(self, boxes):
-        im_w, im_h = self.image_size[:2]
-        net_w, net_h = self.network_size[:2]
+        if isinstance(self.image_size, (list, tuple)):
+            net_w, net_h = self.network_size[:2]
+            im_w, im_h = self.image_size[:2]
 
+            # Get scale and pad
+            if im_w == net_w and im_h == net_h:
+                scale = 1
+            elif im_w / net_w >= im_h / net_h:
+                scale = im_w/net_w
+            else:
+                scale = im_h/net_h
+            pad = int((net_w - im_w/scale) / 2), int((net_h - im_h/scale) / 2)
+
+            return self._transform(boxes.copy(), scale, pad)
+
+        return boxes.groupby('image').apply(self._apply_transform)
+
+    def _apply_transform(self, boxes):
+        net_w, net_h = self.network_size[:2]
+        if callable(self.image_size):
+            im_w, im_h = self.image_size(boxes.name)
+        else:
+            im_w, im_h = self.image_size[boxes.name]
+
+        # Get scale and pad
         if im_w == net_w and im_h == net_h:
             scale = 1
         elif im_w / net_w >= im_h / net_h:
@@ -256,6 +288,7 @@ class ReverseLetterbox(BaseTransform):
             scale = im_h/net_h
         pad = int((net_w - im_w/scale) / 2), int((net_h - im_h/scale) / 2)
 
+        # Transform boxes
         return self._transform(boxes.copy(), scale, pad)
 
     @staticmethod
