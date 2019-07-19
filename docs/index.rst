@@ -37,11 +37,12 @@ If you use Lightnet in your research, please cite it.
 Table of Contents
 =================
 .. toctree::
-   :glob:
    :maxdepth: 1
    :caption: Notes
 
-   notes/*
+   notes/01-installation.rst
+   notes/02-getting_started.rst
+   notes/03-comparing_darknet.rst
 
 .. toctree::
    :maxdepth: 2

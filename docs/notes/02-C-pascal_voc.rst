@@ -1,29 +1,8 @@
-Examples
-========
-This page contains explanation with the the scripts located in the `examples folder`_ of the repository.
-
-
-Basic examples
---------------
-The scripts in the `basic` subfolder show how to use this library to train, test and utilize networks.
-
-- detect.py
-   This script shows how to initialize and use a network to perform detections on OpenCV images.
-   Note that besides OpenCV, Pillow is also supported and is considered a better and faster alternative
-   by the author of this package. The OpenCV example is just here for demonstration purposes.
-- train.py
-   This script shows how to use the :mod:`lightnet.engine` to train a network on some arbitrary data.
-   This script uses the :class:`lightnet.models.DarknetDataset` dataset,
-   which uses a file with paths to the images and assumes there are annotations for each image with the same name,
-   but a ``.txt`` extension.
-- test.py
-   This script shows how to run a network on an entire testset and
-   perform a statistical analysis of the results with brambox_.
-
-
 Pascal VOC
-----------
-The scripts in the `yolo-voc` subfolder were build to test the results of lightnet on the Pascal VOC dataset and compare them with darknet.
+===========
+This page contains explanation of the scripts located in the `example folder`_ of the repository. |br|
+These scripts were build to test the results of lightnet on the Pascal VOC dataset and compare them with darknet,
+and as such are a nice example of some real code to learn from.
 We perform the same training and testing as explained on the `darknet website`_.
 
 .. rubric:: Get the data
@@ -50,16 +29,16 @@ There will now be a *VOCdevkit* folder with all the data.
 We need to have the right labels for training and testing the network. |br|
 While brambox (and thus lightnet) can work with Pascal VOC annotations,
 we still need to group the data in a training and testing set.
-Because we are converting this anyway, we take the opportunity to convert the annotations to a pickle format,
-which will be faster to parse whilst training/testing. |br|
-You can check whether to annotation conversion was succesfull, by running the **bbox_view.py** script from brambox.
+Because we are converting this anyway, we take the opportunity to convert the annotations to a pandas format,
+which will be faster to parse whilst training/testing.
+In the example code below, we save the data as HDF5 files, which requires the pytables_ package.
+If you do not wish to install it, you can specify to save it as pandas pickle files instead *(-x .pkl)*,
+but this means you will have to change to file names in the config files as well!
 
 .. code:: bash
 
-   # Change the ROOT variable in labels.py to point to the root directory that contains VOCdevkit
-   ./bin/labels.py
-   bbox_view.py -lx .jpg anno_pickle ROOT/train.pkl ROOT/VOCdevkit
-   bbox_view.py -lx .jpg anno_pickle ROOT/test.pkl ROOT/VOCdevkit
+   # Check out ./bin/labels.py --help for an explanation of the arguments
+   ./bin/labels.py -v -x .h5 data/
 
 .. Note::
    There is no validation set.  
@@ -87,7 +66,7 @@ Use the **train.py** script to train the model. You can use *train.py --help* fo
 .. code:: bash
 
    # Adapt the model parameters inside of train.py to suite your needs
-   ./bin/train.py -cv -n cfg/yolo.py <path/to/pretrained/weights>
+   ./bin/train.py -c -n cfg/yolo.py -vp <visdom port> <path/to/pretrained/weights>
 
 .. rubric:: Test model
 
@@ -103,5 +82,6 @@ Use the **test.py** script to test the model. You can again use *test.py --help*
 
 
 .. include:: ../links.rst
-.. _examples folder: https://gitlab.com/EAVISE/lightnet/tree/master/examples
+.. _example folder: https://gitlab.com/EAVISE/lightnet/tree/master/example
+.. _pytables: https://www.pytables.org/
 .. _darknet website: https://pjreddie.com/darknet/yolov2/#train-voc

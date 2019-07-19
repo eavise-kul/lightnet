@@ -1,7 +1,10 @@
 # Project specific
-docs/.build
 lightnet/version.py
-TODO.md
+docs/.build
+docs/notes/example.jpg
+docs/notes/example.xml
+docs/notes/*.pt
+docs/notes/*.weights
 
 # Python specific
 __pycache__/
@@ -14,6 +17,7 @@ build/
 develop-eggs/
 dist/
 eggs/
+.ipynb_checkpoints
 
 pip-log.txt
 pip-delete-this-directory.txt

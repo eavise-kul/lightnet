@@ -1,7 +1,7 @@
 .. _accuracy:
 
-Comparing accuracy
-==================
+Comparing to darknet
+====================
 In this document we will compare the accuracy of networks running in this library and in darknet_.
 
 ImageNet
@@ -12,8 +12,8 @@ As you can see, lightnet achieves about the same results as darknet for this tas
 .. image:: 03-imagenet_results.svg
 
 
-VOC
----
+Pascal VOC
+----------
 
 .. Todo::
    - Change weight

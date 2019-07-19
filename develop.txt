@@ -2,10 +2,11 @@
 brambox
 
 # Development dependencies
-sphinx
-sphinx_rtd_theme
 recommonmark
 pycodestyle
+sphinx
+sphinx_rtd_theme
 sphinxcontrib-bibtex
+nbsphinx
 
 -e .
