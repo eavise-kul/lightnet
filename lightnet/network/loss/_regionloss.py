@@ -48,8 +48,8 @@ class RegionLoss(nn.modules.loss._Loss):
         self.thresh = thresh
         self.coord_prefill = coord_prefill
 
-        self.mse = nn.MSELoss(size_average=False)
-        self.cel = nn.CrossEntropyLoss(size_average=False)
+        self.mse = nn.MSELoss(reduction='sum')
+        self.cel = nn.CrossEntropyLoss(reduction='sum')
 
     def extra_repr(self):
         repr_str = f'classes={self.num_classes}, stride={self.stride}, threshold={self.thresh}, seen={self.seen.item()}\n'
@@ -64,13 +64,30 @@ class RegionLoss(nn.modules.loss._Loss):
 
         Args:
             output (torch.autograd.Variable): Output from the network
-            target (brambox.boxes.annotations.Annotation or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see :class:`lightnet.data.BramboxToTensor`)
+            target (brambox annotation dataframe or torch.Tensor): Brambox annotations or tensor containing the annotation targets (see :class:`lightnet.data.BramboxToTensor`)
             seen (int, optional): How many images the network has already been trained on; Default **Add batch_size to previous seen value**
 
         Note:
-            This loss function works with either a target tensor or a list of brambox annotations as target.
-            The added benefit of using brambox annotations is that this function will then also look at the ``ignore`` flag of the annotations
-            and ignore detections that match with it. This allows you to have annotations that will not influence the loss in any way,
+            If using a target tensor, it should have the dimensions `[num_batch, num_anno, 5]` and following format per image:
+
+            .. math::
+
+                \\begin{bmatrix}
+                    class\\_idx & x\\_center & y\\_center & width & height \\\\
+                    class\\_idx & x\\_center & y\\_center & width & height \\\\
+                    ... \\\\
+                    -1 & 0 & 0 & 0 & 0 \\\\
+                    -1 & 0 & 0 & 0 & 0 \\\\
+                    ...
+                \\end{bmatrix}
+
+            With all coordinates being relative to the image size. |br|
+            Since the annotations from all images of a batch should be made of the same length, you can pad them with: `[-1, 0, 0, 0, 0]`.
+
+        Note:
+            Besides being easier to work with, brambox dataframes have the added benefit that
+            this loss function will also consider the ``ignore`` flag of annotations and ignore detections that match with it.
+            This allows you to have annotations that will not influence the loss in any way,
             as opposed to having them removed and counting them as false detections.
         """
         # Parameters
