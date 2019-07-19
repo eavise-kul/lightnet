@@ -28,8 +28,7 @@ class TinyYolo(lnn.module.Darknet):
     """
     stride = 32
     remap_darknet = [
-        (r'^layers.([1-9]_)', r'layers.\1'),
-        (r'^layers.1([0-3]_)', r'layers.\1'),
+        (r'^layers.0.(\d+_)',   r'layers.\1'),  # All base layers (1-13)
     ]
 
     def __init__(self, num_classes=20, input_channels=3, anchors=[(1.08, 1.19), (3.42, 4.41), (6.63, 11.38), (9.42, 5.11), (16.62, 10.52)]):

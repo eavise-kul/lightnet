@@ -26,9 +26,9 @@ class Yolo(lnn.module.Darknet):
     """
     stride = 32
     remap_darknet19 = [
-        (r'^layers.([1-9]_)', r'layers.0.\1'),
-        (r'^layers.(1[0-7]_)', r'layers.0.\1'),
-        (r'^layers.([12][890-3]_)', r'layers.1.\1'),
+        (r'^layers.0.([1-9]_)',     r'layers.0.\1'),    # layers 1-9
+        (r'^layers.0.(1[0-7]_)',    r'layers.0.\1'),    # layers 10-17
+        (r'^layers.0.(\d{2}_)',     r'layers.1.\1'),    # remaining layers (18-23)
     ]
 
     def __init__(self, num_classes=20, input_channels=3, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):

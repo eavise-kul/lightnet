@@ -35,7 +35,8 @@ class Darknet19(lnn.module.Darknet):
 
         # Network
         self.layers = nn.Sequential(
-            OrderedDict([
+            # Base layers
+            nn.Sequential(OrderedDict([
                 ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1)),
                 ('2_max',           nn.MaxPool2d(2, 2)),
                 ('3_convbatch',     lnn.layer.Conv2dBatchReLU(32, 64, 3, 1, 1)),
@@ -59,7 +60,11 @@ class Darknet19(lnn.module.Darknet):
                 ('21_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
                 ('22_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0)),
                 ('23_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
+            ])),
+
+            # Classification specific layers
+            nn.Sequential(OrderedDict([
                 ('24_conv',         nn.Conv2d(1024, num_classes, 1, 1, 0)),
-                ('25_avgpool',      lnn.layer.GlobalAvgPool2d())
-            ])
+                ('25_avgpool',      lnn.layer.GlobalAvgPool2d()),
+            ])),
         )
