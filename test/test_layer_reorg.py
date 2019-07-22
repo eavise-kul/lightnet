@@ -1,6 +1,11 @@
-import unittest
+#
+#   Test Reorg layer output with output from darknet
+#   Copyright EAVISE
+#
+
+import pytest
 import torch
-from lightnet.network.layer import *
+import lightnet as ln
 
 # this array was generated based on a manually validated implementation
 reorg_forward_expected_output = torch.FloatTensor([
@@ -70,60 +75,35 @@ reorg_forward_expected_output = torch.FloatTensor([
     497.0, 499.0, 501.0, 503.0, 505.0, 507.0, 509.0, 511.0])
 
 
-class TestYoloReorg(unittest.TestCase):
-    def setUp(self):
-        self.reorg = Reorg(2)
+@pytest.fixture(scope='module')
+def input_tensor():
+    tensor = torch.FloatTensor(1, 8, 8, 8)
+    z = tensor.view(-1)
+    for count in range(len(z)):
+        z[count] = count
 
-        # create and initialize input tensor
-        self.input = torch.FloatTensor(1, 8, 8, 8)
-        z = self.input.view(-1)
-        for count in range(len(z)):
-            z[count] = count
-
-        # already create variable of it
-        self.input = torch.autograd.Variable(self.input)
-
-    def tearDown(self):
-        pass
-
-    def test_dimensions_forward_cpu(self):
-        """Validate that the dimensions of the output tensor are
-        correct given a tensor with known input dimensions.
-        Test CPU implementation
-        """
-        output = self.reorg.forward(self.input)
-        self.assertEqual(output.size(), torch.Size([1, 32, 4, 4]))
-
-    @unittest.skipIf(not torch.cuda.is_available(), 'CUDA not available')
-    def test_dimensions_forward_cuda(self):
-        """Validate that the dimensions of the output tensor are
-        correct given a tensor with known input dimensions.
-        Test CUDA implementation
-        """
-        self.input = self.input.cuda()
-        output = self.reorg.forward(self.input)
-        self.assertEqual(output.size(), torch.Size([1, 32, 4, 4]))
-
-    def test_forward_cpu(self):
-        """Validate that the reorg layer puts the input elements to
-        the correct locations in the output tensor.
-        Test CPU implementation
-        """
-        output = self.reorg.forward(self.input)
-        equal_elements = torch.eq(output.data, reorg_forward_expected_output.view(1, 32, 4, 4))
-        self.assertTrue(equal_elements.all())
-
-    @unittest.skipIf(not torch.cuda.is_available(), 'CUDA not available')
-    def test_forward_cuda(self):
-        """Validate that the reorg layer puts the input elements to
-        the correct locations in the output tensor.
-        Test CUDA implementation
-        """
-        self.input = self.input.cuda()
-        output = self.reorg.forward(self.input)
-        equal_elements = torch.eq(output.data.cpu(), reorg_forward_expected_output.view(1, 32, 4, 4))
-        self.assertTrue(equal_elements.all())
+    return tensor
 
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.fixture(scope='module')
+def layer():
+    return ln.network.layer.Reorg(2)
+
+
+def test_reorg_layer_cpu(layer, input_tensor):
+    output = layer.forward(input_tensor)
+    assert output.size() == torch.Size([1, 32, 4, 4])
+
+    expected = reorg_forward_expected_output.view(1, 32, 4, 4)
+    assert torch.eq(output.data, expected).all()
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason='CUDA not available')
+def test_reorg_layer_cuda(layer, input_tensor):
+    input_tensor = input_tensor.to('cuda')
+
+    output = layer.forward(input_tensor)
+    assert output.size() == torch.Size([1, 32, 4, 4])
+
+    expected = reorg_forward_expected_output.view(1, 32, 4, 4).to('cuda')
+    assert torch.eq(output.data, expected).all()
