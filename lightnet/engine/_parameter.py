@@ -185,7 +185,16 @@ class HyperParameters:
                 setattr(self, k, v)
 
     def to(self, device):
-        """ Cast the parameters from the network, optimizers and schedulers to a given device. """
+        """ Cast the parameters from the network, optimizers and schedulers to a given device. |br|
+        This function will go through all the class attributes and check if they have a `to()` function, which it will call with the device.
+
+        Args:
+            device (torch.device or string): Device to cast parameters
+
+        Note:
+            PyTorch optimizers and the ReduceLROnPlateau classes do not have a `to()` function implemented. |br|
+            For these objects, this function will go through all their necessary attributes and cast the tensors to the right device.
+        """
         for key, value in self.__dict__.items():
             if hasattr(value, 'to') and callable(value.to):
                 value.to(device)
