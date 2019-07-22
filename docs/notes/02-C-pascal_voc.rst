@@ -5,6 +5,46 @@ These scripts were build to test the results of lightnet on the Pascal VOC datas
 and as such are a nice example of some real code to learn from.
 We perform the same training and testing as explained on the `darknet website`_.
 
+Reading scripts
+---------------
+This example code can be viewed as a final tutorial to learn how to use lightnet,
+or even as a starting point to set up your own training routines.
+While we will not go over each line in this example, we will give a quick overview of all the files and their use in the codebase.
+
+The Pascal VOC training codebase consists of 2 folders, *cfg* and *bin*. |br|
+We use the :class:`~lightnet.engine.HyperParameters` class to store all our hyperparameters in a separate file in the *cfg* folder.
+This separation between code and configuration allows to completely modify how you train without having to delve into the code and allows to easily setup eg. grid search pipelines to find the optimal hyperparameters.
+
+The *bin* folder contains the actual scripts that are used to train and evaluate our detection models:
+
+labels.py
+   This script parses the Pascal VOC annotations and splits them in train and test sets.
+   This is a generic python script which has nothing to do with lightnet, but uses brambox_.
+
+dataset.py
+   This file contains a dataset object which loads a Pascal VOC image and it's annotations.
+
+train.py
+   This file creates and uses an :class:`~lightnet.engine.Engine` to train a model from the *cfg* directory on the *VOCDataset*.
+
+test.py
+   This file creates an object which is similar to the training engine to perform validation of a model.
+   It loads a weight-file, runs the model through the testset and computes a PR and mAP metric.
+
+
+.. Note::
+   In this example, the dataset is defined in a separate file and kept the same for each training. |br|
+   If you want to be able to also change the data (or pre-processing), you can define it in the HyperParameter config object as well:
+
+   - Define a *params.dataloader* object
+   - Define *params.anno*, *params.img_transform* and *params.anno_transform* and build a :class:`~lightnet.models.BramboxDataset` object in the training/testing scripts.
+     
+   This would make the scripts even more generalizable to any data format that is supported by brambox, but is left as an exercise to the reader.
+   
+
+Running scripts
+---------------
+
 .. rubric:: Get the data
 
 We train YOLO on all of the VOC data from 2007 and 2012.
