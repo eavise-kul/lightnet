@@ -14,6 +14,12 @@ from ._network_darknet19 import *
 from ._network_tiny_yolo import *
 from ._network_yolo import *
 
+# Yolt
+from ._network_yolt import *
+
+# DYolo
+from ._network_dyolo import *
+
 # Mobilenet
 from ._network_mobilenet_yolo import *
 
