@@ -292,7 +292,22 @@ class Engine(ABC):
 
     @abstractmethod
     def process_batch(self, data):
-        """ This function should contain the code to process the forward and backward pass of one (mini-)batch. """
+        """ This function should contain the code to process the forward and backward pass of one (mini-)batch.
+
+        Args:
+            data: The data that comes from your dataloader
+
+        Note:
+            If you are working with mini-batches, you should pay attention to how you process your loss and backwards function. |br|
+            PyTorch accumulates gradients when performing multiple backward() calls before using your optimizer.
+            However, usually your loss function performs some kind of average over your batch-size (eg. reduction='mean' in a lot of default pytorch functions).
+            When that is the case, you should also average your losses over the mini-batches, by dividing your resulting loss:
+
+            .. code:: bash
+
+                loss = loss_function(output, target) / self.batch_subdivisions
+                loss.backward()
+        """
         pass
 
     @abstractmethod
