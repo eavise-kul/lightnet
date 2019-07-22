@@ -7,13 +7,12 @@ from collections import OrderedDict, Iterable
 import torch
 import torch.nn as nn
 import lightnet.network as lnn
-import lightnet.data as lnd
 
 __all__ = ['YoloFusion']
 
 
 class YoloFusion(lnn.module.Lightnet):
-    """ Yolo v2 network, that is able to fuse multiple image sensor data at a certain parameterizable point in the network :cite:`rgbd_fusion_v2`.
+    """ Yolo v2 network that is able to fuse multiple image sensor data at a certain parameterizable point in the network :cite:`rgbd_fusion_v2`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
@@ -29,7 +28,6 @@ class YoloFusion(lnn.module.Lightnet):
         This network effectively supersedes the networks from :cite:`rgbd_fusion_v1`. |br|
         If you still want the old networks, you can take a look at a `previous version of lightnet`_.
         (Note that this is an older version of lightnet and thus some things might be broken in the latest version)
-
 
     .. _previous version of lightnet: https://gitlab.com/EAVISE/lightnet/blob/59baa61e429f63f80334dfff3ec2304d788ba1ad/lightnet/models/_network_yolo_fusion.py
     """

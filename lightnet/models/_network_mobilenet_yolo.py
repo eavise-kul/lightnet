@@ -3,13 +3,10 @@
 #   Copyright EAVISE
 #
 
-import os
 from collections import OrderedDict, Iterable
 import torch
 import torch.nn as nn
-
 import lightnet.network as lnn
-import lightnet.data as lnd
 
 __all__ = ['MobileNetYolo']
 
@@ -79,11 +76,9 @@ class MobileNetYolo(lnn.module.Lightnet):
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])
 
     def forward(self, x):
-        outputs = []
-
-        outputs.append(self.layers[0](x))
-        outputs.append(self.layers[1](outputs[0]))
-        outputs.append(self.layers[2](outputs[0]))
-        out = self.layers[3](torch.cat((outputs[2], outputs[1]), 1))
+        out0 = self.layers[0](x)
+        out1 = self.layers[1](out0)
+        out2 = self.layers[2](out0)
+        out = self.layers[3](torch.cat((out2, out1), 1))
 
         return out

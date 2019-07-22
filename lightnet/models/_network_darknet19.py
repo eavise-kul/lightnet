@@ -3,13 +3,9 @@
 #   Copyright EAVISE
 #
 
-import os
 from collections import OrderedDict
-import torch
 import torch.nn as nn
-
 import lightnet.network as lnn
-import lightnet.data as lnd
 
 __all__ = ['Darknet19']
 
