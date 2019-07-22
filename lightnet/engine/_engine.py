@@ -3,12 +3,9 @@
 #   Copyright EAVISE
 #
 
-import sys
 import logging
 import signal
-from statistics import mean
 from abc import ABC, abstractmethod
-import torch
 
 import lightnet as ln
 
@@ -27,12 +24,20 @@ class Engine(ABC):
 
     Args:
         params (lightnet.engine.HyperParameters): Serializable hyperparameters for the engine to work with
-        dataloader (torch.utils.data.DataLoader, optional): Dataloader for the training data
+        dataloader (torch.utils.data.DataLoader, optional): Dataloader for the training data; Default **None**
         **kwargs (dict, optional): Keywords arguments that will be set as attributes of the engine
 
     Attributes:
+        self.params: HyperParameter object
+        self.dataloader: Dataloader object
         self.sigint: Boolean value indicating whether a SIGINT (CTRL+C) was send; Default **False**
-        self.*: All values of the :class:`~lightnet.engine.HyperParameters` can be accessed in this class as well
+        self.*: All values that were passed with the init function and all values from the :class:`~lightnet.engine.HyperParameters` can be accessed in this class
+
+    Note:
+        This class expects a `self.dataloader` object to be present. |br|
+        You can either pass a dataloader when initializing this class, or you can define it yourself.
+        This allows to define `self.dataloader` as a computed property (@property) of your class, opening up a number of different possibilities,
+        like eg. computing different dataloaders depending on which epoch you are.
 
     Note:
         This engine allows to define hook functions to run at certain points in the training *(epoch_start, epoch_end, batch_start, batch_end)*.
@@ -68,27 +73,23 @@ class Engine(ABC):
         ...
         >>> # Create TrainingEngine object and run it
     """
-    _required_attr = ['network', 'batch_size']
-    _init_done = False
+    __init_done = False
+    _required_attr = ['network', 'batch_size', 'dataloader']
+    _handled_signals = [signal.SIGINT, signal.SIGTERM]
     _epoch_start = {}
     _epoch_end = {}
     _batch_start = {}
     _batch_end = {}
 
-    def __init__(self, params, dataloader, **kwargs):
+    def __init__(self, params, dataloader=None, **kwargs):
         self.params = params
         if dataloader is not None:
             self.dataloader = dataloader
-        else:
-            log.warn('No dataloader given, make sure to have a self.dataloader property for this engine to work with.')
 
         # Sigint handling
         self.sigint = False
-        signal.signal(signal.SIGINT, self.__sigint_handler)
-        signal.signal(signal.SIGTERM, self.__sigint_handler)
-
-        # Logging
-        self.__log = ln.logger
+        for sig in self._handled_signals:
+            signal.signal(sig, self.__sigint_handler)
 
         # Set attributes
         for key in kwargs:
@@ -97,7 +98,7 @@ class Engine(ABC):
             else:
                 log.warn(f'{key} attribute already exists on engine.')
 
-        self._init_done = True
+        self.__init_done = True
 
     def __call__(self):
         """ Start the training cycle. """
@@ -110,16 +111,14 @@ class Engine(ABC):
         idx = 0
         while True:
             # Epoch Start
-            self.epoch += 1
-            self._run_hooks(self.epoch, self._epoch_start)
+            self._run_hooks(self.epoch + 1, self._epoch_start)
 
             idx %= self.batch_subdivisions
             loader = self.dataloader
             for idx, data in enumerate(loader, idx+1):
                 # Batch Start
-                if idx % self.batch_subdivisions == 0:
-                    self.batch += 1
-                    self._run_hooks(self.batch, self._batch_start)
+                if (idx - 1) % self.batch_subdivisions == 0:
+                    self._run_hooks(self.batch + 1, self._batch_start)
 
                 # Forward and backward on (mini-)batches
                 self.process_batch(data)
@@ -127,6 +126,7 @@ class Engine(ABC):
                     continue
 
                 # Optimizer step
+                self.batch += 1     # Should only be called after train, but this is easier to use self.batch in function
                 self.train_batch()
 
                 # Batch End
@@ -134,11 +134,11 @@ class Engine(ABC):
 
                 # Check if we need to stop training
                 if self.quit() or self.sigint:
-                    self.epoch -= 1     # Did not finish this epoch
                     log.info('Reached quitting criteria')
                     return
 
             # Epoch End
+            self.epoch += 1
             self._run_hooks(self.epoch, self._epoch_end)
 
             # Check if we need to stop training
@@ -153,7 +153,7 @@ class Engine(ABC):
             raise AttributeError(f'{name} attribute does not exist')
 
     def __setattr__(self, name, value):
-        if self._init_done and name not in dir(self) and hasattr(self.params, name):
+        if self.__init_done and name not in dir(self) and hasattr(self.params, name):
             setattr(self.params, name, value)
         else:
             super().__setattr__(name, value)
@@ -166,7 +166,7 @@ class Engine(ABC):
     def __check_attr(self):
         for attr in self._required_attr:
             if not hasattr(self, attr):
-                raise AttributeError(f'Engine requires attribute [{attr}] (through engine or hyperparameter attribute)')
+                raise AttributeError(f'Engine requires attribute [{attr}] (as an engine or hyperparameter attribute)')
 
         if not hasattr(self, 'mini_batch_size'):
             log.warn('No [mini_batch_size] attribute found, setting it to [batch_size]')
@@ -182,9 +182,9 @@ class Engine(ABC):
             msg (str): message to be printed
         """
         if self.network.training:
-            self.__log.train(msg)
+            log.train(msg)
         else:
-            self.__log.test(msg)
+            log.test(msg)
 
     def _run_hooks(self, value, hooks):
         """ Internal method that will execute registered hooks. """
@@ -203,6 +203,13 @@ class Engine(ABC):
 
         Args:
             interval (int, optional): Number dictating how often to run the hook; Default **1**
+
+        Note:
+            The `self.epoch` attribute contains the number of processed epochs,
+            and will thus be one lower than the epoch you are currently starting.
+            For example, when starting training with the very first epoch,
+            the `self.epoch` attribute will be set to **0** during any `epoch_start` hook. |br|
+            However, the `interval` argument will be computed with the correct epoch number (ic. `self.epoch` + 1).
         """
         def decorator(fn):
             if interval in cls._epoch_start:
@@ -235,6 +242,13 @@ class Engine(ABC):
 
         Args:
             interval (int, optional): Number dictating how often to run the hook; Default **1**
+
+        Note:
+            The `self.batch` attribute contains the number of processed batches,
+            and will thus be one lower than the batch you are currently starting.
+            For example, when starting training with the very first batch,
+            the `self.batch` attribute will be set to **0** during any `batch_start` hook. |br|
+            However, the `interval` argument will be computed with the correct batch number (ic. `self.batch` + 1).
         """
         def decorator(fn):
             if interval in cls._batch_start:
