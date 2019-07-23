@@ -65,21 +65,21 @@ class Crop(BaseMultiTransform):
         self.crop = None
 
     def _get_crop(self, im_w, im_h, net_w, net_h):
-        if im_w / net_w >= im_h / net_h:
-            self.scale = net_h / im_h
-            dw = int(im_w * self.scale - net_w)
-            dx = dw // 2 if self.center else random.randint(0, dw)
-            dy = 0
-        else:
+        if net_w / im_w >= net_h / im_h:
             self.scale = net_w / im_w
-            dh = int(im_h * self.scale - net_h)
+            ds = int(im_h * self.scale - net_h + 0.5)
             dx = 0
-            dy = dh // 2 if self.center else random.randint(0, dh)
-
-        if dx == 0 and dy == 0:
-            self.crop is None
+            dy = ds // 2 if self.center else random.randint(0, ds)
         else:
-            self.crop = (dx, dy, dx + net_w, df + net_h)
+            self.scale = net_h / im_h
+            ds = int(im_w * self.scale - net_w + 0.5)
+            dx = ds // 2 if self.center else random.randint(0, ds)
+            dy = 0
+
+        if ds == 0:
+            self.crop = None
+        else:
+            self.crop = (dx, dy, dx + net_w, dy + net_h)
 
     def _tf_pil(self, img):
         if self.dataset is not None:
@@ -92,7 +92,7 @@ class Crop(BaseMultiTransform):
         # Rescale
         if self.scale != 1:
             bands = img.split()
-            bands = [b.resize((int(self.scale*im_w), int(self.scale*im_h))) for b in bands]
+            bands = [b.resize((int(self.scale * im_w + 0.5), int(self.scale * im_h + 0.5))) for b in bands]
             img = Image.merge(img.mode, bands)
             im_w, im_h = img.size
 
