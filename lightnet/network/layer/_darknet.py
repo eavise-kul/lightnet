@@ -63,9 +63,13 @@ class Conv2dBatchReLU(nn.Module):
 
 class GlobalAvgPool2d(nn.Module):
     """ This layer averages each channel to a single number.
+
+    Args:
+        squeeze (boolean, optional): Whether to reduce dimensions to [batch, channels]; Default **True**
     """
-    def __init__(self):
+    def __init__(self, squeeze=True):
         super().__init__()
+        self.squeeze = squeeze
 
     def forward(self, x):
         B = x.data.size(0)
@@ -73,7 +77,10 @@ class GlobalAvgPool2d(nn.Module):
         H = x.data.size(2)
         W = x.data.size(3)
         x = F.avg_pool2d(x, (H, W))
-        x = x.view(B, C)
+
+        if self.squeeze:
+            x = x.view(B, C)
+
         return x
 
 

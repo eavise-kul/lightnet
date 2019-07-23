@@ -50,7 +50,7 @@ class Darknet(lnn.module.Darknet):
 
             # Classification specific layers
             nn.Sequential(OrderedDict([
-                ('14_avgpool',      lnn.layer.GlobalAvgPool2d()),
+                ('14_avgpool',      lnn.layer.GlobalAvgPool2d(False)),
                 ('15_conv',         nn.Conv2d(1024, num_classes, 1, 1, 0)),
             ])),
         )
