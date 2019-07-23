@@ -45,7 +45,11 @@ class TestEngine:
         for c in tqdm(self.params.class_label_map):
             anno_c = anno[anno.class_label == c]
             det_c = det[det.class_label == c]
-            pr = bb.stat.pr(det_c, anno_c)
+
+            # By default brambox considers ignored annos as regions -> we want to consider them as annos still
+            matched_det = bb.stat.match_det(det_c, anno_c, 0.5, criteria=bb.stat.coordinates.iou, ignore=bb.stat.IgnoreMethod.SINGLE)
+            pr = bb.stat.pr(matched_det, anno_c)
+
             aps.append(bb.stat.ap(pr))
 
         m_ap = round(100 * mean(aps), 2)
