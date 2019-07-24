@@ -1,6 +1,4 @@
-LIGHTNET
-========
-<img src="docs/.static/lightnet.png" alt="Logo" width="250" height="250">  
+<img src="docs/.static/lightnet-long.png" alt="Logo" height="250">  
 
 Building blocks to recreate Darknet networks in Pytorch  
 [![Version][version-badge]][documentation-url]
@@ -52,7 +50,7 @@ Here is a list of people that made noteworthy contributions and helped to get th
 
 
 [version-badge]: https://img.shields.io/badge/version-0.4.0-blue.svg
-[pytorch-badge]: https://img.shields.io/badge/PyTorch-0.4.1-F05732.svg
+[pytorch-badge]: https://img.shields.io/badge/PyTorch-1.1.0-F05732.svg
 [pytorch-url]: https://pytorch.org
 [pipeline-badge]: https://gitlab.com/EAVISE/lightnet/badges/master/pipeline.svg
 [documentation-url]: https://eavise.gitlab.io/lightnet

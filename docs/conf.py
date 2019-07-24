@@ -148,7 +148,7 @@ html_static_path = ['.static']
 html_context = {
     'css_files': [
         'https://fonts.googleapis.com/css?family=Lato',
-        '_static/pytorch_theme.css'
+        '_static/custom_theme.css'
     ],
 }
 #

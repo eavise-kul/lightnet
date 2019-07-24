@@ -1,3 +1,4 @@
+/* Based of PyTorch css theme */
 body {
     font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
 }
@@ -9,7 +10,7 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
 
 /* Use white for docs background */
 .wy-side-nav-search {
-    background-color: #fff;
+    background-color: #f3ffff;
 }
 
 .wy-nav-content-wrap, .wy-menu li.current > a  {
@@ -34,9 +35,10 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
 /* Fixes for mobile */
 .wy-nav-top {
     background-color: #fff;
-    background-image: url('../img/pytorch-logo-dark.svg');
+    background-image: url('./lightnet-mobile.png');
     background-repeat: no-repeat;
     background-position: center;
+    background-size: contain;
     padding: 0;
     margin: 0.4045em 0.809em;
     color: #333;
@@ -64,7 +66,7 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
 
 /* Use our red for literals (it's very similar to the original color) */
 .rst-content tt.literal, .rst-content tt.literal, .rst-content code.literal {
-    color: #F05732;
+    color: #00BFD8;
 }
 
 .rst-content tt.xref, a .rst-content tt, .rst-content tt.xref,
@@ -75,17 +77,13 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
 /* Change link colors (except for the menu) */
 
 a {
-    color: #F05732;
+    color: #00BFD8;
 }
 
 a:hover {
-    color: #F05732;
+    color: #00E1FF;
 }
 
-
-a:visited {
-    color: #D44D2C;
-}
 
 .wy-menu a {
     color: #b3b3b3;
@@ -119,5 +117,20 @@ nav .hidden-section {
 }
 
 .wy-side-nav-search>div.version {
-  color: #d44d2c;
+  color: #00BFD8;
+}
+
+/* Notes */
+.note {
+  background: #F0E6F4 !important;
+}
+
+.note .admonition-title {
+  background: #9B59B6 !important;
+}
+
+/* Definition lists */
+.rst-content dl:not(.docutils) dt {
+  border-top: 3px solid #00BFD8;
+  color: #00BFD8;
 }
