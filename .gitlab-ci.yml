@@ -9,8 +9,8 @@ cache:
   key: "$CI_PROJECT_ID"
 
 before_script:
-    - pip install http://download.pytorch.org/whl/cpu/torch-0.4.1-cp36-cp36m-linux_x86_64.whl
-    - pip install torchvision
+    - pip install https://download.pytorch.org/whl/cpu/torch-1.1.0-cp36-cp36m-linux_x86_64.whl
+    - pip install https://download.pytorch.org/whl/cpu/torchvision-0.3.0-cp36-cp36m-linux_x86_64.whl
     - pip install -r develop.txt
 
 stages:
@@ -26,16 +26,18 @@ lint:
 unittest:
   stage: test
   only:
-    - master
     - tags
+    - master
+    - develop
   script:
-    - python setup.py test
+    - python -m pytest ./test/
 
 doctest:
   stage: test
   only:
-    - master
     - tags
+    - master
+    - develop
   script:
     - cd docs; make doctest; cd ..
 
