@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-__all__ = ['Conv2dBatchReLU', 'GlobalAvgPool2d', 'PaddedMaxPool2d', 'Reorg']
+__all__ = ['Conv2dBatchReLU', 'Flatten', 'GlobalAvgPool2d', 'PaddedMaxPool2d', 'Reorg']
 log = logging.getLogger(__name__)
 
 
@@ -61,15 +61,42 @@ class Conv2dBatchReLU(nn.Module):
         return x
 
 
+class Flatten(nn.Module):
+    """ Flatten tensor into single dimension.
+
+    Args:
+        batch (boolean, optional): If True, consider input to be batched and do not flatten first dim; Default **True**
+    """
+    def __init__(self, batch=True):
+        super().__init__()
+        self.batch = batch
+
+    def forward(self, x):
+        if self.batch:
+            return x.view(x.size(0), -1)
+        else:
+            return x.view(-1)
+
+
 class GlobalAvgPool2d(nn.Module):
     """ This layer averages each channel to a single number.
 
     Args:
         squeeze (boolean, optional): Whether to reduce dimensions to [batch, channels]; Default **True**
+
+    Deprecated:
+        This function is deprecated in favor of :class:`torch.nn.AdaptiveAvgPool2d`. |br|
+        To replicate the behaviour with `squeeze` set to **True**, append a Flatten layer afterwards:
+
+        >>> layer = torch.nn.Sequential(
+        ...     torch.nn.AdaptiveAvgPool2d(1),
+        ...     ln.network.layer.Flatten()
+        ... )
     """
     def __init__(self, squeeze=True):
         super().__init__()
         self.squeeze = squeeze
+        log.deprecated('This layer is deprecated and will be removed in future version, please use "torch.nn.AdaptiveAvgPool2d"')
 
     def forward(self, x):
         B = x.data.size(0)

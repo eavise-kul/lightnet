@@ -61,6 +61,7 @@ class Darknet19(lnn.module.Darknet):
             # Classification specific layers
             nn.Sequential(OrderedDict([
                 ('24_conv',         nn.Conv2d(1024, num_classes, 1, 1, 0)),
-                ('25_avgpool',      lnn.layer.GlobalAvgPool2d()),
+                ('25_avgpool',      nn.AdaptiveAvgPool2d(1)),
+                ('26_flatten',      lnn.layer.Flatten()),
             ])),
         )
