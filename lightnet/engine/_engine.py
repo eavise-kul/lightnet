@@ -96,7 +96,7 @@ class Engine(ABC):
             if not hasattr(self, key):
                 setattr(self, key, kwargs[key])
             else:
-                log.warn(f'{key} attribute already exists on engine.')
+                log.warning(f'{key} attribute already exists on engine.')
 
         self.__init_done = True
 
@@ -169,7 +169,7 @@ class Engine(ABC):
                 raise AttributeError(f'Engine requires attribute [{attr}] (as an engine or hyperparameter attribute)')
 
         if not hasattr(self, 'mini_batch_size'):
-            log.warn('No [mini_batch_size] attribute found, setting it to [batch_size]')
+            log.warning('No [mini_batch_size] attribute found, setting it to [batch_size]')
             self.mini_batch_size = self.batch_size
         elif self.batch_size % self.mini_batch_size != 0 or self.mini_batch_size > self.batch_size:
             raise ValueError('batch_size should be a multiple of mini_batch_size')

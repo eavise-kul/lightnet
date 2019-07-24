@@ -193,7 +193,7 @@ class TensorToBrambox(BaseTransform):
         self.width, self.height = network_size
         self.class_label_map = class_label_map
         if self.class_label_map is None:
-            log.warn('No class_label_map given. The indexes will be used as class_labels.')
+            log.warning('No class_label_map given. The indexes will be used as class_labels.')
 
     def __call__(self, boxes):
         if boxes.numel() == 0:

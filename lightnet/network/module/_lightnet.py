@@ -29,7 +29,7 @@ class Lightnet(nn.Module):
         if isinstance(self.layers, nn.Sequential):
             return self.layers(x)
         elif isinstance(self.layers, nn.ModuleList):
-            log.warn('No _forward function defined, looping sequentially over modulelist')
+            log.warning('No _forward function defined, looping sequentially over modulelist')
             for _, module in enumerate(self.layers):
                 x = module(x)
             return x
@@ -89,7 +89,7 @@ class Lightnet(nn.Module):
         state = torch.load(weights, 'cpu')
 
         if not strict and state.keys() != keys:
-            log.warn('Modules not matching, performing partial update')
+            log.warning('Modules not matching, performing partial update')
         self.load_state_dict(state, strict=strict)
 
     def save(self, weights_file, remap=None):

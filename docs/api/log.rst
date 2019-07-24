@@ -49,7 +49,7 @@ The second method is by using the :func:`lightnet.logger.setConsoleLevel` functi
 DEBUG      This is a debug message
 >>> log.info('This is an info message')   #doctest: +NORMALIZE_WHITESPACE
 INFO       This is an info message
->>> log.warn('This is a warning')   # doctest: +NORMALIZE_WHITESPACE
+>>> log.warning('This is a warning')   # doctest: +NORMALIZE_WHITESPACE
 WARNING    This is a warning
 >>> log.deprecated('This is a deprecation warning')   # doctest: +NORMALIZE_WHITESPACE
 DEPRECATED This is a deprecation warning

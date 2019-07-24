@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
     if not os.path.isdir(args.backup):
         if not os.path.exists(args.backup):
-            log.warn('Backup folder does not exist, creating...')
+            log.warning('Backup folder does not exist, creating...')
             os.makedirs(args.backup)
         else:
             raise ValueError('Backup path is not a folder')

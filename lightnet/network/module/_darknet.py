@@ -47,7 +47,7 @@ class Darknet(Lightnet):
         else:
             log.debug('Loading weights from darknet file')
             if strict:
-                log.warn('Cannot enforce strict behaviour for binary darknet weights')
+                log.warning('Cannot enforce strict behaviour for binary darknet weights')
             self._load_darknet_weights(weights_file)
 
     def save(self, weights_file, remap=None):
@@ -106,10 +106,10 @@ class WeightLoader:
             log.debug(f'Loading weight file: version {self.header[0]}.{self.header[1]}.{self.header[2]}')
 
             if ver_num <= 19:
-                log.warn('Weight file uses sizeof to compute variable size, which might lead to undefined behaviour. (choosing int=int32, float=float32)')
+                log.warning('Weight file uses sizeof to compute variable size, which might lead to undefined behaviour. (choosing int=int32, float=float32)')
                 self.seen = int(np.fromfile(fp, count=1, dtype=np.int32)[0])
             elif ver_num <= 29:
-                log.warn('Weight file uses sizeof to compute variable size, which might lead to undefined behaviour. (choosing int=int32, float=float32, size_t=int64)')
+                log.warning('Weight file uses sizeof to compute variable size, which might lead to undefined behaviour. (choosing int=int32, float=float32, size_t=int64)')
                 self.seen = int(np.fromfile(fp, count=1, dtype=np.int64)[0])
             else:
                 log.error('New weight file syntax! Loading of weights might not work properly. Please submit an issue with the weight file version number. [Run with DEBUG logging level]')

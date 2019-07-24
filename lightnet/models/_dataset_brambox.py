@@ -50,7 +50,7 @@ class BramboxDataset(lnd.Dataset):
 
         # Add class_ids
         if class_label_map is None:
-            log.warn(f'No class_label_map given, generating it by sorting unique class labels from data alphabetically, which is not always deterministic behaviour')
+            log.warning(f'No class_label_map given, generating it by sorting unique class labels from data alphabetically, which is not always deterministic behaviour')
             class_label_map = list(np.sort(self.annos.class_label.unique()))
         self.annos['class_id'] = self.annos.class_label.map(dict((l, i) for i, l in enumerate(class_label_map)))
 

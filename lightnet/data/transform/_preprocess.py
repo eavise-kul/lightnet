@@ -20,14 +20,14 @@ try:
     import pandas as pd
     import brambox as bb
 except ImportError:
-    log.warn('Brambox is not installed and thus all data functionality related to it cannot be used')
+    log.warning('Brambox is not installed and thus all data functionality related to it cannot be used')
     pd = None
     bb = None
 
 try:
     import cv2
 except ImportError:
-    log.warn('OpenCV is not installed and cannot be used')
+    log.warning('OpenCV is not installed and cannot be used')
     cv2 = None
 
 __all__ = ['Crop', 'Letterbox', 'RandomFlip', 'RandomHSV', 'RandomJitter', 'RandomRotate', 'BramboxToTensor']
@@ -608,7 +608,7 @@ class BramboxToTensor(BaseTransform):
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
         if self.class_label_map is None:
-            log.warn('No class_label_map given. If there is no class_index column or if the class_labels are not integers, they will be set to zero.')
+            log.warning('No class_label_map given. If there is no class_index column or if the class_labels are not integers, they will be set to zero.')
 
     def __call__(self, data):
         if self.dataset is not None:

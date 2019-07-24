@@ -82,7 +82,7 @@ class Fusion(nn.Module):
             self.fuse = self._get_fuse_conv()
         elif self.fuse_layer > len(layers):     # Reg/Fusion
             if self.fuse_layer > len(layers) + 1:
-                log.warn(f'fuse_layer variable is too high, setting it to {len(layers)+1} which will not perform any fusion [{self.fuse_layer}/{len(layers)+1}]')
+                log.warning(f'fuse_layer variable is too high, setting it to {len(layers)+1} which will not perform any fusion [{self.fuse_layer}/{len(layers)+1}]')
                 self.fuse_layer = len(layers) + 1
 
             if isinstance(layers, dict):
