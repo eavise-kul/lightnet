@@ -25,16 +25,19 @@ class Lightnet(nn.Module):
         self.layers = None
 
     def forward(self, x):
-        log.debug('Running default forward functions')
-        if isinstance(self.layers, nn.Sequential):
-            return self.layers(x)
-        elif isinstance(self.layers, nn.ModuleList):
-            log.warning('No _forward function defined, looping sequentially over modulelist')
-            for _, module in enumerate(self.layers):
-                x = module(x)
-            return x
+        log.debug('Running default forward function')
+        if hasattr(self, 'layers'):
+            if isinstance(self.layers, nn.Sequential):
+                return self.layers(x)
+            elif isinstance(self.layers, nn.ModuleList):
+                log.warning('No _forward function defined, looping sequentially over modulelist')
+                for _, module in enumerate(self.layers):
+                    x = module(x)
+                return x
+            else:
+                raise NotImplementedError(f'No _forward function defined and no default behaviour for this type of layers [{type(self.layers)}]')
         else:
-            raise NotImplementedError(f'No _forward function defined and no default behaviour for this type of layers [{type(self.layers)}]')
+            raise NotImplementedError(f'No _forward function defined and no default behaviour for this network')
 
     def layer_loop(self, mod=None):
         """ This function will recursively loop over all moduleList and Sequential children.
