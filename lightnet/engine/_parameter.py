@@ -211,7 +211,7 @@ class HyperParameters:
                                 if subparam._grad is not None:
                                     subparam._grad.data = subparam._grad.data.to(device)
             elif isinstance(value, (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)):
-                for param in sched.__dict__.values():
+                for param in value.__dict__.values():
                     if isinstance(param, torch.Tensor):
                         param.data = param.data.to(device)
                         if param._grad is not None:
