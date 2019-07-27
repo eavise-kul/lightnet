@@ -30,11 +30,11 @@ class Conv2dBatchReLU(nn.Module):
 
         >>> conv = ln.layer.Conv2dBatchReLU(
         ...     in_c, out_c, kernel, stride, padding,
-        ...     relu=functools.partial(torch.nn.LeakyReLU, 0.1, inplace=True)
+        ...     relu=functools.partial(torch.nn.LeakyReLU, 0.1)
         ... )   # doctest: +SKIP
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
-                 momentum=0.01, relu=lambda: nn.LeakyReLU(0.1, inplace=True)):
+                 momentum=0.01, relu=lambda: nn.LeakyReLU(0.1)):
         super().__init__()
 
         # Parameters

@@ -39,11 +39,11 @@ class Conv2dDepthWise(nn.Module):
         self.layers = nn.Sequential(
             nn.Conv2d(self.in_channels, self.in_channels, self.kernel_size, self.stride, self.padding, groups=self.in_channels, bias=False),
             nn.BatchNorm2d(self.in_channels, momentum=self.momentum),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
 
             nn.Conv2d(self.in_channels, self.out_channels, 1, 1, 0, bias=False),
             nn.BatchNorm2d(self.out_channels, momentum=self.momentum),
-            nn.ReLU(inplace=True)
+            nn.ReLU()
         )
 
     def __repr__(self):
