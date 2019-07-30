@@ -78,7 +78,7 @@ if __name__ == '__main__':
     if args.difficult:
         if args.verbose:
             print(f'\tRemoving difficult annotations')
-        train_annos = train_annos[~train_annos.difficult]
+        test_annos = test_annos[~test_annos.difficult]
 
     print('Generating testing annotation file')
     bb.io.save(test_annos, 'pandas', f'{args.root}/test{args.extension}')
