@@ -18,6 +18,7 @@ class TrainEngine(ln.engine.Engine):
     def start(self):
         self.params.to(self.device)
         self.dataloader.change_input_dim()
+        self.optimizer.step(self.batch)     # Needed when resuming, harmless with batch=0
         self.optimizer.zero_grad()
 
         self.train_loss = {'tot': [], 'coord': [], 'conf': [], 'cls': []}
