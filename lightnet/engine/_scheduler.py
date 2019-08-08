@@ -45,6 +45,19 @@ class SchedulerCompositor:
         if not all(c1 < c2 for c1, c2 in zip(self.counts, self.counts[1:])):
             raise ValueError('Count values need to be strictly increasing')
 
+    def __repr__(self):
+        format_string = self.__class__.__name__ + ' ['
+        clen = max(len(str(c)) for c in self.counts)
+        for i in range(len(self.counts)):
+            if hasattr(self.sched[i], '__name__'):
+                name = self.sched[i].__name__
+            else:
+                name = self.sched[i].__class__.__name__
+
+            format_string += f'\n  {self.counts[i]:>{clen}}:  {name}'
+        format_string += '\n]'
+        return format_string
+
     def step(self, count, **kwargs):
         """ Stepping function that will select a scheduler and run it.
 
