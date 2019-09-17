@@ -47,6 +47,7 @@ pages:
   only:
     - tags
   script:
+    - pip install IPython
     - cd docs; make html; cd ..
     - mv docs/.build/html public/
   artifacts:
