@@ -16,25 +16,20 @@ Pascal VOC
 ----------
 
 .. Todo::
-   - Change weight
+   - Change weight files
+   - Change voc_results.svg
 
 We compared the Yolo V2 network on the Pascal VOC imageset.
-For more information on how to recreate these results, take a look at *examples/yolo-voc* in the lightnet_ repo.
+For more information on how to recreate these results, take a look at the :ref:`Pascal VOC <pascalvoc>` page.
+*(Note that we ignore difficult annotations for these evaluations)*
 
-We trained the network two times, once with pretrained darknet weights and once with weights from our own ImageNet training.
-While the difference is not that big, the pretrained weights from lightnet offer slightly better results,
-proving that there is a small difference in how PyTorch and Darknet compute some layers.
-*(Our guess is that it is most likely the batch-norm layers)*
-
-========= ======= ================== ===============================================
-Framework mAP (%) Weight File        Note
-========= ======= ================== ===============================================
-Darknet   76.8    `weights <dnw_>`_  Darknet weights with Lightnet evaluation code
---------- ------- ------------------ -----------------------------------------------
-Lightnet  74.6    `weights <lnw_>`_  Transfer learned from Darknet ImageNet weights
---------- ------- ------------------ -----------------------------------------------
-Lightnet  75.8    `weights <plnw_>`_ Transfer learned from Lightnet ImageNet weights
-========= ======= ================== ===============================================
+========= ======= ================= ===============================================
+Framework mAP (%) Weight File       Note
+========= ======= ================= ===============================================
+Darknet   77.2    `weights <dnw_>`_ Darknet weights with Lightnet evaluation code
+--------- ------- ----------------- -----------------------------------------------
+Lightnet  75.6    `weights <lnw_>`_ Transfer learned from Lightnet ImageNet weights
+========= ======= ================= ===============================================
 
 .. image:: 03-voc_results.svg
 
@@ -42,5 +37,4 @@ Lightnet  75.8    `weights <plnw_>`_ Transfer learned from Lightnet ImageNet wei
 .. include:: ../links.rst
 .. _darknet config: https://github.com/pjreddie/darknet/blob/777b0982322142991e1861161e68e1a01063d76f/cfg/yolo-voc.2.0.cfg
 .. _dnw: https://pjreddie.com/media/files/yolov2-voc.weights
-.. _lnw: https://mega.nz/#!mhMzQIhB!K8i1rDAFO78dkQNGepwcmz6N4EzTPMEXuarC7luGAWs
-.. _plnw: https://mega.nz/#!HwUlCIxA!OhdkRK5GkVdFDgfh9QPbHx7961-jSZnpMOotttakPU4
+.. _lnw: https://mega.nz/#!KhdGmYzK!XUW4sJcZKmoFJP7hKrZj-9vhlPg7NBDvmpw0fjaEs08

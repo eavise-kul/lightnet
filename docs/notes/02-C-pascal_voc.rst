@@ -1,5 +1,7 @@
+.. _pascalvoc:
+
 Pascal VOC
-===========
+==========
 This page contains explanation of the scripts located in the `example folder`_ of the repository. |br|
 These scripts were build to test the results of lightnet on the Pascal VOC dataset and compare them with darknet,
 and as such are a nice example of some real code to learn from.
@@ -96,7 +98,7 @@ Framework URL
 ========= ===
 Darknet   https://pjreddie.com/media/files/darknet19_448.conv.23
 --------- ---
-Lightnet  https://mega.nz/#!ChsBkSQT!8Jpjzzi_tgPtd6gs079g4ea-XOUIr3LspOqAgk97hUA
+Lightnet  https://mega.nz/#!Xxcx3ISS!okc1vufN288-G5JSAqweF3rPiUeoHi_gG35NzD8VUHA
 ========= ===
 
 .. rubric:: Train model
