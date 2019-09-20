@@ -3,15 +3,17 @@
 #   Copyright EAVISE
 #
 
+import logging
 from collections import OrderedDict, Iterable
 import torch
 import torch.nn as nn
 import lightnet.network as lnn
 
-__all__ = ['Yolo']
+__all__ = ['YoloV2', 'Yolo']
+log = logging.getLogger('lightnet.models')
 
 
-class Yolo(lnn.module.Darknet):
+class YoloV2(lnn.module.Darknet):
     """ Yolo v2 implementation :cite:`yolo_v2`.
 
     Args:
@@ -96,3 +98,9 @@ class Yolo(lnn.module.Darknet):
         out = self.layers[3](torch.cat((out2, out1), 1))
 
         return out
+
+
+def Yolo(*args, **kwargs):
+    """ DEPRECATED : Please use the more aptly named YoloV2 class. """
+    log.deprecated('This class is deprecated! Please use the more aptly named YoloV2 class.')
+    return YoloV2(*args, **kwargs)

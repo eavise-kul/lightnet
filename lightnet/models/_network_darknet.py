@@ -1,5 +1,5 @@
 #
-#   Darknet Darknet19 model
+#   Darknet Darknet model
 #   Copyright EAVISE
 #
 

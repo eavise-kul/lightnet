@@ -3,14 +3,16 @@
 #   Copyright EAVISE
 #
 
+import logging
 from collections import OrderedDict, Iterable
 import torch.nn as nn
 import lightnet.network as lnn
 
-__all__ = ['TinyYolo']
+__all__ = ['TinyYoloV2', 'TinyYolo']
+log = logging.getLogger('lightnet.models')
 
 
-class TinyYolo(lnn.module.Darknet):
+class TinyYoloV2(lnn.module.Darknet):
     """ Tiny Yolo v2 implementation :cite:`yolo_v2`.
 
     Args:
@@ -57,3 +59,9 @@ class TinyYolo(lnn.module.Darknet):
                 ('15_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
             ])
         )
+
+
+def TinyYolo(*args, **kwargs):
+    """ DEPRECATED : Please use the more aptly named TinyYoloV2 class. """
+    log.deprecated('This class is deprecated! Please use the more aptly named TinyYoloV2 class.')
+    return TinyYoloV2(*args, **kwargs)
