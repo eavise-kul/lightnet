@@ -29,11 +29,12 @@ class Fusion(nn.Module):
     Note:
         Depending on the value of the `fuse_layer` attribute, fusion is performed at different stages of the module. |br|
 
-        - If no `fuse_layer` is given (or **None** is given as its value), no fusion will be done
-        and the input will be considered as an already fused combination.
-        - If the `fuse_layer` attribute is an integer from 0 to :math:`num_layers`, the module will fuse both streams after the number of the layer that is given.
+        - If no `fuse\_layer` is given (or **None** is given as its value),\
+        no fusion will be done and the input will be considered as an already fused combination.
+        - If the `fuse\_layer` attribute is an integer from 0 to :math:`num\_layers`, the module will fuse both streams after the number of the layer that is given.\
         Giving a value of **0** thus means to fuse before the first layer and giving a value of **num_layers** to fuse after the last.
-        - Finally, if :math:`fuse_layer == num_layers + 1`, then no fusion will occur, but rather both streams will be processed seperately and the output feature maps will simply be concatenated at the end.
+        - Finally, if :math:`fuse\_layer == num\_layers + 1`, then no fusion will occur, but rather both streams will be processed seperately\
+        and the output feature maps will simply be concatenated at the end.
 
         These rules allow the chain multiple :class:`~lightnet.network.layer.Fusion` modules together, only fusing in one of them at a certain time.
 
@@ -47,7 +48,7 @@ class Fusion(nn.Module):
         is by looping through the regular stream or combined stream,
         looking for the last `out_channels` or first `in_channels` attribute of the layers respectively. |br|
         This means that this module only works if there are convolutional layers in the list,
-        or any other layer that has these `in_channels` and `out_channels` attributes to be able to deduce the number of feature maps.
+        or any other layer that has these `in_channels` and `out_channels` attributes to be able to deduct the number of feature maps.
     """
     def __init__(self, layers, fuse_layer=None):
         super().__init__()

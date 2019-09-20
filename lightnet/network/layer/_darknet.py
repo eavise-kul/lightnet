@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-__all__ = ['Conv2dBatchReLU', 'Flatten', 'GlobalAvgPool2d', 'PaddedMaxPool2d', 'Reorg']
+__all__ = ['Conv2dBatchReLU', 'Flatten', 'GlobalAvgPool2d', 'PaddedMaxPool2d', 'Reorg', 'Residual', 'SelectiveSequential']
 log = logging.getLogger(__name__)
 
 
@@ -96,7 +96,7 @@ class GlobalAvgPool2d(nn.Module):
     def __init__(self, squeeze=True):
         super().__init__()
         self.squeeze = squeeze
-        log.deprecated('This layer is deprecated and will be removed in future version, please use "torch.nn.AdaptiveAvgPool2d"')
+        log.deprecated('The GlobalAvgPool2d layer is deprecated and will be removed in future version, please use "torch.nn.AdaptiveAvgPool2d"')
 
     def forward(self, x):
         B = x.data.size(0)
@@ -166,3 +166,58 @@ class Reorg(nn.Module):
         x = x.view(B, -1, H//self.stride, W//self.stride)
 
         return x
+
+
+class Residual(nn.Sequential):
+    """ Residual block that runs like a Sequential, but then adds the original input to the output tensor.
+        See :class:`torch.nn.Sequential` for more information.
+
+        Warning:
+            The dimension between the input and output of the module need to be the same
+            or need to be broadcastable from one to the other!
+    """
+    def forward(self, x):
+        y = super().forward(x)
+        return x + y
+
+
+class SelectiveSequential(nn.Sequential):
+    """ Sequential that allows to select which layers are to be considered as output.
+        See :class:`torch.nn.Sequential` for more information.
+
+        Args:
+            selection (list): names of the layers for which you want to get the output
+            *args: Arguments that are passed to the Sequential init function
+
+        Note:
+            If your selection only contains one item, this layer will flatten the return output in a single list:
+            >>> main_output, selected_output = layer(input)  # doctest: +SKIP
+
+            However, if you have multiple outputs in your selection list, the outputs will be grouped in a dictionary:
+            >>> main_output, selected_output_dict = layer(input)  # doctest: +SKIP
+    """
+    def __init__(self, selection, *args):
+        super().__init__(*args)
+
+        self.selection = [str(select) for select in selection]
+        self.flatten = len(self.selection) == 1
+        k = list(self._modules.keys())
+        for sel in self.selection:
+            if sel not in k:
+                raise KeyError('Selection key not found in sequential [{sel}]')
+
+    def extra_repr(self):
+        return f'selection={self.selection}, flatten={self.flatten}'
+
+    def forward(self, x):
+        sel_output = {sel: None for sel in self.selection}
+
+        for key, module in self._modules.items():
+            x = module(x)
+            if key in self.selection:
+                sel_output[key] = x
+
+        if self.flatten:
+            return x, sel_output[self.selection[0]]
+        else:
+            return x, sel_output
