@@ -7,7 +7,6 @@
 import logging
 import numpy as np
 import torch
-from torch.autograd import Variable
 from .util import BaseTransform
 from distutils.version import LooseVersion
 
@@ -16,7 +15,7 @@ try:
 except ModuleNotFoundError:
     pd = None
 
-__all__ = ['GetBoundingBoxes', 'NonMaxSuppression', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
+__all__ = ['GetBoundingBoxes', 'GetMultiScaleBoundingBoxes', 'NonMaxSuppression', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
 log = logging.getLogger(__name__)
 
 torchversion = LooseVersion(torch.__version__)
@@ -28,7 +27,7 @@ class GetBoundingBoxes(BaseTransform):
 
     Args:
         num_classes (int): number of categories
-        anchors (list): 2D list representing anchor boxes (see :class:`lightnet.network.Darknet`)
+        anchors (list): 2D list representing anchor boxes (see :class:`lightnet.models.YoloV2`)
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
 
     Returns:
@@ -95,6 +94,37 @@ class GetBoundingBoxes(BaseTransform):
         batch_num = (batch_num * nums[:, None])[batch_num] - 1
 
         return torch.cat([batch_num[:, None].float(), coords, scores[:, None], idx[:, None]], dim=1)
+
+
+class GetMultiScaleBoundingBoxes(GetBoundingBoxes):
+    """ Convert the output from multiple yolo output layers (at different scales) to bounding box tensors.
+
+    Args:
+        num_classes (int): number of categories
+        anchors (list): 3D list representing anchor boxes (see :class:`lightnet.models.YoloV3`)
+        conf_thresh (Number [0-1]): Confidence threshold to filter detections
+
+    Returns:
+        (Tensor [Boxes x 7]]): **[batch_num, x_center, y_center, width, height, confidence, class_id]** for every bounding box
+
+    Note:
+        All parameters are the same as :class:`~lightnet.data.transform.GetBoundingBoxes`, except for `anchors`. |br|
+        The anchors need separate values for each different network output scale and thus need to be lists of the original parameter.
+
+    Note:
+        The output tensor uses relative values for its coordinates.
+    """
+    def __init__(self, num_classes, anchors, conf_thresh):
+        super().__init__(num_classes, anchors[0], conf_thresh)
+        self.root_anchors = torch.tensor(anchors, requires_grad=False)
+
+    def __call__(self, network_output):
+        boxes = []
+        for i, output in enumerate(network_output):
+            self.anchors = self.root_anchors[i]
+            self.num_anchors = self.anchors.shape[0]
+            boxes.append(super().__call__(output))
+        return torch.cat(boxes)
 
 
 class NonMaxSuppression(BaseTransform):

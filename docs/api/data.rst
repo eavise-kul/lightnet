@@ -25,6 +25,7 @@ First you create an object and then you call the object with the network output 
 You can also call the ``apply()`` method on the classes to run the transformation once.
 
 .. autoclass:: lightnet.data.transform.GetBoundingBoxes
+.. autoclass:: lightnet.data.transform.GetMultiScaleBoundingBoxes
 .. autoclass:: lightnet.data.transform.NonMaxSuppression
 .. autoclass:: lightnet.data.transform.TensorToBrambox
 .. autoclass:: lightnet.data.transform.ReverseLetterbox
