@@ -74,10 +74,10 @@ class LevelFilter(logging.Filter):
 # Logging levels
 def deprecated(self, message, *args, **kwargs):
     if not hasattr(self, 'deprecated_msgs'):
-        self.deprecated_msgs = []
+        self.deprecated_msgs = set()
 
     if self.isEnabledFor(35) and message not in self.deprecated_msgs:
-        self.deprecated_msgs.append(message)
+        self.deprecated_msgs.add(message)
         self._log(35, message, args, **kwargs)
 
 
