@@ -26,6 +26,8 @@ class LinePlotter:
         This can be used to disable using the visdom plotter, without having to check for it in the application code.
     """
     def __init__(self, visdom, window=None, env=None, name=None, opts={}):
+        log.deprecated('This class is deprectated in favor of the new TensorBoard integration in PyTorch')
+
         self.vis = visdom
         self.win = window
         self.env = env
