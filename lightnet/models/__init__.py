@@ -24,7 +24,11 @@ from ._network_yolt import *
 from ._network_dyolo import *
 
 # Mobilenet
+from ._network_mobilenet_v1 import *
+from ._network_mobilenet_v2 import *
 from ._network_mobilenet_yolo import *
+from ._network_mobile_darknet19 import *
+from ._network_mobile_yolo_v2 import *
 
 # SensorFusion
 from ._network_yolo_fusion import *
