@@ -18,8 +18,8 @@ class TrainEngine(ln.engine.Engine):
     def start(self):
         self.params.to(self.device)
         self.dataloader.change_input_dim()
-        self.optimizer.step(self.batch)     # Needed when resuming, harmless with batch=0
         self.optimizer.zero_grad()
+        self.scheduler.step(self.batch)
 
         self.train_loss = {'tot': [], 'coord': [], 'conf': [], 'cls': []}
         self.plot_train_loss = ln.engine.LinePlotter(self.visdom, 'train_loss', opts=dict(xlabel='Batch', ylabel='Loss', title='Training Loss', showlegend=True, legend=['Total loss', 'Coordinate loss', 'Confidence loss', 'Class loss']))
@@ -73,7 +73,10 @@ class TrainEngine(ln.engine.Engine):
 
     @ln.engine.Engine.batch_end(10)
     def resize(self):
-        self.dataloader.change_input_dim()
+        if self.batch >= self.max_batches - 200:
+        	self.dataloader.change_input_dim(self.input_dimension, None)
+        else:
+        	self.dataloader.change_input_dim()
 
     def quit(self):
         if self.batch >= self.max_batches:
