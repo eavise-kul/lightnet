@@ -113,6 +113,11 @@ class GetMultiScaleBoundingBoxes(GetBoundingBoxes):
 
     Note:
         The output tensor uses relative values for its coordinates.
+
+    Warning:
+        This post-processing function is not entirely equivalent to the Darknet implementation! |br|
+        We just execute the regular :class:`~lightnet.data.transform.GetBoundingBoxes` at multiple scales (different strides and anchors),
+        and as such did not implement overlapping class labels.
     """
     def __init__(self, num_classes, anchors, conf_thresh):
         super().__init__(num_classes, anchors[0], conf_thresh)

@@ -29,4 +29,3 @@ Data
 
 
 .. include:: ../links.rst
-.. bibliography:: ../biblio.bib

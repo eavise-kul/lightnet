@@ -4,3 +4,4 @@
 #
 
 from ._regionloss import *
+from ._multiscaleregionloss import *

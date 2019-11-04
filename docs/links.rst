@@ -6,7 +6,6 @@
 .. _yolo2-pytorch: https://github.com/longcw/yolo2-pytorch
 .. _visdom: https://github.com/facebookresearch/visdom/
 .. _brambox: https://eavise.gitlab.io/brambox
-.. _mobilenets: https://arxiv.org/pdf/1704.04861.pdf
 
 
 .. DIRECTIVES

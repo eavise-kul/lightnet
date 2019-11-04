@@ -19,7 +19,8 @@ Without the work of the following people, this library would have never become a
 - `The PyTorch team <pytorch_>`_ for creating a clear and powerfull library for deep learning.
 - `marvis <pytorch-yolo2_>`_ for his implementation of YOLO in pytorch. I took a lot of parts from this repository, and tweaked them to my needs.
 - `longcw <yolo2-pytorch_>`_ for his implementation of YOLO in pytorch. I used his code to get a correct region loss.
-- `Andrew G. Howard et al. <mobilenets_>`_ for their work on efficient MobileNets.
+- `All authors <biblio.html>`_ who's papers I used to develop my research.
+- The contributors that helped push Lightnet to the library it is today!
 
 Cite
 ----
@@ -34,6 +35,7 @@ If you use Lightnet in your research, please cite it.
      year = {2018}
    }
 
+
 Table of Contents
 =================
 .. toctree::
@@ -43,6 +45,7 @@ Table of Contents
    notes/01-installation.rst
    notes/02-getting_started.rst
    notes/03-comparing_darknet.rst
+   biblio.rst
 
 .. toctree::
    :maxdepth: 2

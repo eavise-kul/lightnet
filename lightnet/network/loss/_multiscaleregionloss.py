@@ -27,6 +27,11 @@ class MultiScaleRegionLoss(RegionLoss):
     Note:
         All parameters are the same as :class:`~lightnet.network.loss.RegionLoss`, except for `anchors` and `stride`. |br|
         These 2 parameters need separate values for each different network output scale and thus need to be lists of the original parameter.
+
+    Warning:
+        This loss function is not entirely equivalent to the Darknet implementation! |br|
+        We just execute the regular :class:`~lightnet.network.loss.RegionLoss` at multiple scales (different strides and anchors),
+        and as such did not implement overlapping class labels.
     """
     def __init__(self, num_classes, anchors, stride, **kwargs):
         super().__init__(num_classes, anchors[0], stride=stride[0], **kwargs)

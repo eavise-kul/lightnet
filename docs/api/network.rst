@@ -19,6 +19,7 @@ Loss
 .. automodule:: lightnet.network.loss
 .. autoclass:: lightnet.network.loss.RegionLoss
    :members: forward
+.. autoclass:: lightnet.network.loss.MultiScaleRegionLoss
 
 Module
 ------
