@@ -1,0 +1,78 @@
+#
+#   Darknet YoloV3 RegionLoss
+#   Copyright EAVISE
+#
+
+import torch
+from . import RegionLoss
+
+__all__ = ['MultiScaleRegionLoss']
+
+
+class MultiScaleRegionLoss(RegionLoss):
+    """ This is the loss function for YoloV3, which computes the region loss at multiple scales.
+
+    Args:
+        num_classes (int): number of classes to detect
+        anchors (list): 3D list representing multiple 2D lists with anchor boxes for the different scales
+        stride (list): The different downsampling factors of the different network outputs
+        seen (optional, torch.Tensor): How many images the network has already been trained on; Default **0**
+        coord_scale (optional, float): weight of bounding box coordinates; Default **1.0**
+        noobject_scale (optional, float): weight of regions without target boxes; Default **1.0**
+        object_scale (optional, float): weight of regions with target boxes; Default **5.0**
+        class_scale (optional, float): weight of categorical predictions; Default **1.0**
+        thresh (optional, float): minimum iou between a predicted box and ground truth for them to be considered matching; Default **0.6**
+        coord_prefill (optional, int): This parameter controls for how many images the network will prefill the target coordinates, biassing the network to predict the center at **.5,.5**; Default **12800**
+
+    Note:
+        All parameters are the same as :class:`~lightnet.network.loss.RegionLoss`, except for `anchors` and `stride`. |br|
+        These 2 parameters need separate values for each different network output scale and thus need to be lists of the original parameter.
+    """
+    def __init__(self, num_classes, anchors, stride, **kwargs):
+        super().__init__(num_classes, anchors[0], stride=stride[0], **kwargs)
+
+        if len(anchors) != len(stride):
+            raise IndexError('length of anchors and stride should be equal (number of output scales)')
+        self._anchors = torch.tensor(anchors, requires_grad=False)
+        self._stride = stride
+
+    def extra_repr(self):
+        repr_str = f'classes={self.num_classes}, stride={self.stride}, threshold={self.thresh}, seen={self.seen.item()}\n'
+        repr_str += f'coord_scale={self.coord_scale}, object_scale={self.object_scale}, noobject_scale={self.noobject_scale}, class_scale={self.class_scale}\n'
+        repr_str += f'anchors='
+        start = True
+        for anchors in self._anchors:
+            if not start:
+                repr_str += '| '
+            for a in anchors:
+                repr_str += f'[{a[0]:.5g}, {a[1]:.5g}] '
+            start = False
+        return repr_str
+
+    def forward(self, output, target, seen=None):
+        device = output[0].device
+        loss = torch.tensor(0.0).to(device)
+        loss_coord = torch.tensor(0.0).to(device)
+        loss_conf = torch.tensor(0.0).to(device)
+        loss_cls = torch.tensor(0.0).to(device)
+        if seen is not None:
+            self.seen = torch.tensor(seen)
+
+        # Run loss at different scales and sum resulting loss values
+        for i, out in enumerate(output):
+            self.anchors = self._anchors[i]
+            self.num_anchors = self.anchors.shape[0]
+            self.anchor_step = self.anchors.shape[1]
+            self.stride = self._stride[i]
+
+            loss += super().forward(out, target)
+            loss_coord += self.loss_coord
+            loss_conf += self.loss_conf
+            loss_cls += self.loss_cls
+
+        # Overwrite loss values with avg
+        self.loss_coord = loss_coord / len(output)
+        self.loss_conf = loss_conf / len(output)
+        self.loss_cls = loss_cls / len(output)
+        self.loss_tot = loss / len(output)
+        return self.loss_tot
