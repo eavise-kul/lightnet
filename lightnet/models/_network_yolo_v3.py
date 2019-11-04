@@ -24,7 +24,11 @@ class YoloV3(lnn.module.Darknet):
         self.remap_darknet53: Remapping rules for weights from the `~lightnet.models.Darknet53` model.
     """
     stride = (32, 16, 8)
-    remap_darknet53 = 'TODO'
+    remap_darknet53 = [
+        (r'^layers.([a-w]_)',   r'extractor.\1'),   # Residual layers
+        (r'^layers.(\d_)',      r'extractor.\1'),   # layers 1, 2, 5
+        (r'^layers.([124]\d_)', r'extractor.\1'),   # layers 10, 27, 44
+    ]
 
     def __init__(self, num_classes=20, input_channels=3, anchors=[[(116, 90), (156, 198), (373, 326)], [(30, 61), (62, 45), (59, 119)], [(10, 13), (16, 30), (33, 23)]]):
         super().__init__()
