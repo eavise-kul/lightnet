@@ -3,7 +3,7 @@ import os
 import logging
 import time
 import argparse
-from math import isinf
+from math import isinf, isnan
 from statistics import mean
 import torch
 import visdom
@@ -19,7 +19,6 @@ class TrainEngine(ln.engine.Engine):
         self.params.to(self.device)
         self.dataloader.change_input_dim()
         self.optimizer.zero_grad()
-        self.scheduler.step(self.batch)
 
         self.train_loss = {'tot': [], 'coord': [], 'conf': [], 'cls': []}
         self.plot_train_loss = ln.engine.LinePlotter(self.visdom, 'train_loss', opts=dict(xlabel='Batch', ylabel='Loss', title='Training Loss', showlegend=True, legend=['Total loss', 'Coordinate loss', 'Confidence loss', 'Class loss']))
@@ -51,7 +50,7 @@ class TrainEngine(ln.engine.Engine):
         cls = mean(self.train_loss['cls'][-self.batch_subdivisions:])
         self.log(f'{self.batch} Loss:{tot:.5f} (Coord:{coord:.2f} Conf:{conf:.2f} Cls:{cls:.2f})')
 
-        if isinf(tot):
+        if isinf(tot) or isnan(tot):
             log.error('Infinite loss')
             self.sigint = True
             return

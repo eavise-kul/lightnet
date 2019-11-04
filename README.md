@@ -50,7 +50,7 @@ Here is a list of people that made noteworthy contributions and helped to get th
 
 
 [version-badge]: https://img.shields.io/badge/version-1.0.0-blue.svg
-[pytorch-badge]: https://img.shields.io/badge/PyTorch-1.1.0-F05732.svg
+[pytorch-badge]: https://img.shields.io/badge/PyTorch-1.3.0-F05732.svg
 [pytorch-url]: https://pytorch.org
 [pipeline-badge]: https://gitlab.com/EAVISE/lightnet/badges/master/pipeline.svg
 [documentation-url]: https://eavise.gitlab.io/lightnet

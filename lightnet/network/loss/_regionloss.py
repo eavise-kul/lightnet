@@ -7,7 +7,7 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
+from distutils.version import LooseVersion
 
 try:
     import pandas as pd
@@ -15,6 +15,9 @@ except ModuleNotFoundError:
     pd = None
 
 __all__ = ['RegionLoss']
+
+torchversion = LooseVersion(torch.__version__)
+version120 = LooseVersion("1.2.0")
 
 
 class RegionLoss(nn.modules.loss._Loss):
@@ -171,7 +174,10 @@ class RegionLoss(nn.modules.loss._Loss):
         # Tensors
         coord_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False)
         conf_mask = torch.ones(nB, nA, nH, nW, requires_grad=False) * self.noobject_scale
-        cls_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False).byte()
+        if torchversion >= version120:
+            cls_mask = torch.zeros(nB, nA, nH, nW, dtype=torch.bool, requires_grad=False)
+        else:
+            cls_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False).byte()
         tcoord = torch.zeros(nB, nA, 4, nH, nW, requires_grad=False)
         tconf = torch.zeros(nB, nA, nH, nW, requires_grad=False)
         tcls = torch.zeros(nB, nA, nH, nW, requires_grad=False)
@@ -245,7 +251,10 @@ class RegionLoss(nn.modules.loss._Loss):
         # Tensors
         coord_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False)
         conf_mask = torch.ones(nB, nA, nH, nW, requires_grad=False) * self.noobject_scale
-        cls_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False).byte()
+        if torchversion >= version120:
+            cls_mask = torch.zeros(nB, nA, nH, nW, dtype=torch.bool, requires_grad=False)
+        else:
+            cls_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False).byte()
         tcoord = torch.zeros(nB, nA, 4, nH, nW, requires_grad=False)
         tconf = torch.zeros(nB, nA, nH, nW, requires_grad=False)
         tcls = torch.zeros(nB, nA, nH, nW, requires_grad=False)
@@ -300,7 +309,10 @@ class RegionLoss(nn.modules.loss._Loss):
 
             # Set masks of ignored to zero
             if gt_filtered.ignore.any():
-                ignore_mask = torch.from_numpy(gt_filtered.ignore.values.astype(np.uint8))
+                if torchversion >= version120:
+                    ignore_mask = torch.from_numpy(gt_filtered.ignore.values)
+                else:
+                    ignore_mask = torch.from_numpy(gt_filtered.ignore.values.astype(np.uint8))
                 gi = gi[ignore_mask]
                 gj = gj[ignore_mask]
                 best_anchors = best_anchors[ignore_mask]

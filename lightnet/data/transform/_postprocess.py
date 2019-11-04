@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 from .util import BaseTransform
+from distutils.version import LooseVersion
 
 try:
     import pandas as pd
@@ -17,6 +18,9 @@ except ModuleNotFoundError:
 
 __all__ = ['GetBoundingBoxes', 'NonMaxSuppression', 'NonMaxSupression', 'TensorToBrambox', 'ReverseLetterbox']
 log = logging.getLogger(__name__)
+
+torchversion = LooseVersion(torch.__version__)
+version120 = LooseVersion("1.2.0")
 
 
 class GetBoundingBoxes(BaseTransform):
@@ -87,7 +91,7 @@ class GetBoundingBoxes(BaseTransform):
 
         # Get batch numbers of the detections
         batch_num = score_thresh.view(batch, -1)
-        nums = torch.arange(1, batch+1, dtype=batch_num.dtype, device=batch_num.device)
+        nums = torch.arange(1, batch+1, dtype=torch.uint8, device=batch_num.device)
         batch_num = (batch_num * nums[:, None])[batch_num] - 1
 
         return torch.cat([batch_num[:, None].float(), coords, scores[:, None], idx[:, None]], dim=1)
@@ -116,7 +120,10 @@ class NonMaxSuppression(BaseTransform):
             return boxes
 
         batches = boxes[:, 0]
-        keep = torch.empty(boxes.shape[0], dtype=torch.uint8, device=boxes.device)
+        if torchversion >= version120:
+            keep = torch.empty(boxes.shape[0], dtype=torch.bool, device=boxes.device)
+        else:
+            keep = torch.empty(boxes.shape[0], dtype=torch.uint8, device=boxes.device)
         for batch in torch.unique(batches, sorted=False):
             mask = batches == batch
             keep[mask] = self._nms(boxes[mask])
@@ -156,7 +163,10 @@ class NonMaxSuppression(BaseTransform):
             conflicting = (conflicting & same_class)
 
         conflicting = conflicting.cpu()
-        keep = torch.zeros(len(conflicting), dtype=torch.uint8)
+        if torchversion >= version120:
+            keep = torch.zeros(len(conflicting), dtype=torch.bool)
+        else:
+            keep = torch.zeros(len(conflicting), dtype=torch.uint8)
         supress = torch.zeros(len(conflicting), dtype=torch.float)
         for i, row in enumerate(conflicting):
             if not supress[i]:
