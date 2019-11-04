@@ -17,7 +17,8 @@ First install [PyTorch and Torchvision](http://pytorch.org/).
 Then clone this repository and run one of the following commands:
 ```bash
 # If you just want to use Lightnet
-pip install -r requirements.txt
+pip install brambox   # Optional (needed for training)
+pip install .
 
 # If you want to develop Lightnet
 pip install -r develop.txt
