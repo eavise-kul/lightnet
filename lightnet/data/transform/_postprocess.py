@@ -80,7 +80,7 @@ class GetBoundingBoxes(BaseTransform):
 
         score_thresh = cls_max > self.conf_thresh
         if score_thresh.sum() == 0:
-            return torch.tensor([])
+            return torch.tensor([]).to(device)
 
         # Mask select boxes > conf_thresh
         coords = network_output.transpose(2, 3)[..., 0:4]
