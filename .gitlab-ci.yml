@@ -11,6 +11,7 @@ cache:
 before_script:
     - apt-get update --fix-missing && apt-get install -y pandoc
     - pip3 install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+    - pip install pillow
     - pip install -r develop.txt
 
 stages:
@@ -40,6 +41,24 @@ doctest:
     - develop
   script:
     - cd docs; make doctest; cd ..
+
+pypi:
+  stage: deploy
+  only:
+    - tags
+  script:
+    pip install twine
+    python setup.py sdist bdist_wheel
+    twine upload dist/*
+
+pypitest:
+  stage: deploy
+  only:
+    - master
+  script:
+    pip install twine
+    python setup.py sdist bdist_wheel
+    twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 pages:
   stage: deploy

@@ -1,9 +1,10 @@
-<img src="docs/.static/lightnet-long.png" alt="Logo" height="250">  
+<img src="https://gitlab.com/EAVISE/lightnet/raw/master/docs/.static/lightnet-long.png" alt="Logo" width="100%">  
 
 Building blocks to recreate Darknet networks in Pytorch  
-[![Version][version-badge]][documentation-url]
+[![Version][version-badge]][release-url]
+[![Documentation][doc-badge]][documentation-url]
 [![PyTorch][pytorch-badge]][pytorch-url]
-[![Pipeline][pipeline-badge]][pipeline-badge]
+[![Pipeline][pipeline-badge]][pipeline-url]
 
 
 
@@ -50,8 +51,11 @@ Here is a list of people that made noteworthy contributions and helped to get th
   - [Jon Crall](https://gitlab.com/Erotemic)
 
 
-[version-badge]: https://img.shields.io/badge/version-1.0.0-blue.svg
-[pytorch-badge]: https://img.shields.io/badge/PyTorch-1.3.0-F05732.svg
-[pytorch-url]: https://pytorch.org
+[version-badge]: https://img.shields.io/pypi/v/lightnet.svg?label=version
+[doc-badge]: https://img.shields.io/badge/-Documentation-9B59B6.svg
+[pytorch-badge]: https://img.shields.io/badge/PyTorch-1.4.0-F05732.svg
 [pipeline-badge]: https://gitlab.com/EAVISE/lightnet/badges/master/pipeline.svg
+[release-url]: https://gitlab.com/EAVISE/lightnet/tags
 [documentation-url]: https://eavise.gitlab.io/lightnet
+[pytorch-url]: https://pytorch.org
+[pipeline-url]: https://pypi.org/project/lightnet-torch
