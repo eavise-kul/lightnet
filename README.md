@@ -51,7 +51,7 @@ Here is a list of people that made noteworthy contributions and helped to get th
   - [Jon Crall](https://gitlab.com/Erotemic)
 
 
-[version-badge]: https://img.shields.io/pypi/v/lightnet.svg?label=version
+[version-badge]: https://img.shields.io/pypi/v/lightnet-torch.svg?label=version
 [doc-badge]: https://img.shields.io/badge/-Documentation-9B59B6.svg
 [pytorch-badge]: https://img.shields.io/badge/PyTorch-1.4.0-F05732.svg
 [pipeline-badge]: https://gitlab.com/EAVISE/lightnet/badges/master/pipeline.svg
