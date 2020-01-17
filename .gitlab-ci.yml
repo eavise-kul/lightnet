@@ -47,8 +47,9 @@ pypi:
   only:
     - tags
   script:
-    - pip install twine
+    - pip install -U twine wheel setuptools
     - python setup.py sdist bdist_wheel
+    - twine check dist/*
     - twine upload dist/*
 
 pypitest:
@@ -56,8 +57,9 @@ pypitest:
   only:
     - master
   script:
-    - pip install twine
+    - pip install -U twine wheel setuptools
     - python setup.py sdist bdist_wheel
+    - twine check dist/*
     - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 pages:
