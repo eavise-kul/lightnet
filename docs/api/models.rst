@@ -13,11 +13,13 @@ Classification
 
 Detection
 ~~~~~~~~~
+.. autoclass:: lightnet.models.DYolo
 .. autoclass:: lightnet.models.TinyYoloV2
 .. .. autoclass:: lightnet.models.MobileNetYolo
 .. autoclass:: lightnet.models.YoloV2
 .. autoclass:: lightnet.models.YoloV3
 .. autoclass:: lightnet.models.YoloFusion
+.. autoclass:: lightnet.models.Yolt
 
 
 Data

@@ -12,7 +12,7 @@ __all__ = ['Yolt']
 
 
 class Yolt(lnn.module.Lightnet):
-    """ Yolt object detector :cite:`yolt`.
+    """ Yolt object detector :cite:`yolt`. |br|
     This detector is optimized for detecting small objects and is more lightweight than YoloV2.
 
     Args:

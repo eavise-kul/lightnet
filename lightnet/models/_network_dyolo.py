@@ -12,7 +12,7 @@ __all__ = ['DYolo']
 
 
 class DYolo(lnn.module.Lightnet):
-    """ Deconvolutional Yolo (DYolo) object detector :cite:`dyolo`.
+    """ Deconvolutional Yolo (DYolo) object detector :cite:`dyolo`. |br|
     This detector is optimized for detecting small objects, by adding feature pyramids to Yolo V2.
 
     Args:
