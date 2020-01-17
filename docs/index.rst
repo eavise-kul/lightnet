@@ -44,7 +44,7 @@ Table of Contents
 
    notes/01-installation.rst
    notes/02-getting_started.rst
-   notes/03-comparing_darknet.rst
+   notes/03-performance.rst
    biblio.rst
 
 .. toctree::

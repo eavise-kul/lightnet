@@ -98,7 +98,7 @@ Framework URL
 ========= ===
 Darknet   https://pjreddie.com/media/files/darknet19_448.conv.23
 --------- ---
-Lightnet  https://mega.nz/#!Xxcx3ISS!okc1vufN288-G5JSAqweF3rPiUeoHi_gG35NzD8VUHA
+Lightnet  https://mega.nz/#!X9EC3IDb!_17cm1b0sNHIi9lnOcOrWxzYgfNwHkrJkxhPg3vtI3o
 ========= ===
 
 .. rubric:: Train model
