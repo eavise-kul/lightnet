@@ -29,11 +29,11 @@ class Fusion(nn.Module):
     Note:
         Depending on the value of the `fuse_layer` attribute, fusion is performed at different stages of the module. |br|
 
-        - If no `fuse\_layer` is given (or **None** is given as its value),\
+        - If no `fuse\\_layer` is given (or **None** is given as its value),\
         no fusion will be done and the input will be considered as an already fused combination.
-        - If the `fuse\_layer` attribute is an integer from 0 to :math:`num\_layers`, the module will fuse both streams after the number of the layer that is given.\
+        - If the `fuse\\_layer` attribute is an integer from 0 to :math:`num\\_layers`, the module will fuse both streams after the number of the layer that is given.\
         Giving a value of **0** thus means to fuse before the first layer and giving a value of **num_layers** to fuse after the last.
-        - Finally, if :math:`fuse\_layer == num\_layers + 1`, then no fusion will occur, but rather both streams will be processed seperately\
+        - Finally, if :math:`fuse\\_layer == num\\_layers + 1`, then no fusion will occur, but rather both streams will be processed seperately\
         and the output feature maps will simply be concatenated at the end.
 
         These rules allow the chain multiple :class:`~lightnet.network.layer.Fusion` modules together, only fusing in one of them at a certain time.
