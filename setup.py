@@ -41,7 +41,7 @@ pillow_req = 'pillow-simd' if get_dist('pillow-simd') is not None else 'pillow'
 requirements.append(pillow_req)
 
 setup.setup(
-    name='lightnet-torch',
+    name='lightnet',
     version=get_version(),
     author='EAVISE',
     description='Building blocks for recreating darknet networks in pytorch',
