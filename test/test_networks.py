@@ -7,8 +7,8 @@ import pytest
 import torch
 import lightnet as ln
 
-detection_networks = ['YoloV2', 'YoloV3', 'Yolt', 'DYolo', 'TinyYoloV2', 'MobileNetYolo', 'MobileYoloV2']
-classification_networks = ['Darknet', 'Darknet19', 'Darknet53', 'MobileDarknet19', 'MobileNetV1', 'MobileNetV2']
+detection_networks = ['YoloV2', 'YoloV3', 'Yolt', 'DYolo', 'TinyYoloV2', 'MobilenetYolo', 'MobileYoloV2']
+classification_networks = ['Darknet', 'Darknet19', 'Darknet53', 'MobileDarknet19', 'MobilenetV1', 'MobilenetV2']
 
 
 @pytest.fixture(scope='module')

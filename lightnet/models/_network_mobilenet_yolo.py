@@ -9,10 +9,10 @@ import torch
 import torch.nn as nn
 import lightnet.network as lnn
 
-__all__ = ['MobileNetYolo']
+__all__ = ['MobilenetYolo']
 
 
-class MobileNetYolo(lnn.module.Lightnet):
+class MobilenetYolo(lnn.module.Lightnet):
     """ Yolo v2 implementation with a mobilenet v1 backend :cite:`mobilenet_v1`.
 
     Args:
@@ -23,16 +23,16 @@ class MobileNetYolo(lnn.module.Lightnet):
 
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
-        self.remap_mobilenetv1: Remapping rules for weights from the :class:`~lightnet.models.MobileNetV1` model.
+        self.remap_mobilenet_v1: Remapping rules for weights from the :class:`~lightnet.models.MobileNetV1` model.
 
     Warning:
         When changing the ``alpha`` value, you are changing the network architecture.
         This means you cannot use weights from this network with a different alpha value.
     """
     stride = 32
-    remap_mobilenetv1 = [
+    remap_mobilenet_v1 = [
         (r'^layers.0.([1-9]_)',     r'layers.0.\1'),    # layers 1-9
-        (r'^layers.0.(1[0-4]_)',    r'layers.0.\1'),    # layers 10-14
+        (r'^layers.0.(1[0-4]_)',    r'layers.1.\1'),    # layers 10-14
     ]
 
     def __init__(self, num_classes=20, alpha=1.0, input_channels=3, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):

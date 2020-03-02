@@ -8,11 +8,11 @@ import functools
 import torch.nn as nn
 import lightnet.network as lnn
 
-__all__ = ['MobileNetV1']
+__all__ = ['MobilenetV1']
 
 
-class MobileNetV1(lnn.module.Lightnet):
-    """ MobileNet v1 classification network implementation :cite:`mobilenet_v1`.
+class MobilenetV1(lnn.module.Lightnet):
+    """ Mobilenet v1 classification network implementation :cite:`mobilenet_v1`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **1000**

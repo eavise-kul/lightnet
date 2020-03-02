@@ -8,11 +8,11 @@ from collections import OrderedDict
 import torch.nn as nn
 import lightnet.network as lnn
 
-__all__ = ['MobileNetV2']
+__all__ = ['MobilenetV2']
 
 
-class MobileNetV2(lnn.module.Lightnet):
-    """ MobileNet v2 classification network implementation :cite:`mobilenet_v2`.
+class MobilenetV2(lnn.module.Lightnet):
+    """ Mobilenet v2 classification network implementation :cite:`mobilenet_v2`.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **1000**
