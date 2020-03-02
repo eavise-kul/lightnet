@@ -58,6 +58,7 @@ class Crop(BaseMultiTransform):
         self.dimension = dimension
         self.dataset = dataset
         self.center = center
+        self.intersection_threshold = intersection_threshold
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
 
