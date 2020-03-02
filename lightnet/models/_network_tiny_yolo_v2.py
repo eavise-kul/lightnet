@@ -22,7 +22,7 @@ class TinyYoloV2(lnn.module.Darknet):
 
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
-        self.remap_darknet: Remapping rules for weights from the `~lightnet.models.Darknet` model.
+        self.remap_darknet: Remapping rules for weights from the :class:`~lightnet.models.Darknet` model.
     """
     stride = 32
     remap_darknet = [

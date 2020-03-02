@@ -3,8 +3,8 @@
 #   Copyright EAVISE
 #
 
-import functools
 from collections import OrderedDict
+import functools
 import torch.nn as nn
 import lightnet.network as lnn
 

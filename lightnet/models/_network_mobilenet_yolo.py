@@ -4,6 +4,7 @@
 #
 
 from collections import OrderedDict, Iterable
+import functools
 import torch
 import torch.nn as nn
 import lightnet.network as lnn
@@ -22,12 +23,17 @@ class MobileNetYolo(lnn.module.Lightnet):
 
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.remap_mobilenetv1: Remapping rules for weights from the :class:`~lightnet.models.MobileNetV1` model.
 
     Warning:
         When changing the ``alpha`` value, you are changing the network architecture.
         This means you cannot use weights from this network with a different alpha value.
     """
     stride = 32
+    remap_mobilenetv1 = [
+        (r'^layers.0.([1-9]_)',     r'layers.0.\1'),    # layers 1-9
+        (r'^layers.0.(1[0-4]_)',    r'layers.0.\1'),    # layers 10-14
+    ]
 
     def __init__(self, num_classes=20, alpha=1.0, input_channels=3, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         super().__init__()
@@ -42,7 +48,7 @@ class MobileNetYolo(lnn.module.Lightnet):
         layer_list = [
             # Sequence 0 : input = image tensor
             OrderedDict([
-                ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, int(alpha*32),  3, 2, 1)),
+                ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, int(alpha*32),  3, 2, 1, relu=functools.partial(nn.ReLU6, inplace=True))),
                 ('2_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*32),  int(alpha*64),  3, 1, 1)),
                 ('3_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*64),  int(alpha*128), 3, 2, 1)),
                 ('4_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*128), 3, 1, 1)),
@@ -55,22 +61,23 @@ class MobileNetYolo(lnn.module.Lightnet):
 
             # Sequence 1 : input = sequence0
             OrderedDict([
-                ('10_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512),  3, 1, 1)),
-                ('11_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512),  3, 1, 1)),
-                ('12_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512),  3, 1, 1)),
-                ('13_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*1024), 3, 2, 1)),
+                ('10_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1)),
+                ('11_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1)),
+                ('12_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1)),
+                ('13_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*1024), 3, 2, 1)),
+                ('14_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*1024), int(alpha*1024), 3, 1, 1)),
             ]),
 
             # Sequence 2 : input = sequence0
             OrderedDict([
-                ('14_convbatch',    lnn.layer.Conv2dBatchReLU(int(alpha*512), 64, 1, 1, 0)),
-                ('15_reorg',        lnn.layer.Reorg(2)),
+                ('15_convbatch',    lnn.layer.Conv2dBatchReLU(int(alpha*512), 64, 1, 1, 0)),
+                ('16_reorg',        lnn.layer.Reorg(2)),
             ]),
 
             # Sequence 3 : input = sequence2 + sequence1
             OrderedDict([
-                ('16_convbatch',    lnn.layer.Conv2dBatchReLU((4*64)+int(alpha*1024), 1024, 3, 1, 1)),
-                ('17_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
+                ('17_convbatch',    lnn.layer.Conv2dBatchReLU((4*64)+int(alpha*1024), 1024, 3, 1, 1)),
+                ('18_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
             ])
         ]
         self.layers = nn.ModuleList([nn.Sequential(layer_dict) for layer_dict in layer_list])

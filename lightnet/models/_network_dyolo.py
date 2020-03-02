@@ -22,7 +22,7 @@ class DYolo(lnn.module.Lightnet):
 
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
-        self.remap_darknet19: Remapping rules for weights from the `~lightnet.models.Darknet19` model.
+        self.remap_darknet19: Remapping rules for weights from the :class:`~lightnet.models.Darknet19` model.
 
     Note:
         As the authors of the paper did not release any configuration file,

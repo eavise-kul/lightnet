@@ -23,7 +23,7 @@ class YoloV2(lnn.module.Darknet):
 
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
-        self.remap_darknet19: Remapping rules for weights from the `~lightnet.models.Darknet19` model.
+        self.remap_darknet19: Remapping rules for weights from the :class:`~lightnet.models.Darknet19` model.
     """
     stride = 32
     remap_darknet19 = [

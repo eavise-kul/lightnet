@@ -21,7 +21,7 @@ class YoloV3(lnn.module.Darknet):
 
     Attributes:
         self.stride: Subsampling factors of the network (input dimensions should be a multiple of these numbers)
-        self.remap_darknet53: Remapping rules for weights from the `~lightnet.models.Darknet53` model.
+        self.remap_darknet53: Remapping rules for weights from the :class:`~lightnet.models.Darknet53` model.
 
     Note:
         Unlike YoloV2, the anchors here are defined as multiples of the input dimensions and not as a multiple of the output dimensions!
