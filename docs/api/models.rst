@@ -35,6 +35,7 @@ Detection
    lightnet.models.TinyYoloV2
    lightnet.models.TinyYoloV3
    lightnet.models.YoloV2
+   lightnet.models.YoloV2Upsample
    lightnet.models.YoloV3
    lightnet.models.YoloFusion
    lightnet.models.Yolt

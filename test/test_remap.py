@@ -15,6 +15,7 @@ remaps = [
     (ln.models.Darknet19,       ln.models.DYolo,            ln.models.DYolo.remap_darknet19),
     (ln.models.Darknet19,       ln.models.Yolt,             ln.models.Yolt.remap_darknet19),
     (ln.models.Darknet19,       ln.models.YoloV2,           ln.models.YoloV2.remap_darknet19),
+    (ln.models.Darknet19,       ln.models.YoloV2Upsample,   ln.models.YoloV2Upsample.remap_darknet19),
     (ln.models.Darknet53,       ln.models.YoloV3,           ln.models.YoloV3.remap_darknet53),
     (ln.models.MobileDarknet19, ln.models.MobileYoloV2,     ln.models.MobileYoloV2.remap_mobile_darknet19),
     (ln.models.MobilenetV1,     ln.models.MobilenetYolo,    ln.models.MobilenetYolo.remap_mobilenet_v1),

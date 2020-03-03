@@ -26,12 +26,13 @@ from ._network_dyolo import *
 # Mobilenet
 from ._network_mobilenet_v1 import *
 from ._network_mobilenet_v2 import *
-from ._network_mobilenet_yolo import *
-from ._network_mobile_darknet19 import *
-from ._network_mobile_yolo_v2 import *
 
-# SensorFusion
+# Eavise Creations
+from ._network_mobile_darknet19 import *
+from ._network_mobilenet_yolo import *
+from ._network_mobile_yolo_v2 import *
 from ._network_yolo_fusion import *
+from ._network_yolo_v2_upsample import *
 
 # Cornernet
 from ._network_cornernet import *
