@@ -151,13 +151,10 @@ class Reorg(nn.Module):
         return f'stride={self.stride}'
 
     def forward(self, x):
-        assert(x.dim() == 4)
+        assert x.dim() == 4
         B, C, H, W = x.size()
-
-        if H % self.stride != 0:
-            raise ValueError(f'Dimension mismatch: {H} is not divisible by {self.stride}')
-        if W % self.stride != 0:
-            raise ValueError(f'Dimension mismatch: {W} is not divisible by {self.stride}')
+        assert H % self.stride == 0, f'Dimension height mismatch: {H} is not divisible by {self.stride}'
+        assert W % self.stride == 0, f'Dimension width mismatch: {W} is not divisible by {self.stride}'
 
         # from: https://github.com/thtrieu/darkflow/issues/173#issuecomment-296048648
         x = x.view(B, C//(self.stride**2), H, self.stride, W, self.stride).contiguous()

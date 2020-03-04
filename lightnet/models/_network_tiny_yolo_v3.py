@@ -93,16 +93,14 @@ class TinyYoloV3(lnn.module.Darknet):
         ])
 
     def forward(self, x):
-        out = [None, None]
-
         # Feature extractor
         x, inter_features = self.extractor(x)
 
         # Detector 0
-        out[0] = self.detector[0](x)
+        out_0 = self.detector[0](x)
 
         # Detector 1
         x = self.detector[1](x)
-        out[1] = self.detector[2](torch.cat((x, inter_features), 1))
+        out_1 = self.detector[2](torch.cat((x, inter_features), 1))
 
-        return out
+        return (out_0, out_1)
