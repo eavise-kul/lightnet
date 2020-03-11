@@ -4,3 +4,5 @@ TODO
 """
 
 from . import dependency
+
+from .method import *
