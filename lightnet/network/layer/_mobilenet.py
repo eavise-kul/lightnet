@@ -35,28 +35,27 @@ class Conv2dDepthWise(nn.Module):
                  momentum=0.01, relu=lambda: nn.ReLU6(inplace=True)):
         super().__init__()
 
-        # Parameters
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.momentum = momentum
-
-        # Layer
         self.layers = nn.Sequential(
-            nn.Conv2d(self.in_channels, self.in_channels, self.kernel_size, self.stride, self.padding, groups=self.in_channels, bias=False),
-            nn.BatchNorm2d(self.in_channels, momentum=self.momentum),
+            nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, groups=in_channels, bias=False),
+            nn.BatchNorm2d(in_channels, momentum=momentum),
             relu(),
 
-            nn.Conv2d(self.in_channels, self.out_channels, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(self.out_channels, momentum=self.momentum),
+            nn.Conv2d(in_channels, out_channels, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(out_channels, momentum=momentum),
             relu(),
         )
 
     def __repr__(self):
         s = '{name}({in_channels}, {out_channels}, kernel_size={kernel_size}, stride={stride}, padding={padding}, {relu})'
-        return s.format(name=self.__class__.__name__, relu=self.layers[2], **self.__dict__)
+        return s.format(
+            name=self.__class__.__name__,
+            in_channels=self.layers[0].in_channels,
+            out_channels=self.layers[3].out_channels,
+            kernel_size=self.layers[0].kernel_size,
+            stride=self.layers[0].stride,
+            padding=self.layers[0].padding,
+            relu=self.layers[2],
+        )
 
     def forward(self, x):
         x = self.layers(x)
@@ -84,8 +83,8 @@ class Bottleneck(nn.Module):
         The relu argument gets called with *inplace=True*.
         To give it other arguments you can use a lambda:
 
-        >>> conv = Conv2dDepthWise(
-        ...     in_c, out_c, kernel, stride, padding,
+        >>> conv = Bottleneck(
+        ...     in_c, out_c, kernel, stride, expansion,
         ...     relu=functools.partial(torch.nn.ReLU6, inplace=True)
         ... )  # doctest: +SKIP
     """
@@ -94,32 +93,36 @@ class Bottleneck(nn.Module):
         super().__init__()
 
         # Parameters
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
         self.expansion = expansion
-        self.momentum = momentum
-        self.residual_connect = self.stride == 1 and self.in_channels == self.out_channels
+        self.residual_connect = stride == 1 and in_channels == out_channels
 
         # Layer
         self.layers = nn.Sequential(
-            nn.Conv2d(self.in_channels, self.in_channels*self.expansion, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(self.in_channels*self.expansion, momentum=self.momentum),
+            nn.Conv2d(in_channels, in_channels*expansion, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(in_channels*expansion, momentum=momentum),
             relu(),
 
-            nn.Conv2d(self.in_channels*self.expansion, self.in_channels*self.expansion, self.kernel_size, self.stride, 1, groups=self.in_channels*self.expansion, bias=False),
-            nn.BatchNorm2d(self.in_channels*self.expansion, momentum=self.momentum),
+            nn.Conv2d(in_channels*expansion, in_channels*expansion, kernel_size, stride, 1, groups=in_channels*expansion, bias=False),
+            nn.BatchNorm2d(in_channels*expansion, momentum=momentum),
             relu(),
 
-            nn.Conv2d(self.in_channels*self.expansion, self.out_channels, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(self.out_channels, momentum=self.momentum),
+            nn.Conv2d(in_channels*expansion, out_channels, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(out_channels, momentum=momentum),
         )
 
     def __repr__(self):
         residual = ', residual_connection' if self.residual_connect else ''
         s = '{name}({in_channels}, {out_channels}, kernel_size={kernel_size}, stride={stride}, expansion={expansion}, {relu}{residual})'
-        return s.format(name=self.__class__.__name__, relu=self.layers[2], residual=residual, **self.__dict__)
+        return s.format(
+            name=self.__class__.__name__,
+            in_channels=self.layers[0].in_channels,
+            out_channels=self.layers[6].out_channels,
+            kernel_size=self.layers[3].kernel_size,
+            stride=self.layers[3].stride,
+            expansion=self.expansion,
+            relu=self.layers[2],
+            residual=residual,
+        )
 
     def forward(self, x):
         if self.residual_connect:

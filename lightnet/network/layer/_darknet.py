@@ -37,24 +37,23 @@ class Conv2dBatchReLU(nn.Module):
                  momentum=0.01, relu=lambda: nn.LeakyReLU(0.1)):
         super().__init__()
 
-        # Parameters
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.momentum = momentum
-
-        # Layer
         self.layers = nn.Sequential(
-            nn.Conv2d(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding, bias=False),
-            nn.BatchNorm2d(self.out_channels, momentum=self.momentum),
+            nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False),
+            nn.BatchNorm2d(out_channels, momentum=momentum),
             relu()
         )
 
     def __repr__(self):
         s = '{name}({in_channels}, {out_channels}, kernel_size={kernel_size}, stride={stride}, padding={padding}, {relu})'
-        return s.format(name=self.__class__.__name__, relu=self.layers[2], **self.__dict__)
+        return s.format(
+            name=self.__class__.__name__,
+            in_channels=self.layers[0].in_channels,
+            out_channels=self.layers[0].out_channels,
+            kernel_size=self.layers[0].kernel_size,
+            stride=self.layers[0].stride,
+            padding=self.layers[0].padding,
+            relu=self.layers[2],
+        )
 
     def forward(self, x):
         x = self.layers(x)
