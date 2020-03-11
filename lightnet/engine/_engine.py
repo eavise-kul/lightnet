@@ -110,6 +110,11 @@ class Engine(ABC):
 
         idx = 0
         while True:
+            # Check if we need to stop training
+            if self.quit() or self.sigint:
+                log.info('Reached quitting criteria')
+                return
+
             # Epoch Start
             self._run_hooks(self.epoch + 1, self._epoch_start)
 
@@ -140,11 +145,6 @@ class Engine(ABC):
             # Epoch End
             self.epoch += 1
             self._run_hooks(self.epoch, self._epoch_end)
-
-            # Check if we need to stop training
-            if self.quit() or self.sigint:
-                log.info('Reached quitting criteria')
-                return
 
     def __getattr__(self, name):
         if hasattr(self.params, name):
