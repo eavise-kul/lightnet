@@ -10,27 +10,15 @@ from ._create import *
 from ._tree import *
 from ._type import *
 
-__all__ = ['get_dependency_map', 'print_dependency_map']
+__all__ = ['get_dependency_map', 'get_onnx_model', 'print_dependency_map']
 log = logging.getLogger(__name__)
 
 
 def get_dependency_map(model, input_dim):
     """ TODO : add proper docstring. """
-    # Get device
-    try:
-        device = next(model.parameters()).device
-    except StopIteration:
-        log.warn('Could not determine device from model, using "cpu".')
-        device = torch.device('cpu')
-
     # Get ONNX graph
-    input_tensor = torch.rand(*input_dim).to(device)
     path = tempfile.TemporaryFile(prefix='lightnet-prune', suffix='.onnx')
-    torch.onnx.export(
-        model, input_tensor, path,
-        keep_initializers_as_inputs=False,
-        operator_export_type=torch.onnx.OperatorExportTypes.ONNX_ATEN,
-    )
+    get_onnx_model(model, input_dim, path)
     path.seek(0)
     onnx_model = onnx.load_model(path, load_external_data=False)
     path.close()
@@ -72,6 +60,26 @@ def get_dependency_map(model, input_dim):
                     continue
 
     return dependencies
+
+
+def get_onnx_model(model, input_dim, path):
+    """ TODO : add proper docstring. """
+    # Get device
+    try:
+        device = next(model.parameters()).device
+    except StopIteration:
+        log.warn('Could not determine device from model, using "cpu".')
+        device = torch.device('cpu')
+
+    # Create input tensor
+    input_tensor = torch.rand(*input_dim).to(device)
+
+    # Create onnx model
+    torch.onnx.export(
+        model, input_tensor, path,
+        keep_initializers_as_inputs=False,
+        operator_export_type=torch.onnx.OperatorExportTypes.ONNX_ATEN,
+    )
 
 
 def print_dependency_map(dependencies, separator=' '):
