@@ -216,3 +216,8 @@ class HyperParameters:
                         param.data = param.data.to(device)
                         if param._grad is not None:
                             param._grad.data = param._grad.data.to(device)
+
+    def reset(self):
+        """ Resets automatic variables epoch and batch """
+        self.batch = 0
+        self.epoch = 0
