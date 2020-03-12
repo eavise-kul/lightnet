@@ -5,4 +5,4 @@ TODO
 
 from . import dependency
 
-from .method import *
+from .method import L2Pruner
