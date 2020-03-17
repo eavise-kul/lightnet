@@ -103,11 +103,14 @@ class Pruner(ABC):
         if node.type is NodeType.CONV:
             # Set input tensors to zero; filter_list does not get modified
             if node.module.groups != 1:
-                raise NotImplementedError('Grouped Convolution')
-
-            mask = torch.zeros(node.module.weight.shape[1], dtype=bool)
-            mask.scatter_(0, torch.tensor(filter_list), True)
-            node.module.weight[:, mask] = 0
+                # DW-separable
+                mask = torch.zeros(node.module.weight.shape[0], dtype=bool)
+                mask.scatter_(0, torch.tensor(filter_list), True)
+                node.module.weight[mask] = 0
+            else:
+                mask = torch.zeros(node.module.weight.shape[1], dtype=bool)
+                mask.scatter_(0, torch.tensor(filter_list), True)
+                node.module.weight[:, mask] = 0
         elif node.type is NodeType.BATCHNORM:
             # Set tensors to zero; filter_list does not get modified
             if node.module.weight is not None:
@@ -140,12 +143,18 @@ class Pruner(ABC):
         if node.type is NodeType.CONV:
             # Remove filter_list from input tensor; filter_list does not get modified
             if node.module.groups != 1:
-                raise NotImplementedError('Grouped Convolution')
-
-            mask = torch.ones(node.module.weight.shape[1], dtype=bool)
-            mask.scatter_(0, torch.tensor(filter_list), False)
-            node.module.weight = torch.nn.Parameter(node.module.weight[:, mask])
-            node.module.in_channels -= len(filter_list)
+                # DW-separable
+                mask = torch.ones(node.module.weight.shape[0], dtype=bool)
+                mask.scatter_(0, torch.tensor(filter_list), False)
+                node.module.weight = torch.nn.Parameter(node.module.weight[mask])
+                node.module.in_channels -= len(filter_list)
+                node.module.out_channels -= len(filter_list)
+                node.module.groups -= len(filter_list)
+            else:
+                mask = torch.ones(node.module.weight.shape[1], dtype=bool)
+                mask.scatter_(0, torch.tensor(filter_list), False)
+                node.module.weight = torch.nn.Parameter(node.module.weight[:, mask])
+                node.module.in_channels -= len(filter_list)
         elif node.type is NodeType.BATCHNORM:
             # Remove filter_list from tensor; filter_list does not get modified
             if node.module.weight is not None:

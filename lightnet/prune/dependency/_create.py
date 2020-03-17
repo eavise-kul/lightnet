@@ -14,10 +14,10 @@ __all__ = ['create_node', 'create_node_inverse']
 
 
 # Recursive node creation
-def create_node(element, graph, rootnode=None, parent=None):
+def create_node(element, graph, model, rootnode=None, parent=None):
     nodetype = get_node_type(element)
     create, out_dep, in_dep = node_func_map[nodetype]
-    node = create(element, graph, rootnode, parent)
+    node = create(element, graph, model, rootnode, parent)
     deps = out_dep(element, graph, rootnode, node)
 
     # Check if rootnode
@@ -31,15 +31,15 @@ def create_node(element, graph, rootnode=None, parent=None):
 
         for gn in graph.node:
             if out in gn.input:
-                create_node(gn, graph, rootnode, node)
+                create_node(gn, graph, model, rootnode, node)
 
     return rootnode
 
 
-def create_node_inverse(element, graph, rootnode, child):
+def create_node_inverse(element, graph, model, rootnode, child):
     nodetype = get_node_type(element)
     create, out_dep, in_dep = node_func_map[nodetype]
-    node = create(element, graph, rootnode, None)
+    node = create(element, graph, model, rootnode, None)
     deps = in_dep(element, graph, rootnode, node)
 
     # StopNode
@@ -63,22 +63,44 @@ def create_node_inverse(element, graph, rootnode, child):
     for inp in deps:
         for gn in graph.node:
             if inp in gn.output:
-                create_node_inverse(gn, graph, rootnode, node)
+                create_node_inverse(gn, graph, model, rootnode, node)
 
     return node
 
 
 # Create specific nodes
-def create_module_weight(nodetype, element, graph, rootnode, parent):
+def create_module_weight(nodetype, element, graph, model, rootnode, parent):
     name = [i for i in element.input if i.endswith('.weight')][0][:-7]
-    node = Node(nodetype, name, metadata=(set(element.input), set(element.output)))
+    try:
+        module = model
+        for p in name.split('.'):
+            module = getattr(module, p)
+    except AttributeError:
+        log.debug(f'Could not get PyTorch module for [{name}]')
+        module = None
+
+    node = Node(nodetype, name, metadata=(set(element.input), set(element.output)), module=module)
     if parent is not None:
         parent.add_child(node)
 
     return node
 
 
-def create_concat(element, graph, rootnode, parent):
+def create_conv(element, graph, model, rootnode, parent):
+    node = create_module_weight(NodeType.CONV, element, graph, model, rootnode, parent)
+
+    if node.module.groups == 1:
+        # Regular convolution
+        return node
+    elif node.module.groups == node.module.in_channels == node.module.out_channels:
+        # Depthwise separable convolution
+        return node
+    else:
+        # Grouped convolution
+        raise NotImplementedError('ATen: Grouped Convolution (Only supporting DW-separable conv as dependency)')
+
+
+def create_concat(element, graph, model, rootnode, parent):
     node = Node(NodeType.CONCAT, metadata=(set(element.input), set(element.output)))
 
     # Get concatenation axis (Constant input to concat operation)
@@ -93,14 +115,14 @@ def create_concat(element, graph, rootnode, parent):
     for inp in deps:
         for gn in graph.node:
             if inp in gn.output:
-                create_node_inverse(gn, graph, rootnode, node)
+                create_node_inverse(gn, graph, model, rootnode, node)
 
     if parent is not None and parent not in node.parents:
         parent.add_child(node)
     return node
 
 
-def create_elemw_op(element, graph, rootnode, parent):
+def create_elemw_op(element, graph, model, rootnode, parent):
     attr = onnx.helper.printable_attribute(element.attribute[0])
     attr = attr.split('=')[-1].strip()[1:-1]
 
@@ -118,7 +140,7 @@ def create_elemw_op(element, graph, rootnode, parent):
         for gn in graph.node:
             if inp in gn.output:
                 try:
-                    dep_node = create_node_inverse(gn, graph, None, None)
+                    dep_node = create_node_inverse(gn, graph, model, None, None)
                 except (NotImplementedError, StopIteration) as err:
                     dep_node = None
 
@@ -143,7 +165,7 @@ def create_elemw_op(element, graph, rootnode, parent):
     return node
 
 
-def create_ignore(element, graph, rootnode, parent):
+def create_ignore(element, graph, model, rootnode, parent):
     name = onnx.helper.printable_attribute(element.attribute[0]).split('=')[-1].strip()
     node = Node(NodeType.IGNORE, name, metadata=(set(element.input), set(element.output)))
     if parent is not None:
@@ -152,7 +174,7 @@ def create_ignore(element, graph, rootnode, parent):
     return node
 
 
-def create_ignore_stop(element, graph, rootnode, parent):
+def create_ignore_stop(element, graph, model, rootnode, parent):
     return None
 
 
@@ -182,7 +204,7 @@ def dep_none(element, graph, rootnode, node):
 
 
 def output_dep_conv(element, graph, rootnode, node):
-    if rootnode is None:
+    if rootnode is None or node.module.groups != 1:
         return element.output
     else:
         return list()
@@ -192,7 +214,7 @@ def output_dep_conv(element, graph, rootnode, node):
 # WARNING : create/input_dep cannot count on rootnode being correct, because it is not when constructing tree inversely (cat/elemw)
 node_func_map = {
     NodeType.CONV: (
-        functools.partial(create_module_weight, NodeType.CONV),
+        create_conv,
         output_dep_conv,
         dep_none
     ),

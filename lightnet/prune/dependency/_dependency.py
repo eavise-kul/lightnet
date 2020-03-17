@@ -28,13 +28,18 @@ def get_dependency_map(model, input_dim):
     for el in onnx_model.graph.node:
         if el.op_type == 'ATen' and el.attribute[0].s == b'_convolution':
             try:
-                dep = create_node(el, onnx_model.graph)
+                name = [i for i in el.input if i.endswith('.weight')][0][:-7]
+                module = model
+                for p in name.split('.'):
+                    module = getattr(module, p)
+                if module.groups != 1:
+                    raise NotImplementedError(f'ATen: Grouped Convolution (cannot prune)')
+
+                dep = create_node(el, onnx_model.graph, model)
                 dependencies[dep.name] = dep
             except NotImplementedError as err:
-                name = [i for i in el.input if i.endswith('.weight')][0][:-7]
                 log.info(f'Cannot prune [{name}], unimplemented dependency [{err}]')
             except StopIteration as err:
-                name = [i for i in el.input if i.endswith('.weight')][0][:-7]
                 log.info(f'Cannot prune [{name}], generates output [{err}]')
 
     # Remove ignored and match with modules
