@@ -104,6 +104,61 @@ class Lightnet(nn.Module):
 
         self.load_state_dict(state, strict=strict)
 
+    def load_pruned(self, weights, strict=True):
+        """ This function will load pruned weights from a file.
+        It also allows to load in weights file with only a part of the weights in.
+
+        Args:
+            weights_file (str): path to file
+            strict (Boolean, optional): Whether the weight file should contain all layers of the model; Default **False**
+
+        Note:
+            This function will load the weights to CPU,
+            so you should use ``network.to(device)`` afterwards to send it to the device of your choice.
+        """
+        keys = set(self.state_dict().keys())
+        log.info(f'Loading weights from file [{weights}]')
+        state = torch.load(weights, 'cpu')
+
+        # Prune tensors
+        for key, val in state.items():
+            if key in keys:
+                tensor = self
+                module = self
+                name = None
+                for p in key.split("."):
+                    module = tensor
+                    name = p
+                    tensor = getattr(tensor, p)
+
+                if tensor.shape != val.shape:
+                    slices = [slice(0, s) for s in val.shape]
+                    if isinstance(tensor, torch.nn.Parameter):
+                        setattr(module, p, torch.nn.Parameter(tensor[slices]))
+                    else:
+                        setattr(module, p, tensor[slices])
+
+        # Modify module metadata
+        for module in self.modules():
+            if isinstance(module, torch.nn.Conv2d):
+                if module.groups == 1:
+                    module.in_channels = module.weight.shape[1]
+                    module.out_channels = module.weight.shape[0]
+                elif module.groups == module.in_channels == module.out_channels:
+                    module.out_channels = module.weight.shape[0]
+                    module.in_channels = module.out_channels
+                    module.groups = module.out_channels
+            elif isinstance(module, torch.nn.BatchNorm2d):
+                if module.weight is not None:
+                    module.num_features = module.weight.shape[0]
+                elif module.running_mean is not None:
+                    module.num_features = module.running_mean.shape[0]
+
+        # Load weights
+        if not strict and state.keys() != keys:
+            log.warning('Modules not matching, performing partial update')
+        self.load_state_dict(state, strict=strict)
+
     def save(self, weights_file, remap=None):
         """ This function will save the weights to a file.
 
