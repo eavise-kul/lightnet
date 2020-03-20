@@ -126,7 +126,7 @@ class Pruner(ABC):
                 node.module.running_mean[mask] = 0
                 if node.module.running_var is not None:
                     node.module.running_var[mask] = 0
-        elif node.type is CONCAT:
+        elif node.type is NodeType.CONCAT:
             # Modify filter list according to concat operation
             for p in node.parents:
                 if p == parent:
@@ -172,7 +172,7 @@ class Pruner(ABC):
                     node.module.running_var = node.module.running_var[mask]
 
             node.module.num_features -= len(filter_list)
-        elif node.type is CONCAT:
+        elif node.type is NodeType.CONCAT:
             # Modify filter list according to concat operation
             for p in node.parents:
                 if p == parent:
