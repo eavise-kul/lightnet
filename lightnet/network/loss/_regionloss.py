@@ -40,7 +40,7 @@ class RegionLoss(nn.modules.loss._Loss):
         self.num_classes = num_classes
         self.num_anchors = len(anchors)
         self.anchor_step = len(anchors[0])
-        self.anchors = torch.Tensor(anchors)
+        self.anchors = torch.tensor(anchors, dtype=torch.float, requires_grad=False)
         self.stride = stride
         self.register_buffer('seen', torch.tensor(seen))
 

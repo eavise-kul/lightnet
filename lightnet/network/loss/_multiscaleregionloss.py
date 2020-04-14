@@ -38,7 +38,7 @@ class MultiScaleRegionLoss(RegionLoss):
 
         if len(anchors) != len(stride):
             raise IndexError('length of anchors and stride should be equal (number of output scales)')
-        self._anchors = torch.tensor(anchors, requires_grad=False)
+        self._anchors = torch.tensor(anchors, dtype=torch.float, requires_grad=False)
         self._stride = stride
 
     def extra_repr(self):
