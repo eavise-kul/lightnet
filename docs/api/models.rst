@@ -11,14 +11,14 @@ Classification
 .. autoclass:: lightnet.models.Darknet19
 .. autoclass:: lightnet.models.Darknet53
 .. autoclass:: lightnet.models.MobileDarknet19
-.. autoclass:: lightnet.models.MobileNetV1
-.. autoclass:: lightnet.models.MobileNetV2
+.. autoclass:: lightnet.models.MobilenetV1
+.. autoclass:: lightnet.models.MobilenetV2
 
 
 Detection
 ~~~~~~~~~
 .. autoclass:: lightnet.models.DYolo
-.. autoclass:: lightnet.models.MobileNetYolo
+.. autoclass:: lightnet.models.MobilenetYolo
 .. autoclass:: lightnet.models.MobileYoloV2
 .. autoclass:: lightnet.models.TinyYoloV2
 .. autoclass:: lightnet.models.TinyYoloV3
