@@ -18,7 +18,7 @@ class TinyYoloV2(lnn.module.Darknet):
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
         input_channels (Number, optional): Number of input channels; Default **3**
-        anchors (list, optional): 2D list with anchor values; Default **Tiny yolo v2 anchors**
+        anchors (list, optional): 2D list with anchor values; Default **Tiny yolo v2 anchors (VOC)**
 
     Attributes:
         self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)

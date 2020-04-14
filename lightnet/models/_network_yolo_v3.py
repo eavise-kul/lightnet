@@ -15,9 +15,9 @@ class YoloV3(lnn.module.Darknet):
     """ Yolo v3 implementation :cite:`yolo_v3`.
 
     Args:
-        num_classes (Number, optional): Number of classes; Default **20**
+        num_classes (Number, optional): Number of classes; Default **80**
         input_channels (Number, optional): Number of input channels; Default **3**
-        anchors (list, optional): 3D list with anchor values; Default **Yolo v3 anchors**
+        anchors (list, optional): 3D list with anchor values; Default **Yolo v3 anchors (COCO)**
 
     Attributes:
         self.stride: Subsampling factors of the network (input dimensions should be a multiple of these numbers)
@@ -39,7 +39,7 @@ class YoloV3(lnn.module.Darknet):
         (r'^layers.([124]\d_)', r'extractor.\1'),   # layers 10, 27, 44
     ]
 
-    def __init__(self, num_classes=20, input_channels=3, anchors=[[(116, 90), (156, 198), (373, 326)], [(30, 61), (62, 45), (59, 119)], [(10, 13), (16, 30), (33, 23)]]):
+    def __init__(self, num_classes=80, input_channels=3, anchors=[[(116, 90), (156, 198), (373, 326)], [(30, 61), (62, 45), (59, 119)], [(10, 13), (16, 30), (33, 23)]]):
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable) and not isinstance(anchors[0][0], Iterable):
             raise TypeError('Anchors need to be a 3D list of numbers')
@@ -220,14 +220,14 @@ class YoloV3(lnn.module.Darknet):
         # Feature extractor
         x, inter_features = self.extractor(x)
 
-        # detector 0
+        # Detector 0
         out[0], x = self.detector[0](x)
 
-        # detector 1
+        # Detector 1
         x = self.detector[1](x)
         out[1], x = self.detector[2](torch.cat((x, inter_features['s_residual']), 1))
 
-        # detector 2
+        # Detector 2
         x = self.detector[3](x)
         out[2] = self.detector[4](torch.cat((x, inter_features['k_residual']), 1))
 
