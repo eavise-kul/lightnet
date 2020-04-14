@@ -13,6 +13,7 @@ from ._network_darknet import *
 from ._network_darknet19 import *
 from ._network_darknet53 import *
 from ._network_tiny_yolo_v2 import *
+from ._network_tiny_yolo_v3 import *
 from ._network_yolo_v2 import *
 from ._network_yolo_v3 import *
 
