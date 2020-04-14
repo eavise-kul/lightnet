@@ -3,12 +3,14 @@
 #   Copyright EAVISE
 #
 
+import inspect
 import pytest
 import torch
 import lightnet as ln
 
-detection_networks = ['YoloV2', 'YoloV3', 'Yolt', 'DYolo', 'TinyYoloV2', 'MobilenetYolo', 'MobileYoloV2']
+detection_networks = ['DYolo', 'MobilenetYolo', 'MobileYoloV2', 'TinyYoloV2', 'TinyYoloV3', 'YoloV2', 'YoloV3', 'Yolt']
 classification_networks = ['Darknet', 'Darknet19', 'Darknet53', 'MobileDarknet19', 'MobilenetV1', 'MobilenetV2']
+special_networks = ['YoloFusion']
 
 
 @pytest.fixture(scope='module')
@@ -108,3 +110,17 @@ def test_yolofusion_cuda():
         assert output_tensor.shape[1] == len(uut.anchors) * (5 + uut.num_classes)
         assert output_tensor.shape[2] == 416 // uut.stride
         assert output_tensor.shape[3] == 416 // uut.stride
+
+
+# All networks tested?
+def test_all_networks_tested():
+    networks = [
+        net for net in dir(ln.models)
+        if (inspect.isclass(getattr(ln.models, net)))
+        and (issubclass(getattr(ln.models, net), torch.nn.Module))
+    ]
+
+    tested_networks = set(detection_networks + classification_networks + special_networks)
+    for net in networks:
+        if net not in tested_networks:
+            raise NotImplementedError(f'Network [{net}] is not being tested!')
