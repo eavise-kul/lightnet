@@ -74,25 +74,32 @@ class Darknet(Lightnet):
         weights = WeightLoader(weights_file)
         self.header = weights.header
 
-        for module in self.layer_loop():
-            try:
-                weights.load_layer(module)
-                log.debug(f'Layer loaded: {module}')
-                if weights.start >= weights.size:
-                    log.debug(f'Finished loading weights [{weights.start}/{weights.size} weights]')
-                    break
-            except NotImplementedError:
-                log.debug(f'Layer skipped: {module.__class__.__name__}')
+        done_loading = False
+        for name, module in self.named_layer_loop():
+            if not done_loading:
+                try:
+                    weights.load_layer(module)
+                    log.debug(f'Layer loaded: {name}')
+                    if weights.start >= weights.size:
+                        log.debug(f'Finished loading weights [{weights.start}/{weights.size} weights]')
+                        done_loading = True
+                except NotImplementedError:
+                    log.debug(f'Layer skipped: {name} [{module.__class__.__name__}]')
+            else:
+                log.warning(f'No more weigths for layer: {name}')
+
+        if not done_loading:
+            log.debug(f'Finished loading weights [{weights.start}/{weights.size} weights]')
 
     def _save_darknet_weights(self, weights_file):
         weights = WeightSaver(self.header, 0)
 
-        for module in self.layer_loop():
+        for name, module in self.named_layer_loop():
             try:
                 weights.save_layer(module)
-                log.debug(f'Layer saved: {module}')
+                log.debug(f'Layer saved: {name}')
             except NotImplementedError:
-                log.debug(f'Layer skipped: {module.__class__.__name__}')
+                log.debug(f'Layer skipped: {name} [{module.__class__.__name__}]')
 
         weights.write_file(weights_file)
 
