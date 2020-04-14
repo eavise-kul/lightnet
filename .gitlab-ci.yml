@@ -45,7 +45,10 @@ doctest:
 pypi:
   stage: deploy
   only:
-    - tags
+    refs:
+      - tags
+    variables:
+      - $CI_SHOULD_DEPLOY == "1"
   script:
     - pip install -U twine wheel setuptools
     - python setup.py sdist bdist_wheel
@@ -55,7 +58,10 @@ pypi:
 pypitest:
   stage: deploy
   only:
-    - master
+    refs:
+      - master
+    variables:
+      - $CI_SHOULD_DEPLOY == "1"
   script:
     - pip install -U twine wheel setuptools
     - python setup.py sdist bdist_wheel
@@ -65,7 +71,10 @@ pypitest:
 pages:
   stage: deploy
   only:
-    - tags
+    refs:
+      - tags
+    variables:
+      - $CI_SHOULD_DEPLOY == "1"
   script:
     - pip install IPython
     - cd docs; make html; cd ..
