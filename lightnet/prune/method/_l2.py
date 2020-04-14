@@ -19,9 +19,9 @@ class L2Pruner(Pruner):
 
     Normalized L2 : https://arxiv.org/pdf/1611.06440.pdf -> 2.3 Normalization
 
-    Warning:
-        Percentage is approximative. |br|
-        If L2 tells to prune all filters in a convolution,
+    Note:
+        The percentage is approximative. |br|
+        If the pruner tells to prune all filters in a convolution,
         we keep the most important and reduce the number of pruned filters by one.
     """
     def prune(self, percentage, prune_manner):

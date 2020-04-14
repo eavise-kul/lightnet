@@ -62,6 +62,15 @@ class Pruner(ABC):
         """
         pass
 
+    @property
+    def prunable_channels(self):
+        """ TODO """
+        prunable = 0
+        for dependency in self.dependencies.values():
+            prunable += dependency.module.out_channels
+
+        return prunable
+
     def soft_prune(self, conv_node, filter_list, chain=False):
         """ TODO """
         # Set output tensors to zero; filter_list does not get modified
@@ -186,8 +195,13 @@ class Pruner(ABC):
             self._hard_chain(c, filter_list, node)
 
     def _get_num_channels(self, node):
-        if node.type in {NodeType.CONV, NodeType.BATCHNORM}:
-            return node.module.weight.shape[1]
+        if node.type is NodeType.CONV:
+            if node.module.groups != 1:
+                return node.module.weight.shape[0]
+            else:
+                return node.module.weight.shape[1]
+        if node.type is NodeType.BATCHNORM:
+            return node.module.weight.shape[0]
         if node.type is NodeType.CONCAT:
             return sum(self._get_num_channels(p) for p in parents)
         if node.type is NodeType.ELEMW_OP:
