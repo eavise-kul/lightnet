@@ -47,7 +47,7 @@ If you use Lightnet in your research, please cite it.
 
 ## Main Contributors
 Here is a list of people that made noteworthy contributions and helped to get this project where it stands today!
-  - [Tanguy Ophoff](https://gitlab.com/0phoff)
+  - [Tanguy Ophoff](https://gitlab.com/0phoff) [![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D31LPHE)
   - [Jon Crall](https://gitlab.com/Erotemic)
 
 
