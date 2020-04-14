@@ -81,6 +81,14 @@ def deprecated(self, message, *args, **kwargs):
         self._log(35, message, args, **kwargs)
 
 
+def log_function(lvl):
+    def log(self, message, *args, **kwargs):
+        if self.isEnabledFor(lvl):
+            self._log(lvl, message, args, **kwargs)
+
+    return log
+
+
 def test(self, message, *args, **kwargs):
     if self.isEnabledFor(38):
         self._log(38, message, args, **kwargs)
@@ -91,12 +99,14 @@ def train(self, message, *args, **kwargs):
         self._log(39, message, args, **kwargs)
 
 
+logging.addLevelName(15, 'METADATA')
+logging.Logger.metadata = log_function(15)
 logging.addLevelName(35, 'DEPRECATED')
 logging.Logger.deprecated = deprecated
 logging.addLevelName(38, 'TEST')
-logging.Logger.test = test
+logging.Logger.test = log_function(38)
 logging.addLevelName(39, 'TRAIN')
-logging.Logger.train = train
+logging.Logger.train = log_function(39)
 
 
 # Console Handler
