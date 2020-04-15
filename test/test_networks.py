@@ -123,4 +123,4 @@ def test_all_networks_tested():
     tested_networks = set(detection_networks + classification_networks + special_networks)
     for net in networks:
         if net not in tested_networks:
-            raise NotImplementedError(f'Network [{net}] is not being tested!')
+            raise NotImplementedError(f'Network [{net.__name__}] is not being tested!')
