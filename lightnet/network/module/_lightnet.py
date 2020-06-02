@@ -3,6 +3,7 @@
 #   Copyright EAVISE
 #
 
+import inspect
 import logging
 import re
 from collections import OrderedDict
@@ -132,3 +133,18 @@ class Lightnet(nn.Module):
         torch.save(weights, weights_file)
 
         log.info(f'Saved{remap} weights as {weights_file}')
+
+    def __str__(self):
+        """ Shorter version than default PyTorch one. """
+        args = list(inspect.signature(self.__class__.__init__).parameters.keys())
+        args.remove('self')
+
+        string = self.__class__.__module__ + '.' + self.__class__.__name__ + '('
+        for i, arg in enumerate(args):
+            if i > 0:
+                string += ', '
+            val = getattr(self, arg, '?')
+            string += f'{arg}={val}'
+        string += ')'
+
+        return string
