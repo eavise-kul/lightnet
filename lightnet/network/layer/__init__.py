@@ -12,3 +12,4 @@
 from ._darknet import *
 from ._fusion import *
 from ._mobilenet import *
+from ._util import *
