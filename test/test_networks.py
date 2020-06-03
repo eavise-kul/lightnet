@@ -30,6 +30,7 @@ def test_classification_cpu(network, input_tensor):
 
 
 @pytest.mark.parametrize('network', classification_networks)
+@pytest.mark.cuda
 @pytest.mark.skipif(not torch.cuda.is_available(), reason='CUDA not available')
 def test_classification_cuda(network, input_tensor):
     uut = getattr(ln.models, network)().to('cuda')
@@ -63,6 +64,7 @@ def test_detection_cpu(network, input_tensor):
 
 
 @pytest.mark.parametrize('network', detection_networks)
+@pytest.mark.cuda
 @pytest.mark.skipif(not torch.cuda.is_available(), reason='CUDA not available')
 def test_detection_cuda(network, input_tensor):
     uut = getattr(ln.models, network)().to('cuda')
@@ -98,6 +100,7 @@ def test_yolofusion_cpu():
         assert output_tensor.shape[3] == 416 // uut.stride
 
 
+@pytest.mark.cuda
 @pytest.mark.skipif(not torch.cuda.is_available(), reason='CUDA not available')
 def test_yolofusion_cuda():
     input_tensor = torch.rand(1, 4, 416, 416).to('cuda')

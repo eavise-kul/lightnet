@@ -98,6 +98,7 @@ def test_reorg_layer_cpu(layer, input_tensor):
     assert torch.eq(output.data, expected).all()
 
 
+@pytest.mark.cuda
 @pytest.mark.skipif(not torch.cuda.is_available(), reason='CUDA not available')
 def test_reorg_layer_cuda(layer, input_tensor):
     input_tensor = input_tensor.to('cuda')
