@@ -7,7 +7,7 @@ import logging
 import torch.nn as nn
 
 
-__all__ = ['Conv2dDepthWise', 'Bottleneck']
+__all__ = ['Conv2dDepthWise', 'InvertedBottleneck']
 log = logging.getLogger(__name__)
 
 
@@ -62,8 +62,8 @@ class Conv2dDepthWise(nn.Module):
         return x
 
 
-class Bottleneck(nn.Module):
-    """ This is an implementation of the bottleneck layer :cite:`mobilenet_v2`.
+class InvertedBottleneck(nn.Module):
+    """ This is an implementation of the inverted bottleneck layer :cite:`mobilenet_v2`.
 
     Args:
         in_channels (int): Number of input channels
@@ -80,10 +80,9 @@ class Bottleneck(nn.Module):
         If the input channels and output channels are equal and the stride is equal to 1, the residual connection is made.
 
     Note:
-        The relu argument gets called with *inplace=True*.
-        To give it other arguments you can use a lambda:
+        In order to pass arguments to your relu argument, you can use a lambda or partial application.
 
-        >>> conv = Bottleneck(
+        >>> conv = InvertedBottleneck(
         ...     in_c, out_c, kernel, stride, expansion,
         ...     relu=functools.partial(torch.nn.ReLU6, inplace=True)
         ... )  # doctest: +SKIP
