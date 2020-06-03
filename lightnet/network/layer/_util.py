@@ -14,14 +14,36 @@ log = logging.getLogger(__name__)
 
 class Residual(nn.Sequential):
     """ Residual block that runs like a Sequential, but then adds the original input to the output tensor.
-        See :class:`torch.nn.Sequential` for more information.
+    See :class:`torch.nn.Sequential` for more information.
 
-        Warning:
-            The dimension between the input and output of the module need to be the same
-            or need to be broadcastable from one to the other!
+    Args:
+        *args: Arguments passed to :class:`torch.nn.Sequential`
+        skip (nn.Module, optional): Extra module that is run on the input before adding it to the main block; Default **None**
+
+    Note:
+        If you are using an `OrderedDict` to pass the modules to the sequential,
+        you can set the `skip` value inside of that dict as well.
+
+    Warning:
+        The dimension between the input (after skip) and output of the module need to be the same
+        or need to be broadcastable from one to the other!
     """
+    def __init__(self, *args, skip=None):
+        super().__init__(*args)
+        if skip is None and 'skip' in dir(self):
+            self.skip = self._modules['skip']
+        else:
+            self.skip = skip
+
     def forward(self, x):
-        y = super().forward(x)
+        y = x
+        for name, module in self.named_children():
+            if name != 'skip':
+                y = module(y)
+
+        if self.skip is not None:
+            x = self.skip(x)
+
         return x + y
 
 
