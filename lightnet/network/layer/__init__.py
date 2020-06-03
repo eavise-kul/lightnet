@@ -9,6 +9,7 @@
    If an int is given, both the width and height are set to this value.
 """
 
+from ._cornernet import *
 from ._darknet import *
 from ._fusion import *
 from ._mobilenet import *
