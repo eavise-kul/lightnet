@@ -53,15 +53,19 @@ class Compose(list):
             data = tf(data)
         return data
 
+    def __str__(self):
+        string = f'{self.__class__.__name__} ['
+        for tf in self:
+            string += f'{str(tf)}, '
+        return string[:-2] + ']'
+
     def __repr__(self):
         format_string = self.__class__.__name__ + ' ['
         for tf in self:
-            if hasattr(tf, '__name__'):
-                name = tf.__name__
-            else:
-                name = tf.__class__.__name__
-
-            format_string += f'\n  {name}'
+            tfrepr = repr(tf)
+            if '\n' in tfrepr:
+                tfrepr = tfrepr.replace('\n', '\n  ')
+            format_string += f'\n  {tfrepr}'
         format_string += '\n]'
         return format_string
 
@@ -85,6 +89,25 @@ class BaseTransform(ABC):
         """
         obj = cls(**kwargs)
         return obj(data)
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def __repr__(self):
+        string = f'{self.__class__.__name__} (\n'
+
+        for name in sorted(self.__dict__.keys()):
+            if name.startswith('_'):
+                continue
+            val = self.__dict__[name]
+
+            valrepr = repr(val)
+            if '\n' in valrepr:
+                valrepr = val.__class__.__name__
+
+            string += f'  {name} = {valrepr},\n'
+
+        return string + ')'
 
 
 class BaseMultiTransform(ABC):
@@ -134,3 +157,22 @@ class BaseMultiTransform(ABC):
     @abstractmethod
     def _tf_anno(self, anno):
         return anno
+
+    def __str__(self):
+        return f'{self.__class__.__name__} [MULTI-TF]'
+
+    def __repr__(self):
+        string = f'{self.__class__.__name__} [MULTI-TF] (\n'
+
+        for name in sorted(self.__dict__.keys()):
+            if name.startswith('_'):
+                continue
+            val = self.__dict__[name]
+
+            valrepr = repr(val)
+            if '\n' in valrepr:
+                valrepr = val.__class__.__name__
+
+            string += f'  {name} = {valrepr},\n'
+
+        return string + ')'

@@ -77,7 +77,27 @@ class HyperParameters:
             super().__setattr__(item, value)
 
     def __repr__(self):
-        """ Print all values stored in the object.
+        """ Print all values stored in the object as repr.
+        Objects that will not be serialized are marked with an asterisk.
+        """
+        s = f'{self.__class__.__name__}('
+        for k in sorted(self.__dict__.keys()):
+            if k.startswith('_HyperParameters__'):
+                continue
+
+            val = self.__dict__[k]
+            valrepr = repr(val)
+            if '\n' in valrepr:
+                valrepr = valrepr.replace('\n', '\n    ')
+            if k in self.__no_serialize:
+                k += '*'
+
+            s += f'\n  {k} = {valrepr}'
+
+        return s + '\n)'
+
+    def __str__(self):
+        """ Print all values stored in the object as string.
         Objects that will not be serialized are marked with an asterisk.
         """
         s = f'{self.__class__.__name__}('
@@ -88,7 +108,7 @@ class HyperParameters:
             val = self.__dict__[k]
             valrepr = str(val)
             if '\n' in valrepr:
-                valrepr = val.__class__.__name__
+                valrepr = val.__name__ if hasattr(val, '__name__') else val.__class__.__name__
             if k in self.__no_serialize:
                 k += '*'
 
