@@ -1,16 +1,14 @@
 #
-#   Cornernet related layers
+#   Cornernet pooling layers
 #   Copyright EAVISE
 #
 
-import logging
 from collections import OrderedDict
 import torch.nn as nn
 from ._darknet import Conv2dBatchReLU
 from ._util import SumSequential
 
 __all__ = ['TopPool', 'BottomPool', 'LeftPool', 'RightPool', 'CornerPool']
-log = logging.getLogger(__name__)
 
 
 class TopPool(nn.Module):
@@ -38,7 +36,7 @@ class RightPool(nn.Module):
 
 
 class CornerPool(nn.Module):
-    """ Cornerpooling module implementation :cite`cornernet`.
+    """ Cornerpooling module implementation :cite:`cornernet`.
 
     Args:
         channels (int): Number of input and output channels
@@ -47,8 +45,10 @@ class CornerPool(nn.Module):
         inter_channels (int, optional): Intermediate channels; Default **128**
 
     Note:
-        Compared to the official CornerNet implementation,
+        Compared to the `official CornerNet implementation <cornernetImpl_>`_,
         this version of cornerpooling does not add the last 3x3 Conv2dBatchReLU module.
+
+    .. _cornernetImpl: https://github.com/princeton-vl/CornerNet-Lite/blob/6a54505d830a9d6afe26e99f0864b5d06d0bbbaf/core/models/py_utils/utils.py#L187
     """
     def __init__(self, channels, pool1, pool2, inter_channels=128):
         super().__init__()
