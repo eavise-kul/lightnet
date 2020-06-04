@@ -5,14 +5,36 @@ Network
 Layer
 ------
 .. automodule:: lightnet.network.layer
-.. autoclass:: lightnet.network.layer.Conv2dBatchReLU
-.. .. autoclass:: lightnet.network.layer.Conv2dDepthWise
+
+Containers
+~~~~~~~~~~
 .. autoclass:: lightnet.network.layer.Fusion
-.. autoclass:: lightnet.network.layer.GlobalAvgPool2d
-.. autoclass:: lightnet.network.layer.PaddedMaxPool2d
-.. autoclass:: lightnet.network.layer.Reorg
+.. autoclass:: lightnet.network.layer.HourGlass
 .. autoclass:: lightnet.network.layer.Residual
 .. autoclass:: lightnet.network.layer.SelectiveSequential
+.. autoclass:: lightnet.network.layer.SumSequential
+
+Convolution
+~~~~~~~~~~~~~
+.. autoclass:: lightnet.network.layer.Conv2dBatchReLU
+.. autoclass:: lightnet.network.layer.Conv2dDepthWise
+.. autoclass:: lightnet.network.layer.CornerPool
+.. autoclass:: lightnet.network.layer.InvertedBottleneck
+
+Pooling
+~~~~~~~
+.. autoclass:: lightnet.network.layer.BottomPool
+.. autoclass:: lightnet.network.layer.GlobalAvgPool2d
+.. autoclass:: lightnet.network.layer.LeftPool
+.. autoclass:: lightnet.network.layer.PaddedMaxPool2d
+.. autoclass:: lightnet.network.layer.RightPool
+.. autoclass:: lightnet.network.layer.TopPool
+
+Others
+~~~~~~
+.. autoclass:: lightnet.network.layer.Flatten
+.. autoclass:: lightnet.network.layer.Reorg
+
 
 Loss
 ----

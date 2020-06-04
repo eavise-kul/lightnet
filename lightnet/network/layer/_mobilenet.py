@@ -75,7 +75,7 @@ class InvertedBottleneck(nn.Module):
         relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU6`
 
     Note:
-        The bottleneck layers of mobilenetv2_ use a residual connection for easier propagation of the gradient.
+        This layer uses a residual connection for easier propagation of the gradient.
         Whether or not this residual connection is made, depends on the ``in_channels``, ``out_channels`` and ``stride`` arguments.
         If the input channels and output channels are equal and the stride is equal to 1, the residual connection is made.
 

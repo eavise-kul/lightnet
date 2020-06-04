@@ -10,7 +10,7 @@ __all__ = ['MultiScaleRegionLoss']
 
 
 class MultiScaleRegionLoss(RegionLoss):
-    """ This is the loss function for YoloV3, which computes the region loss at multiple scales.
+    """ Computes region loss from darknet network output and target annotation at multiple scales (yoloV3).
 
     Args:
         num_classes (int): number of classes to detect

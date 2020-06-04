@@ -21,7 +21,7 @@ version120 = LooseVersion("1.2.0")
 
 
 class RegionLoss(nn.modules.loss._Loss):
-    """ Computes region loss from darknet network output and target annotation.
+    """ Computes region loss from darknet network output and target annotation (yoloV2).
 
     Args:
         num_classes (int): number of classes to detect

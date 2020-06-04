@@ -16,7 +16,8 @@ log = logging.getLogger(__name__)
 
 
 class Fusion(nn.Module):
-    """ This module is like a :class:`torch.nn.Sequential`, but it will perform the actions twice,
+    """ Fusion module from :cite:`rgbd_fusion_v2`.
+    This module is like a :class:`torch.nn.Sequential`, but it will perform the actions twice,
     once on the regular input and once on the fusion input. |br|
     The fusion will be performed by adding an extra 1x1 fuse convolution between the output of both streams and the input of the combined stream,
     to mix both streams and reduce the number of output feature maps by a factor of 2. |br|
