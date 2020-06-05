@@ -51,7 +51,7 @@ class YoloV3(lnn.module.Darknet):
             self.anchors.append([(a[0] / s, a[1] / s) for a in anchors[i]])
 
         # Network
-        self.extractor = lnn.layer.SelectiveSequential(
+        self.extractor = lnn.layer.SequentialSelect(
             ['k_residual', 's_residual'],
             OrderedDict([
                 ('1_convbatch',         lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1)),
@@ -157,7 +157,7 @@ class YoloV3(lnn.module.Darknet):
 
         self.detector = nn.ModuleList([
             # Sequence 0 : input = extractor
-            lnn.layer.SelectiveSequential(
+            lnn.layer.SequentialSelect(
                 ['57_convbatch'],
                 OrderedDict([
                     ('53_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0)),
@@ -179,7 +179,7 @@ class YoloV3(lnn.module.Darknet):
             ),
 
             # Sequence 2 : input = 61_upsample and s_residual
-            lnn.layer.SelectiveSequential(
+            lnn.layer.SequentialSelect(
                 ['66_convbatch'],
                 OrderedDict([
                     ('62_convbatch',    lnn.layer.Conv2dBatchReLU(256+512, 256, 1, 1, 0)),

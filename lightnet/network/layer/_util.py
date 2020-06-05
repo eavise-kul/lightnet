@@ -3,12 +3,13 @@
 #   Copyright EAVISE
 #
 
+from collections import OrderedDict
 import logging
 import torch
 import torch.nn as nn
 
 
-__all__ = ['Residual', 'SelectiveSequential', 'SumSequential']
+__all__ = ['Residual', 'SequentialSelect', 'Parallel', 'ParallelSum']
 log = logging.getLogger(__name__)
 
 
@@ -47,7 +48,7 @@ class Residual(nn.Sequential):
         return x + y
 
 
-class SelectiveSequential(nn.Sequential):
+class SequentialSelect(nn.Sequential):
     """ Sequential that allows to select which layers are to be considered as output.
         See :class:`torch.nn.Sequential` for more information.
 
@@ -91,12 +92,25 @@ class SelectiveSequential(nn.Sequential):
             return x, sel_output
 
 
-class SumSequential(nn.Sequential):
-    """ Sequential container that runs each module on the input,
-    and combines the different outputs by summing them.
+class Parallel(nn.Sequential):
+    """ Container that runs each module on the input.
+    The ouput is a list that contains the output of each of the different modules.
 
     Args:
-        *args: Arguments passed to :class:`torch.nn.Sequential`
+        *args: Modules to run in parallel (similar to :class:`torch.nn.Sequential`)
+    """
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    def forward(self, x):
+        return [module(x) for module in self]
+
+
+class ParallelSum(nn.Module):
+    """ Parallel container that runs each module on the input and combines the different outputs by summing them.
+
+    Args:
+        *args: Arguments passed to :class:`~lightnet.network.layer._util.Parallel`
         post (nn.Module, optional): Extra module that is run on the sum of the outputs of the other modules; Default **None**
 
     Note:
@@ -104,18 +118,16 @@ class SumSequential(nn.Sequential):
         you can set the `post` value inside of that dict as well.
     """
     def __init__(self, *args, post=None):
-        super().__init__(*args)
-        if post is None and 'post' in dir(self):
-            self.post = self._modules['post']
+        super().__init__()
+
+        if post is None and len(args) == 1 and isinstance(args[0], OrderedDict) and 'post' in args[0]:
+            self.post = args[0].pop('post')
         else:
             self.post = post
+        self.para = Parallel(*args)
 
     def forward(self, x):
-        output = torch.sum(
-            torch.stack([module(x) for name, module in self.named_children() if name != 'post']),
-            dim=0
-        )
-
+        output = torch.sum(torch.stack(self.para(x)), dim=0)
         if self.post is not None:
             output = self.post(output)
 

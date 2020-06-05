@@ -10,9 +10,11 @@ Containers
 ~~~~~~~~~~
 .. autoclass:: lightnet.network.layer.Fusion
 .. autoclass:: lightnet.network.layer.HourGlass
+.. autoclass:: lightnet.network.layer.Parallel
+.. autoclass:: lightnet.network.layer.ParallelCat
+.. autoclass:: lightnet.network.layer.ParallelSum
 .. autoclass:: lightnet.network.layer.Residual
-.. autoclass:: lightnet.network.layer.SelectiveSequential
-.. autoclass:: lightnet.network.layer.SumSequential
+.. autoclass:: lightnet.network.layer.SequentialSelect
 
 Convolution
 ~~~~~~~~~~~~~

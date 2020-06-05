@@ -5,7 +5,7 @@
 
 from collections import OrderedDict
 import torch.nn as nn
-from ._util import Residual, SumSequential
+from ._util import Residual, ParallelSum
 
 __all__ = ['HourGlass']
 
@@ -89,7 +89,7 @@ class HourGlass(nn.Module):
         else:
             inner = make_inner(c2, **self._get_current(inner_kwargs, dict()))
 
-        self.layers = SumSequential(OrderedDict([
+        self.layers = ParallelSum(OrderedDict([
             ('up', make_up(c1, **self._get_current(up_kwargs, dict()))),
             ('down', nn.Sequential(OrderedDict([
                 ('down1', make_down1(c1, c2, **self._get_current(down1_kwargs, dict()))),

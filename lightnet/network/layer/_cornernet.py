@@ -6,7 +6,7 @@
 from collections import OrderedDict
 import torch.nn as nn
 from ._darknet import Conv2dBatchReLU
-from ._util import SumSequential
+from ._util import ParallelSum
 
 __all__ = ['TopPool', 'BottomPool', 'LeftPool', 'RightPool', 'CornerPool']
 
@@ -52,8 +52,8 @@ class CornerPool(nn.Module):
     """
     def __init__(self, channels, pool1, pool2, inter_channels=128):
         super().__init__()
-        self.layers = SumSequential(OrderedDict([
-            ('pool', SumSequential(
+        self.layers = ParallelSum(OrderedDict([
+            ('pool', ParallelSum(
                 nn.Sequential(
                     Conv2dBatchReLU(channels, inter_channels, 3, 1, 1),
                     pool1()

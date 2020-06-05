@@ -45,7 +45,7 @@ class TinyYoloV3(lnn.module.Darknet):
             self.anchors.append([(a[0] / s, a[1] / s) for a in anchors[i]])
 
         # Network
-        self.extractor = lnn.layer.SelectiveSequential(
+        self.extractor = lnn.layer.SequentialSelect(
             ['9_convbatch'],
             # Sequence 0 : input = input_channels
             OrderedDict([
