@@ -21,7 +21,7 @@ def input_tensor():
 # Base classification networks
 @pytest.mark.parametrize('network', classification_networks)
 def test_classification_cpu(network, input_tensor):
-    uut = getattr(ln.models, network)()
+    uut = getattr(ln.models, network)(1000)
 
     output_tensor = uut(input_tensor)
     assert output_tensor.dim() == 2
@@ -33,7 +33,7 @@ def test_classification_cpu(network, input_tensor):
 @pytest.mark.cuda
 @pytest.mark.skipif(not torch.cuda.is_available(), reason='CUDA not available')
 def test_classification_cuda(network, input_tensor):
-    uut = getattr(ln.models, network)().to('cuda')
+    uut = getattr(ln.models, network)(1000).to('cuda')
     input_tensor = input_tensor.to('cuda')
 
     output_tensor = uut(input_tensor)
@@ -45,7 +45,7 @@ def test_classification_cuda(network, input_tensor):
 # Base detection networks
 @pytest.mark.parametrize('network', detection_networks)
 def test_detection_cpu(network, input_tensor):
-    uut = getattr(ln.models, network)()
+    uut = getattr(ln.models, network)(20)
 
     output_tensor = uut(input_tensor)
     if isinstance(output_tensor, torch.Tensor):
@@ -67,7 +67,7 @@ def test_detection_cpu(network, input_tensor):
 @pytest.mark.cuda
 @pytest.mark.skipif(not torch.cuda.is_available(), reason='CUDA not available')
 def test_detection_cuda(network, input_tensor):
-    uut = getattr(ln.models, network)().to('cuda')
+    uut = getattr(ln.models, network)(20).to('cuda')
     input_tensor = input_tensor.to('cuda')
 
     output_tensor = uut(input_tensor)
@@ -91,7 +91,7 @@ def test_yolofusion_cpu():
     input_tensor = torch.rand(1, 4, 416, 416)
 
     for fusion in (0, 1, 10, 22, 27):
-        uut = ln.models.YoloFusion(fuse_layer=fusion)
+        uut = ln.models.YoloFusion(20, fuse_layer=fusion)
         output_tensor = uut(input_tensor)
         assert output_tensor.dim() == 4
         assert output_tensor.shape[0] == 1
@@ -106,7 +106,7 @@ def test_yolofusion_cuda():
     input_tensor = torch.rand(1, 4, 416, 416).to('cuda')
 
     for fusion in (0, 1, 10, 22, 27):
-        uut = ln.models.YoloFusion(fuse_layer=fusion).to('cuda')
+        uut = ln.models.YoloFusion(20, fuse_layer=fusion).to('cuda')
         output_tensor = uut(input_tensor)
         assert output_tensor.dim() == 4
         assert output_tensor.shape[0] == 1

@@ -43,6 +43,8 @@ class CornerPool(nn.Module):
         pool1 (nn.Module): First pooling module
         pool2 (nn.Module): Second pooling module
         inter_channels (int, optional): Intermediate channels; Default **128**
+        momentum (number, optional): momentum of the moving averages of the normalization; Default **0.1**
+        relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU`
 
     Note:
         Compared to the `official CornerNet implementation <cornernetImpl_>`_,
@@ -50,16 +52,16 @@ class CornerPool(nn.Module):
 
     .. _cornernetImpl: https://github.com/princeton-vl/CornerNet-Lite/blob/6a54505d830a9d6afe26e99f0864b5d06d0bbbaf/core/models/py_utils/utils.py#L187
     """
-    def __init__(self, channels, pool1, pool2, inter_channels=128):
+    def __init__(self, channels, pool1, pool2, inter_channels=128, momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
         super().__init__()
         self.layers = ParallelSum(OrderedDict([
             ('pool', ParallelSum(
                 nn.Sequential(
-                    Conv2dBatchReLU(channels, inter_channels, 3, 1, 1),
+                    Conv2dBatchReLU(channels, inter_channels, 3, 1, 1, momentum, relu),
                     pool1()
                 ),
                 nn.Sequential(
-                    Conv2dBatchReLU(channels, inter_channels, 3, 1, 1),
+                    Conv2dBatchReLU(channels, inter_channels, 3, 1, 1, momentum, relu),
                     pool2()
                 ),
                 post=nn.Sequential(
@@ -68,10 +70,10 @@ class CornerPool(nn.Module):
                 )
             )),
             ('conv', nn.Sequential(
-                nn.Conv2d(channels, channels, 1, 0, 0, bias=False),
+                nn.Conv2d(channels, channels, 1, 1, 0, bias=False),
                 nn.BatchNorm2d(channels),
             )),
-            ('post', nn.ReLU())
+            ('post', relu)
         ]))
 
     def forward(self, x):

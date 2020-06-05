@@ -37,7 +37,7 @@ class MobilenetV1(lnn.module.Lightnet):
     """
     stride = 32
 
-    def __init__(self, num_classes=1000, alpha=1, input_channels=3):
+    def __init__(self, num_classes, alpha=1, input_channels=3):
         super().__init__()
 
         # Parameters
@@ -46,23 +46,24 @@ class MobilenetV1(lnn.module.Lightnet):
         self.input_channels = input_channels
 
         # Network
+        relu = functools.partial(nn.ReLU6, inplace=True)
         self.layers = nn.Sequential(
             # Base layers
             nn.Sequential(OrderedDict([
-                ('1_convbatch', lnn.layer.Conv2dBatchReLU(input_channels, int(alpha*32), 3, 2, 1, relu=functools.partial(nn.ReLU6, inplace=True))),
-                ('2_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*32), int(alpha*64), 3, 1, 1)),
-                ('3_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*64), int(alpha*128), 3, 2, 1)),
-                ('4_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*128), 3, 1, 1)),
-                ('5_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*256), 3, 2, 1)),
-                ('6_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*256), int(alpha*256), 3, 1, 1)),
-                ('7_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*256), int(alpha*512), 3, 2, 1)),
-                ('8_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1)),
-                ('9_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1)),
-                ('10_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1)),
-                ('11_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1)),
-                ('12_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1)),
-                ('13_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*1024), 3, 2, 1)),
-                ('14_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*1024), int(alpha*1024), 3, 1, 1)),
+                ('1_convbatch', lnn.layer.Conv2dBatchReLU(input_channels, int(alpha*32), 3, 2, 1, relu=relu)),
+                ('2_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*32), int(alpha*64), 3, 1, 1, relu=relu)),
+                ('3_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*64), int(alpha*128), 3, 2, 1, relu=relu)),
+                ('4_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*128), 3, 1, 1, relu=relu)),
+                ('5_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*256), 3, 2, 1, relu=relu)),
+                ('6_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*256), int(alpha*256), 3, 1, 1, relu=relu)),
+                ('7_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*256), int(alpha*512), 3, 2, 1, relu=relu)),
+                ('8_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1, relu=relu)),
+                ('9_convdw',    lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1, relu=relu)),
+                ('10_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1, relu=relu)),
+                ('11_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1, relu=relu)),
+                ('12_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1, relu=relu)),
+                ('13_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*1024), 3, 2, 1, relu=relu)),
+                ('14_convdw',   lnn.layer.Conv2dDepthWise(int(alpha*1024), int(alpha*1024), 3, 1, 1, relu=relu)),
             ])),
 
             # Classification specific layers

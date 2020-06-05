@@ -37,7 +37,7 @@ class MobilenetV2(lnn.module.Lightnet):
     """
     stride = 32
 
-    def __init__(self, num_classes=1000, alpha=1, input_channels=3):
+    def __init__(self, num_classes, alpha=1, input_channels=3):
         super().__init__()
 
         # Parameters
@@ -46,28 +46,29 @@ class MobilenetV2(lnn.module.Lightnet):
         self.input_channels = input_channels
 
         # Network
+        relu = functools.partial(nn.ReLU6, inplace=True)
         self.layers = nn.Sequential(
             # Base layers
             nn.Sequential(OrderedDict([
-                ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, int(alpha*32), 3, 2, 1, relu=functools.partial(nn.ReLU6, inplace=True))),
-                ('2_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*32), int(alpha*16), 3, 1, 1)),
-                ('3_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*16), int(alpha*24), 3, 2, 6)),
-                ('4_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*24), int(alpha*24), 3, 1, 6)),
-                ('5_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*24), int(alpha*32), 3, 2, 6)),
-                ('6_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*32), int(alpha*32), 3, 1, 6)),
-                ('7_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*32), int(alpha*32), 3, 1, 6)),
-                ('8_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*32), int(alpha*64), 3, 2, 6)),
-                ('9_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*64), int(alpha*64), 3, 1, 6)),
-                ('10_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*64), int(alpha*64), 3, 1, 6)),
-                ('11_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*64), int(alpha*64), 3, 1, 6)),
-                ('12_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*64), int(alpha*96), 3, 1, 6)),
-                ('13_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*96), int(alpha*96), 3, 1, 6)),
-                ('14_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*96), int(alpha*96), 3, 1, 6)),
-                ('15_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*96), int(alpha*160), 3, 2, 6)),
-                ('16_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*160), int(alpha*160), 3, 1, 6)),
-                ('17_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*160), int(alpha*160), 3, 1, 6)),
-                ('18_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*160), int(alpha*320), 3, 1, 6)),
-                ('19_convbatch',    lnn.layer.Conv2dBatchReLU(int(alpha*320), int(alpha*1280),  1, 1, 0, relu=functools.partial(nn.ReLU6, inplace=True))),
+                ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, int(alpha*32), 3, 2, 1, relu=relu)),
+                ('2_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*32), int(alpha*16), 3, 1, 1, relu=relu)),
+                ('3_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*16), int(alpha*24), 3, 2, 6, relu=relu)),
+                ('4_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*24), int(alpha*24), 3, 1, 6, relu=relu)),
+                ('5_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*24), int(alpha*32), 3, 2, 6, relu=relu)),
+                ('6_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*32), int(alpha*32), 3, 1, 6, relu=relu)),
+                ('7_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*32), int(alpha*32), 3, 1, 6, relu=relu)),
+                ('8_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*32), int(alpha*64), 3, 2, 6, relu=relu)),
+                ('9_bottleneck',    lnn.layer.InvertedBottleneck(int(alpha*64), int(alpha*64), 3, 1, 6, relu=relu)),
+                ('10_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*64), int(alpha*64), 3, 1, 6, relu=relu)),
+                ('11_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*64), int(alpha*64), 3, 1, 6, relu=relu)),
+                ('12_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*64), int(alpha*96), 3, 1, 6, relu=relu)),
+                ('13_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*96), int(alpha*96), 3, 1, 6, relu=relu)),
+                ('14_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*96), int(alpha*96), 3, 1, 6, relu=relu)),
+                ('15_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*96), int(alpha*160), 3, 2, 6, relu=relu)),
+                ('16_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*160), int(alpha*160), 3, 1, 6, relu=relu)),
+                ('17_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*160), int(alpha*160), 3, 1, 6, relu=relu)),
+                ('18_bottleneck',   lnn.layer.InvertedBottleneck(int(alpha*160), int(alpha*320), 3, 1, 6, relu=relu)),
+                ('19_convbatch',    lnn.layer.Conv2dBatchReLU(int(alpha*320), int(alpha*1280),  1, 1, 0, relu=relu)),
             ])),
 
             # Classification specific layers

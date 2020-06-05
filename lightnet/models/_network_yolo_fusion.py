@@ -3,6 +3,7 @@
 #   Copyright EAVISE
 #
 
+import functools
 from collections import OrderedDict, Iterable
 import torch
 import torch.nn as nn
@@ -33,7 +34,7 @@ class YoloFusion(lnn.module.Lightnet):
     """
     stride = 32
 
-    def __init__(self, num_classes=20, input_channels=3, fusion_channels=1, fuse_layer=0,
+    def __init__(self, num_classes, input_channels=3, fusion_channels=1, fuse_layer=0,
                  anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
@@ -49,29 +50,32 @@ class YoloFusion(lnn.module.Lightnet):
         self.fuse_layer = fuse_layer
         self.fuse_seq = None
 
+        relu = functools.partial(nn.LeakyReLU, 0.1, inplace=True)
+        momentum = 0.01
+
         # First layer
         if fuse_layer == 0:
             self.fuse_seq = 0
             self.layers = [
                 nn.Sequential(OrderedDict([
                     ('fuse', nn.Conv2d(input_channels+fusion_channels, input_channels, 1, 1, 0, bias=False)),
-                    ('1_convbatch', lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1)),
+                    ('1_convbatch', lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1, relu=relu, momentum=momentum)),
                 ]))
             ]
         elif fuse_layer == 1:
             self.fuse_seq = 0
             self.layers = [
                 nn.ModuleDict({
-                    '1_convbatch_regular': lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1),
-                    '1_convbatch_fusion': lnn.layer.Conv2dBatchReLU(fusion_channels, 32, 3, 1, 1),
+                    '1_convbatch_regular': lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1, relu=relu, momentum=momentum),
+                    '1_convbatch_fusion': lnn.layer.Conv2dBatchReLU(fusion_channels, 32, 3, 1, 1, relu=relu, momentum=momentum),
                     'fuse': nn.Conv2d(32*2, 32, 1, 1, 0, bias=False),
                 })
             ]
         else:
             self.layers = [
                 nn.ModuleDict({
-                    '1_convbatch_regular': lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1),
-                    '1_convbatch_fusion': lnn.layer.Conv2dBatchReLU(fusion_channels, 32, 3, 1, 1),
+                    '1_convbatch_regular': lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1, relu=relu, momentum=momentum),
+                    '1_convbatch_fusion': lnn.layer.Conv2dBatchReLU(fusion_channels, 32, 3, 1, 1, relu=relu, momentum=momentum),
                 })
             ]
 
@@ -79,36 +83,36 @@ class YoloFusion(lnn.module.Lightnet):
         layer_list = [
             OrderedDict([
                 ('2_max',           nn.MaxPool2d(2, 2)),
-                ('3_convbatch',     lnn.layer.Conv2dBatchReLU(32, 64, 3, 1, 1)),
+                ('3_convbatch',     lnn.layer.Conv2dBatchReLU(32, 64, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('4_max',           nn.MaxPool2d(2, 2)),
-                ('5_convbatch',     lnn.layer.Conv2dBatchReLU(64, 128, 3, 1, 1)),
-                ('6_convbatch',     lnn.layer.Conv2dBatchReLU(128, 64, 1, 1, 0)),
-                ('7_convbatch',     lnn.layer.Conv2dBatchReLU(64, 128, 3, 1, 1)),
+                ('5_convbatch',     lnn.layer.Conv2dBatchReLU(64, 128, 3, 1, 1, relu=relu, momentum=momentum)),
+                ('6_convbatch',     lnn.layer.Conv2dBatchReLU(128, 64, 1, 1, 0, relu=relu, momentum=momentum)),
+                ('7_convbatch',     lnn.layer.Conv2dBatchReLU(64, 128, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('8_max',           nn.MaxPool2d(2, 2)),
-                ('9_convbatch',     lnn.layer.Conv2dBatchReLU(128, 256, 3, 1, 1)),
-                ('10_convbatch',    lnn.layer.Conv2dBatchReLU(256, 128, 1, 1, 0)),
-                ('11_convbatch',    lnn.layer.Conv2dBatchReLU(128, 256, 3, 1, 1)),
+                ('9_convbatch',     lnn.layer.Conv2dBatchReLU(128, 256, 3, 1, 1, relu=relu, momentum=momentum)),
+                ('10_convbatch',    lnn.layer.Conv2dBatchReLU(256, 128, 1, 1, 0, relu=relu, momentum=momentum)),
+                ('11_convbatch',    lnn.layer.Conv2dBatchReLU(128, 256, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('12_max',          nn.MaxPool2d(2, 2)),
-                ('13_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1)),
-                ('14_convbatch',    lnn.layer.Conv2dBatchReLU(512, 256, 1, 1, 0)),
-                ('15_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1)),
-                ('16_convbatch',    lnn.layer.Conv2dBatchReLU(512, 256, 1, 1, 0)),
-                ('17_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1)),
+                ('13_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1, relu=relu, momentum=momentum)),
+                ('14_convbatch',    lnn.layer.Conv2dBatchReLU(512, 256, 1, 1, 0, relu=relu, momentum=momentum)),
+                ('15_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1, relu=relu, momentum=momentum)),
+                ('16_convbatch',    lnn.layer.Conv2dBatchReLU(512, 256, 1, 1, 0, relu=relu, momentum=momentum)),
+                ('17_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1, relu=relu, momentum=momentum)),
             ]),
 
             OrderedDict([
                 ('18_max',          nn.MaxPool2d(2, 2)),
-                ('19_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
-                ('20_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0)),
-                ('21_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
-                ('22_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0)),
-                ('23_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1)),
-                ('24_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 1024, 3, 1, 1)),
-                ('25_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 1024, 3, 1, 1)),
+                ('19_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
+                ('20_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0, relu=relu, momentum=momentum)),
+                ('21_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
+                ('22_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0, relu=relu, momentum=momentum)),
+                ('23_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
+                ('24_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
+                ('25_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
             ]),
 
             OrderedDict([
-                ('26_convbatch',    lnn.layer.Conv2dBatchReLU((4*64)+1024, 1024, 3, 1, 1)),
+                ('26_convbatch',    lnn.layer.Conv2dBatchReLU((4*64)+1024, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('27_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
             ])
         ]
@@ -132,14 +136,14 @@ class YoloFusion(lnn.module.Lightnet):
         if self.fuse_seq <= 2:
             self.layers.append(nn.Sequential(
                 OrderedDict([
-                    ('P1_convbatch',    lnn.layer.Conv2dBatchReLU(512, 64, 1, 1, 0)),
+                    ('P1_convbatch',    lnn.layer.Conv2dBatchReLU(512, 64, 1, 1, 0, relu=relu, momentum=momentum)),
                     ('P2_reorg',        lnn.layer.Reorg(2)),
                 ])
             ))
         else:
             self.layers.append(lnn.layer.Fusion(
                 OrderedDict([
-                    ('P1_convbatch',    lnn.layer.Conv2dBatchReLU(512, 64, 1, 1, 0)),
+                    ('P1_convbatch',    lnn.layer.Conv2dBatchReLU(512, 64, 1, 1, 0, relu=relu, momentum=momentum)),
                     ('P2_reorg',        lnn.layer.Reorg(2)),
                 ]), 3
             ))

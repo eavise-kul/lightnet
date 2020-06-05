@@ -22,19 +22,19 @@ class Conv2dBatchReLU(nn.Module):
         kernel_size (int or tuple): Size of the kernel of the convolution
         stride (int or tuple): Stride of the convolution
         padding (int or tuple): padding of the convolution
-        momentum (int, optional): momentum of the moving averages of the normalization; Default **0.01**
-        relu (class, optional): Which ReLU to use; Default :class:`torch.nn.LeakyReLU`
+        momentum (number, optional): momentum of the moving averages of the normalization; Default **0.1**
+        relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU`
 
     Note:
         If you require the `relu` class to get extra parameters, you can use a `lambda` or `functools.partial`:
 
         >>> conv = ln.layer.Conv2dBatchReLU(
         ...     in_c, out_c, kernel, stride, padding,
-        ...     relu=functools.partial(torch.nn.LeakyReLU, 0.1)
+        ...     relu=functools.partial(torch.nn.LeakyReLU, 0.1, inplace=True)
         ... )   # doctest: +SKIP
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
-                 momentum=0.01, relu=lambda: nn.LeakyReLU(0.1)):
+                 momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
         super().__init__()
 
         self.layers = nn.Sequential(

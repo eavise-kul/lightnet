@@ -35,7 +35,7 @@ class MobilenetYolo(lnn.module.Lightnet):
         (r'^layers.0.(1[0-4]_)',    r'layers.1.\1'),    # layers 10-14
     ]
 
-    def __init__(self, num_classes=20, alpha=1.0, input_channels=3, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
+    def __init__(self, num_classes, alpha=1.0, input_channels=3, anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
             raise TypeError('Anchors need to be a 2D list of numbers')
@@ -45,38 +45,40 @@ class MobilenetYolo(lnn.module.Lightnet):
         self.anchors = anchors
 
         # Network
+        relu = functools.partial(nn.ReLU6, inplace=True)
+        momentum = 0.1
         layer_list = [
             # Sequence 0 : input = image tensor
             OrderedDict([
-                ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, int(alpha*32),  3, 2, 1, relu=functools.partial(nn.ReLU6, inplace=True))),
-                ('2_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*32),  int(alpha*64),  3, 1, 1)),
-                ('3_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*64),  int(alpha*128), 3, 2, 1)),
-                ('4_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*128), 3, 1, 1)),
-                ('5_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*256), 3, 2, 1)),
-                ('6_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*256), int(alpha*256), 3, 1, 1)),
-                ('7_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*256), int(alpha*512), 3, 2, 1)),
-                ('8_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1)),
-                ('9_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1)),
+                ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, int(alpha*32),  3, 2, 1, relu=relu, momentum=momentum)),
+                ('2_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*32),  int(alpha*64),  3, 1, 1, relu=relu, momentum=momentum)),
+                ('3_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*64),  int(alpha*128), 3, 2, 1, relu=relu, momentum=momentum)),
+                ('4_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*128), 3, 1, 1, relu=relu, momentum=momentum)),
+                ('5_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*128), int(alpha*256), 3, 2, 1, relu=relu, momentum=momentum)),
+                ('6_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*256), int(alpha*256), 3, 1, 1, relu=relu, momentum=momentum)),
+                ('7_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*256), int(alpha*512), 3, 2, 1, relu=relu, momentum=momentum)),
+                ('8_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1, relu=relu, momentum=momentum)),
+                ('9_convdw',        lnn.layer.Conv2dDepthWise(int(alpha*512), int(alpha*512), 3, 1, 1, relu=relu, momentum=momentum)),
             ]),
 
             # Sequence 1 : input = sequence0
             OrderedDict([
-                ('10_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1)),
-                ('11_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1)),
-                ('12_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1)),
-                ('13_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*1024), 3, 2, 1)),
-                ('14_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*1024), int(alpha*1024), 3, 1, 1)),
+                ('10_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1, relu=relu, momentum=momentum)),
+                ('11_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1, relu=relu, momentum=momentum)),
+                ('12_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*512),  3, 1, 1, relu=relu, momentum=momentum)),
+                ('13_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*512),  int(alpha*1024), 3, 2, 1, relu=relu, momentum=momentum)),
+                ('14_convdw',       lnn.layer.Conv2dDepthWise(int(alpha*1024), int(alpha*1024), 3, 1, 1, relu=relu, momentum=momentum)),
             ]),
 
             # Sequence 2 : input = sequence0
             OrderedDict([
-                ('15_convbatch',    lnn.layer.Conv2dBatchReLU(int(alpha*512), 64, 1, 1, 0)),
+                ('15_convbatch',    lnn.layer.Conv2dBatchReLU(int(alpha*512), 64, 1, 1, 0, relu=relu, momentum=momentum)),
                 ('16_reorg',        lnn.layer.Reorg(2)),
             ]),
 
             # Sequence 3 : input = sequence2 + sequence1
             OrderedDict([
-                ('17_convbatch',    lnn.layer.Conv2dBatchReLU((4*64)+int(alpha*1024), 1024, 3, 1, 1)),
+                ('17_convbatch',    lnn.layer.Conv2dBatchReLU((4*64)+int(alpha*1024), 1024, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('18_conv',         nn.Conv2d(1024, len(self.anchors)*(5+self.num_classes), 1, 1, 0)),
             ])
         ]

@@ -20,8 +20,8 @@ class Conv2dDepthWise(nn.Module):
         kernel_size (int or tuple): Size of the kernel of the convolution
         stride (int or tuple): Stride of the convolution
         padding (int or tuple): padding of the convolution
-        momentum (int, optional): momentum of the moving averages of the normalization; Default **0.01**
-        relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU6`
+        momentum (int, optional): momentum of the moving averages of the normalization; Default **0.1**
+        relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU`
 
     Note:
         If you require the `relu` class to get extra parameters, you can use a `lambda` or `functools.partial`:
@@ -32,7 +32,7 @@ class Conv2dDepthWise(nn.Module):
         ... )   # doctest: +SKIP
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
-                 momentum=0.01, relu=lambda: nn.ReLU6(inplace=True)):
+                 momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
         super().__init__()
 
         self.layers = nn.Sequential(
@@ -71,8 +71,8 @@ class InvertedBottleneck(nn.Module):
         kernel_size (int or tuple): Size of the kernel of the convolution
         stride (int or tuple): Stride of the convolution
         expansion (int): Expansion factor for the number of channels in the depthwise convolution
-        momentum (int, optional): momentum of the moving averages of the normalization; Default **0.01**
-        relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU6`
+        momentum (int, optional): momentum of the moving averages of the normalization; Default **0.1**
+        relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU`
 
     Note:
         This layer uses a residual connection for easier propagation of the gradient.
@@ -88,7 +88,7 @@ class InvertedBottleneck(nn.Module):
         ... )  # doctest: +SKIP
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, expansion,
-                 momentum=0.01, relu=lambda: nn.ReLU6(inplace=True)):
+                 momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
         super().__init__()
 
         # Parameters
