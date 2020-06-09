@@ -73,7 +73,7 @@ class CornerPool(nn.Module):
                 nn.Conv2d(channels, channels, 1, 1, 0, bias=False),
                 nn.BatchNorm2d(channels),
             )),
-            ('post', relu)
+            ('post', relu())
         ]))
 
     def forward(self, x):
