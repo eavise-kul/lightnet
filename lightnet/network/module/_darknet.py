@@ -23,18 +23,14 @@ class Darknet(Lightnet):
         super().__init__()
         self.header = [0, 2, 0]
 
-    def load(self, weights_file, strict=True):
+    def load(self, weights_file, *args, **kwargs):
         """ This function will load the weights from a file.
         If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/stable/notes/serialization.html#recommended-approach-for-saving-a-model>`_.
         Otherwise, the file is considered to be a darknet binary weight file.
 
         Args:
             weights_file (str): path to file
-            strict (Boolean, optional): Whether the weight file should contain all layers of the model; Default **False**
-
-        Note:
-            The ``strict`` parameter only works for pytorch pickle files.
-            See :class:`~lightnet.network.module.Lightnet` for more information.
+            *args, **kwargs: Extra arguments passed to :func:`lightnet.network.module.Lightnet.load` when loading pytorch weights
 
         Note:
             Darknet weight files also contain the number of images the network has been trained on. |br|
@@ -43,29 +39,25 @@ class Darknet(Lightnet):
         """
         if os.path.splitext(weights_file)[1] == '.pt':
             log.debug('Loading weights from pytorch file')
-            super().load(weights_file, strict)
+            super().load(weights_file, *args, **kwargs)
         else:
             log.debug('Loading weights from darknet file')
             if strict:
                 log.warning('Cannot enforce strict behaviour for binary darknet weights')
             self._load_darknet_weights(weights_file)
 
-    def save(self, weights_file, remap=None):
+    def save(self, weights_file, *args, **kwargs):
         """ This function will save the weights to a file.
         If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/stable/notes/serialization.html#recommended-approach-for-saving-a-model>`_.
         Otherwise, the file is considered to be a darknet binary weight file.
 
         Args:
             weights_file (str): path to file
-            remap (list, optional): list of remapping tuples, to be able to use the weights from one model in another; Default **None**
-
-        Note:
-            The ``remap`` parameter only works for pytorch pickle files.
-            See :class:`~lightnet.network.module.Lightnet` for more information.
+            *args, **kwargs: Extra arguments passed to :func:`lightnet.network.module.Lightnet.save` when saving as pytorch weights
         """
         if os.path.splitext(weights_file)[1] == '.pt':
             log.debug('Saving weights to pytorch file')
-            super().save(weights_file, remap)
+            super().save(weights_file, *args, **kwargs)
         else:
             log.debug('Saving weights to darknet file')
             self._save_darknet_weights(weights_file)
