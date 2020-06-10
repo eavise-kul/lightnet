@@ -23,7 +23,8 @@ class YoloFusion(lnn.module.Lightnet):
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
 
     Attributes:
-        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.stride: Subsampling factor of the network (input_dim / output_dim)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
 
     Note:
         This network effectively supersedes the networks from :cite:`rgbd_fusion_v1`. |br|
@@ -33,6 +34,7 @@ class YoloFusion(lnn.module.Lightnet):
     .. _previous version of lightnet: https://gitlab.com/EAVISE/lightnet/blob/59baa61e429f63f80334dfff3ec2304d788ba1ad/lightnet/models/_network_yolo_fusion.py
     """
     stride = 32
+    inner_stride = 32
 
     def __init__(self, num_classes, input_channels=3, fusion_channels=1, fuse_layer=0,
                  anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]):

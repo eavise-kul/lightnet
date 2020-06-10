@@ -21,7 +21,8 @@ class TinyYoloV3(lnn.module.Darknet):
         anchors (list, optional): 3D list with anchor values; Default **Tiny Yolo v3 anchors (COCO)**
 
     Attributes:
-        self.stride: Subsampling factors of the network (input dimensions should be a multiple of these numbers)
+        self.stride: Subsampling factors of the network (input_dim / output_dim)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
         self.remap_darknet: Remapping rules for weights from the `~lightnet.models.Darknet` model.
 
     Note:
@@ -34,6 +35,7 @@ class TinyYoloV3(lnn.module.Darknet):
         Your weight files from darknet will thus not have the same accuracies as in darknet itself.
     """
     stride = (32, 16)
+    inner_stride = 32
     remap_darknet = [
         (r'^layers.0.(\d+_)',   r'extractor.\1'),  # All base layers (1-13)
     ]

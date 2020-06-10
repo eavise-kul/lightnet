@@ -19,9 +19,9 @@ class Darknet19(lnn.module.Darknet):
         input_channels (Number, optional): Number of input channels; Default **3**
 
     Attributes:
-        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
     """
-    stride = 32
+    inner_stride = 32
 
     def __init__(self, num_classes, input_channels=3):
         super().__init__()

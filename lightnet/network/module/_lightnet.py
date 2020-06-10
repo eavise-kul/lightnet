@@ -121,6 +121,21 @@ class Lightnet(nn.Module):
         torch.save(state, weights_file)
         log.info(f'Saved{remap} weights as {weights_file}')
 
+    def __str__(self):
+        """ Shorter version than default PyTorch one. """
+        args = list(inspect.signature(self.__class__.__init__).parameters.keys())
+        args.remove('self')
+
+        string = self.__class__.__module__ + '.' + self.__class__.__name__ + '('
+        for i, arg in enumerate(args):
+            if i > 0:
+                string += ', '
+            val = getattr(self, arg, '?')
+            string += f'{arg}={val}'
+        string += ')'
+
+        return string
+
     @staticmethod
     def weight_remapping(weights, remap):
         """ This function is used to remap the keys of a ``state_dict``.
@@ -163,18 +178,3 @@ class Lightnet(nn.Module):
                         break
 
         return new_weights
-
-    def __str__(self):
-        """ Shorter version than default PyTorch one. """
-        args = list(inspect.signature(self.__class__.__init__).parameters.keys())
-        args.remove('self')
-
-        string = self.__class__.__module__ + '.' + self.__class__.__name__ + '('
-        for i, arg in enumerate(args):
-            if i > 0:
-                string += ', '
-            val = getattr(self, arg, '?')
-            string += f'{arg}={val}'
-        string += ')'
-
-        return string

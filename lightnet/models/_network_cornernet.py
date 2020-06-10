@@ -25,11 +25,13 @@ class Cornernet(lnn.module.Lightnet):
 
     Attributes:
         self.stride: Subsampling factor of the network (input_dim / output_dim)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
         self.remap_princeton_vl: Remapping rules for weights from the `official CornerNet implementation <cornernetImpl_>`_.
 
     .. _cornernetImpl: https://github.com/princeton-vl/CornerNet-Lite
     """
     stride = 4
+    inner_stride = 128
 
     @staticmethod
     def remap_princeton_vl(k):
@@ -274,7 +276,7 @@ class Cornernet(lnn.module.Lightnet):
     def train(self, mode=True):
         if mode and self.inference_only:
             raise ValueError("Cannot set training mode for inference_only model")
-        super().train(mode)
+        return super().train(mode)
 
     @staticmethod
     def get_residual(in_channels, out_channels, kernel=3, stride=1, padding=1):

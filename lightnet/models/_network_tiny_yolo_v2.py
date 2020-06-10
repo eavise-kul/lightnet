@@ -22,10 +22,12 @@ class TinyYoloV2(lnn.module.Darknet):
         anchors (list, optional): 2D list with anchor values; Default **Tiny yolo v2 anchors (VOC)**
 
     Attributes:
-        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.stride: Subsampling factor of the network (input_dim / output_dim)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
         self.remap_darknet: Remapping rules for weights from the :class:`~lightnet.models.Darknet` model.
     """
     stride = 32
+    inner_stride = 32
     remap_darknet = [
         (r'^layers.0.(\d+_)',   r'layers.\1'),  # All base layers (1-13)
     ]

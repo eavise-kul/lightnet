@@ -20,7 +20,7 @@ class MobilenetV2(lnn.module.Lightnet):
         input_channels (Number, optional): Number of input channels; Default **3**
 
     Attributes:
-        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
 
     Note:
         The average pooling is implemented with an :class:`~torch.nn.AdaptiveAvgPool2d` layer. |br|
@@ -35,7 +35,7 @@ class MobilenetV2(lnn.module.Lightnet):
 
     .. _mobilenetv2tf: https://github.com/tensorflow/models/blob/505f554c6417931c96b59516f14d1ad65df6dbc5/research/slim/nets/mobilenet/mobilenet.py#L365
     """
-    stride = 32
+    inner_stride = 32
 
     def __init__(self, num_classes, alpha=1, input_channels=3):
         super().__init__()

@@ -22,7 +22,8 @@ class DYolo(lnn.module.Lightnet):
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
 
     Attributes:
-        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.stride: Subsampling factor of the network (input_dim / output_dim)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
         self.remap_darknet19: Remapping rules for weights from the :class:`~lightnet.models.Darknet19` model.
 
     Note:
@@ -30,6 +31,7 @@ class DYolo(lnn.module.Lightnet):
         we just multiplied the original YoloV2-VOC anchors by 4, because this network subsamples 4 times less.
     """
     stride = 8
+    inner_stride = 32
     remap_darknet19 = [
         (r'^layers.0.([1-9]_)',     r'layers.0.\1'),    # layers 1-9
         (r'^layers.0.(1[01]_)',     r'layers.0.\1'),    # layers 10-11

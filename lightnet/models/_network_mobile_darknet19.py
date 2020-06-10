@@ -19,9 +19,9 @@ class MobileDarknet19(lnn.module.Darknet):
         input_channels (Number, optional): Number of input channels; Default **3**
 
     Attributes:
-        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
     """
-    stride = 32
+    inner_stride = 32
 
     def __init__(self, num_classes, input_channels=3):
         super().__init__()
@@ -50,7 +50,7 @@ class MobileDarknet19(lnn.module.Darknet):
                 ('12_convbatch',    lnn.layer.Conv2dBatchReLU(512, 256, 1, 1, 0, relu=relu, momentum=momentum)),
                 ('13_convdw',       lnn.layer.Conv2dDepthWise(256, 512, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('14_max',          nn.MaxPool2d(2, 2)),
-                ('15_convdw',       lnn.layer.Conv2dDepthWise(512, 1024, 3, 2, 1, relu=relu, momentum=momentum)),
+                ('15_convdw',       lnn.layer.Conv2dDepthWise(512, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('16_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0, relu=relu, momentum=momentum)),
                 ('17_convdw',       lnn.layer.Conv2dDepthWise(512, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('18_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0, relu=relu, momentum=momentum)),

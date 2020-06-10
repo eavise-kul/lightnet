@@ -22,7 +22,8 @@ class MobilenetYolo(lnn.module.Lightnet):
         anchors (list, optional): 2D list with anchor values; Default **Yolo v2 anchors**
 
     Attributes:
-        self.stride: Subsampling factor of the network (input dimensions should be a multiple of this number)
+        self.stride: Subsampling factor of the network (input_dim / output_dim)
+        self.inner_stride: Maximal internal subsampling factor of the network (input dimension should be a multiple of this)
         self.remap_mobilenet_v1: Remapping rules for weights from the :class:`~lightnet.models.MobileNetV1` model.
 
     Warning:
@@ -30,6 +31,7 @@ class MobilenetYolo(lnn.module.Lightnet):
         This means you cannot use weights from this network with a different alpha value.
     """
     stride = 32
+    inner_stride = 32
     remap_mobilenet_v1 = [
         (r'^layers.0.([1-9]_)',     r'layers.0.\1'),    # layers 1-9
         (r'^layers.0.(1[0-4]_)',    r'layers.1.\1'),    # layers 10-14
