@@ -32,3 +32,6 @@ from ._network_mobile_yolo_v2 import *
 
 # SensorFusion
 from ._network_yolo_fusion import *
+
+# Cornernet
+from ._network_cornernet import *
