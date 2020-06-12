@@ -33,108 +33,6 @@ class Cornernet(lnn.module.Lightnet):
     stride = 4
     inner_stride = 128
 
-    @staticmethod
-    def remap_princeton_vl(k):
-        remap_extractor = [
-            (r'^module.hg.pre.0.conv.(.*)',     r'extractor.1_convbatch.layers.0.\1'),
-            (r'^module.hg.pre.0.bn.(.*)',       r'extractor.1_convbatch.layers.1.\1'),
-            (r'^module.hg.pre.1.conv1.(.*)',    r'extractor.2_residual.0.\1'),
-            (r'^module.hg.pre.1.bn1.(.*)',      r'extractor.2_residual.1.\1'),
-            (r'^module.hg.pre.1.conv2.(.*)',    r'extractor.2_residual.3.\1'),
-            (r'^module.hg.pre.1.bn2.(.*)',      r'extractor.2_residual.4.\1'),
-            (r'^module.hg.pre.1.skip.(.*)',     r'extractor.2_residual.skip.\1'),
-            (r'^module.hg.cnvs.0.conv.(.*)',    r'extractor.para.0.4_convbatch.layers.0.\1'),
-            (r'^module.hg.cnvs.0.bn.(.*)',      r'extractor.para.0.4_convbatch.layers.1.\1'),
-            (r'^module.hg.cnvs.1.conv.(.*)',    r'extractor.11_convbatch.layers.0.\1'),
-            (r'^module.hg.cnvs.1.bn.(.*)',      r'extractor.11_convbatch.layers.1.\1'),
-            (r'^module.hg.cnvs_.0.0.(.*)',      r'extractor.para.0.5_conv.\1'),
-            (r'^module.hg.cnvs_.0.1.(.*)',      r'extractor.para.0.6_batchnorm.\1'),
-            (r'^module.hg.inters.0.conv1.(.*)', r'extractor.9_residual.0.\1'),
-            (r'^module.hg.inters.0.bn1.(.*)',   r'extractor.9_residual.1.\1'),
-            (r'^module.hg.inters.0.conv2.(.*)', r'extractor.9_residual.3.\1'),
-            (r'^module.hg.inters.0.bn2.(.*)',   r'extractor.9_residual.4.\1'),
-            (r'^module.hg.inters.0.skip.(.*)',  r'extractor.9_residual.skip.\1'),
-            (r'^module.hg.inters_.0.0.(.*)',    r'extractor.para.1.7_conv.\1'),
-            (r'^module.hg.inters_.0.1.(.*)',    r'extractor.para.1.8_batchnorm.\1'),
-        ]
-        for r in remap_extractor:
-            if re.match(r[0], k) is not None:
-                return re.sub(r[0], r[1], k)
-
-        # HOURGLASSES
-        if k.startswith('module.hg.hgs'):
-            if k[14] == '0':
-                nk = 'extractor.para.0.3_hourglass.layers.'
-            else:
-                nk = 'extractor.10_hourglass.layers.'
-
-            k = (
-                k[16:]
-                .replace('up1', 'up')
-                .replace('low1', 'down.down1')
-                .replace('low3', 'down.down2')
-                .replace('conv1', '0')
-                .replace('bn1', '1')
-                .replace('conv2', '3')
-                .replace('bn2', '4')
-            )
-            k = re.sub(r'low2.(\d+)', r'down.inner.\1', k)
-            k = k.replace('low2', 'down.inner.layers')
-
-            return nk+k
-
-        # DETECTION
-        _, mod, num, rk = k.split('.', 3)
-        corner, mod = mod.split('_')
-
-        if num == '0':
-            nk = 'detector.'
-            num = 0
-        else:
-            nk = 'intermediate.'
-            num = 22
-        if corner == 'tl':
-            nk += 'topleft.'
-        else:
-            nk += 'bottomright.'
-            num += 11
-
-        if mod == 'modules':
-            remap_detection = [
-                (r'^p1_conv1.conv.(.*)',    f'{12+num}_corner.layers.pool.0.0.layers.0.\\1'),
-                (r'^p1_conv1.bn.(.*)',      f'{12+num}_corner.layers.pool.0.0.layers.1.\\1'),
-                (r'^p2_conv1.conv.(.*)',    f'{12+num}_corner.layers.pool.1.0.layers.0.\\1'),
-                (r'^p2_conv1.bn.(.*)',      f'{12+num}_corner.layers.pool.1.0.layers.1.\\1'),
-                (r'^p_conv1.(.*)',          f'{12+num}_corner.layers.pool.post.0.\\1'),
-                (r'^p_bn1.(.*)',            f'{12+num}_corner.layers.pool.post.1.\\1'),
-                (r'^conv1.(.*)',            f'{12+num}_corner.layers.conv.0.\\1'),
-                (r'^bn1.(.*)',              f'{12+num}_corner.layers.conv.1.\\1'),
-                (r'^conv2.conv.(.*)',       f'{13+num}_convbatch.layers.0.\\1'),
-                (r'^conv2.bn.(.*)',         f'{13+num}_convbatch.layers.1.\\1'),
-            ]
-        elif mod == 'heats':
-            remap_detection = [
-                (r'0.conv.(.*)',            f'output.heatmap.{14+num}_conv.\\1'),
-                (r'1.(.*)',                 f'output.heatmap.{16+num}_conv.\\1'),
-            ]
-        elif mod == 'tags':
-            remap_detection = [
-                (r'0.conv.(.*)',            f'output.embedding.{17+num}_conv.\\1'),
-                (r'1.(.*)',                 f'output.embedding.{19+num}_conv.\\1'),
-            ]
-        elif mod == 'offs':
-            remap_detection = [
-                (r'0.conv.(.*)',            f'output.offset.{20+num}_conv.\\1'),
-                (r'1.(.*)',                 f'output.offset.{22+num}_conv.\\1'),
-            ]
-
-        for r in remap_detection:
-            if re.match(r[0], rk) is not None:
-                return nk + re.sub(r[0], r[1], rk)
-
-        log.warn(f'Could not find matching layer for [{k}]')
-        return None
-
     def __init__(self, num_classes, input_channels=3, inference_only=False):
         super().__init__()
 
@@ -303,3 +201,105 @@ class Cornernet(lnn.module.Lightnet):
             make_inner=lambda c: nn.Sequential(*[residual(c, c) for i in range(4)]),
             make_down2=lambda ci, co: nn.Sequential(residual(ci, ci), residual(ci, co), nn.Upsample(scale_factor=2, mode='nearest'))
         )
+
+    @staticmethod
+    def remap_princeton_vl(k):
+        remap_extractor = [
+            (r'^module.hg.pre.0.conv.(.*)',     r'extractor.1_convbatch.layers.0.\1'),
+            (r'^module.hg.pre.0.bn.(.*)',       r'extractor.1_convbatch.layers.1.\1'),
+            (r'^module.hg.pre.1.conv1.(.*)',    r'extractor.2_residual.0.\1'),
+            (r'^module.hg.pre.1.bn1.(.*)',      r'extractor.2_residual.1.\1'),
+            (r'^module.hg.pre.1.conv2.(.*)',    r'extractor.2_residual.3.\1'),
+            (r'^module.hg.pre.1.bn2.(.*)',      r'extractor.2_residual.4.\1'),
+            (r'^module.hg.pre.1.skip.(.*)',     r'extractor.2_residual.skip.\1'),
+            (r'^module.hg.cnvs.0.conv.(.*)',    r'extractor.para.0.4_convbatch.layers.0.\1'),
+            (r'^module.hg.cnvs.0.bn.(.*)',      r'extractor.para.0.4_convbatch.layers.1.\1'),
+            (r'^module.hg.cnvs.1.conv.(.*)',    r'extractor.11_convbatch.layers.0.\1'),
+            (r'^module.hg.cnvs.1.bn.(.*)',      r'extractor.11_convbatch.layers.1.\1'),
+            (r'^module.hg.cnvs_.0.0.(.*)',      r'extractor.para.0.5_conv.\1'),
+            (r'^module.hg.cnvs_.0.1.(.*)',      r'extractor.para.0.6_batchnorm.\1'),
+            (r'^module.hg.inters.0.conv1.(.*)', r'extractor.9_residual.0.\1'),
+            (r'^module.hg.inters.0.bn1.(.*)',   r'extractor.9_residual.1.\1'),
+            (r'^module.hg.inters.0.conv2.(.*)', r'extractor.9_residual.3.\1'),
+            (r'^module.hg.inters.0.bn2.(.*)',   r'extractor.9_residual.4.\1'),
+            (r'^module.hg.inters.0.skip.(.*)',  r'extractor.9_residual.skip.\1'),
+            (r'^module.hg.inters_.0.0.(.*)',    r'extractor.para.1.7_conv.\1'),
+            (r'^module.hg.inters_.0.1.(.*)',    r'extractor.para.1.8_batchnorm.\1'),
+        ]
+        for r in remap_extractor:
+            if re.match(r[0], k) is not None:
+                return re.sub(r[0], r[1], k)
+
+        # HOURGLASSES
+        if k.startswith('module.hg.hgs'):
+            if k[14] == '0':
+                nk = 'extractor.para.0.3_hourglass.layers.'
+            else:
+                nk = 'extractor.10_hourglass.layers.'
+
+            k = (
+                k[16:]
+                .replace('up1', 'up')
+                .replace('low1', 'down.down1')
+                .replace('low3', 'down.down2')
+                .replace('conv1', '0')
+                .replace('bn1', '1')
+                .replace('conv2', '3')
+                .replace('bn2', '4')
+            )
+            k = re.sub(r'low2.(\d+)', r'down.inner.\1', k)
+            k = k.replace('low2', 'down.inner.layers')
+
+            return nk+k
+
+        # DETECTION
+        _, mod, num, rk = k.split('.', 3)
+        corner, mod = mod.split('_')
+
+        if num == '0':
+            nk = 'detector.'
+            num = 0
+        else:
+            nk = 'intermediate.'
+            num = 22
+        if corner == 'tl':
+            nk += 'topleft.'
+        else:
+            nk += 'bottomright.'
+            num += 11
+
+        if mod == 'modules':
+            remap_detection = [
+                (r'^p1_conv1.conv.(.*)',    f'{12+num}_corner.layers.pool.0.0.layers.0.\\1'),
+                (r'^p1_conv1.bn.(.*)',      f'{12+num}_corner.layers.pool.0.0.layers.1.\\1'),
+                (r'^p2_conv1.conv.(.*)',    f'{12+num}_corner.layers.pool.1.0.layers.0.\\1'),
+                (r'^p2_conv1.bn.(.*)',      f'{12+num}_corner.layers.pool.1.0.layers.1.\\1'),
+                (r'^p_conv1.(.*)',          f'{12+num}_corner.layers.pool.post.0.\\1'),
+                (r'^p_bn1.(.*)',            f'{12+num}_corner.layers.pool.post.1.\\1'),
+                (r'^conv1.(.*)',            f'{12+num}_corner.layers.conv.0.\\1'),
+                (r'^bn1.(.*)',              f'{12+num}_corner.layers.conv.1.\\1'),
+                (r'^conv2.conv.(.*)',       f'{13+num}_convbatch.layers.0.\\1'),
+                (r'^conv2.bn.(.*)',         f'{13+num}_convbatch.layers.1.\\1'),
+            ]
+        elif mod == 'heats':
+            remap_detection = [
+                (r'0.conv.(.*)',            f'output.heatmap.{14+num}_conv.\\1'),
+                (r'1.(.*)',                 f'output.heatmap.{16+num}_conv.\\1'),
+            ]
+        elif mod == 'tags':
+            remap_detection = [
+                (r'0.conv.(.*)',            f'output.embedding.{17+num}_conv.\\1'),
+                (r'1.(.*)',                 f'output.embedding.{19+num}_conv.\\1'),
+            ]
+        elif mod == 'offs':
+            remap_detection = [
+                (r'0.conv.(.*)',            f'output.offset.{20+num}_conv.\\1'),
+                (r'1.(.*)',                 f'output.offset.{22+num}_conv.\\1'),
+            ]
+
+        for r in remap_detection:
+            if re.match(r[0], rk) is not None:
+                return nk + re.sub(r[0], r[1], rk)
+
+        log.warn(f'Could not find matching layer for [{k}]')
+        return None

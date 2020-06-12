@@ -31,11 +31,6 @@ class GetCornerBoxes(BaseTransform):
         self.subsample_kernel = subsample_kernel
 
     def __call__(self, network_output):
-        # Check dimensions
-        if network_output.dim() == 3:
-            network_output.unsqueeze_(0)
-
-        # Variables
         device = network_output.device
         batch, channels, h, w = network_output.shape
         num_classes = (channels // 2) - 3
@@ -59,8 +54,8 @@ class GetCornerBoxes(BaseTransform):
         topk_y = (topk_idx // w).float()
 
         # Add XY offsets
-        topk_x += offsets[:, :, 0].reshape(-1)[topk_idx.view(-1)].contiguous().view_as(topk_x)
-        topk_y += offsets[:, :, 1].reshape(-1)[topk_idx.view(-1)].contiguous().view_as(topk_y)
+        topk_x = (topk_x + offsets[:, :, 0].reshape(-1)[topk_idx.view(-1)].contiguous().view_as(topk_x)) / w
+        topk_y = (topk_y + offsets[:, :, 1].reshape(-1)[topk_idx.view(-1)].contiguous().view_as(topk_y)) / h
 
         # Combine TL and BR corners
         tl_x = topk_x[:, 0, :, None].expand(-1, self.topk, self.topk)
@@ -83,7 +78,7 @@ class GetCornerBoxes(BaseTransform):
         corner_filter = (br_x >= tl_x) & (br_y >= tl_y)
 
         # Create confidence filter
-        # NOTE : This is different than the original implementation, where they keep the TOP 1000 detections
+        # NOTE : This is different than the original implementation, where they keep the TOP N detections
         confidence = (topk_heatmaps[:, 0, :, None] + topk_heatmaps[:, 1, None, :]) / 2
         confidence_filter = confidence > self.conf_thresh
 
