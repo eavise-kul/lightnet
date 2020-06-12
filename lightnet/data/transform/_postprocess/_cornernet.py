@@ -33,7 +33,6 @@ class GetCornerBoxes(BaseTransform):
     def __call__(self, network_output):
         device = network_output.device
         batch, channels, h, w = network_output.shape
-        num_classes = (channels // 2) - 3
 
         # Split tensor
         network_output = network_output.view(batch, 2, -1, h, w)        # BATCH, TLBR, NUM_CLASSES+3, H, W
@@ -54,8 +53,10 @@ class GetCornerBoxes(BaseTransform):
         topk_y = (topk_idx // w).float()
 
         # Add XY offsets
-        topk_x = (topk_x + offsets[:, :, 0].reshape(-1)[topk_idx.view(-1)].contiguous().view_as(topk_x)) / w
-        topk_y = (topk_y + offsets[:, :, 1].reshape(-1)[topk_idx.view(-1)].contiguous().view_as(topk_y)) / h
+        offset_x = torch.gather(offsets[:, :, 0].reshape(batch, 2, -1), 2, topk_idx)
+        offset_y = torch.gather(offsets[:, :, 1].reshape(batch, 2, -1), 2, topk_idx)
+        topk_x = (topk_x + offset_x) / w
+        topk_y = (topk_y + offset_y) / h
 
         # Combine TL and BR corners
         tl_x = topk_x[:, 0, :, None].expand(-1, self.topk, self.topk)
@@ -64,23 +65,23 @@ class GetCornerBoxes(BaseTransform):
         br_y = topk_y[:, 1, None, :].expand(-1, self.topk, self.topk)
         bboxes = torch.stack([tl_x, tl_y, br_x, br_y], dim=3)
 
+        # Create corner filter
+        corner_filter = (br_x >= tl_x) & (br_y >= tl_y)
+
         # Create class filter
         tl_classes = topk_classes[:, 0, :, None].expand(-1, self.topk, self.topk)
         br_classes = topk_classes[:, 1, None, :].expand(-1, self.topk, self.topk)
         class_filter = (tl_classes == br_classes)
 
-        # Create embedding filter
-        topk_embed = embedding.reshape(-1)[topk_idx.view(-1)].contiguous().view(batch, 2, -1)
-        dist = torch.abs(topk_embed[:, 0, :, None] - topk_embed[:, 1, None, :])
-        embedding_filter = dist <= self.embedding_thresh
-
-        # Create corner filter
-        corner_filter = (br_x >= tl_x) & (br_y >= tl_y)
-
         # Create confidence filter
         # NOTE : This is different than the original implementation, where they keep the TOP N detections
         confidence = (topk_heatmaps[:, 0, :, None] + topk_heatmaps[:, 1, None, :]) / 2
         confidence_filter = confidence > self.conf_thresh
+
+        # Create embedding filter
+        topk_embed = torch.gather(embedding.view(batch, 2, -1), 2, topk_idx)
+        dist = torch.abs(topk_embed[:, 0, :, None] - topk_embed[:, 1, None, :])
+        embedding_filter = dist <= self.embedding_thresh
 
         # Get batch number of the detections
         total_filter = class_filter & embedding_filter & corner_filter & confidence_filter
