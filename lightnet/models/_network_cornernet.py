@@ -86,7 +86,7 @@ class Cornernet(lnn.module.Lightnet):
                 ]))),
             ]))),
             ('bottomright',                 nn.Sequential(OrderedDict([
-                ('23_corner',               lnn.layer.CornerPool(256, lnn.layer.TopPool, lnn.layer.LeftPool)),
+                ('23_corner',               lnn.layer.CornerPool(256, lnn.layer.BottomPool, lnn.layer.RightPool)),
                 ('24_convbatch',            lnn.layer.Conv2dBatchReLU(256, 256, 3, 1, 1)),
                 ('output',                  lnn.layer.ParallelCat(OrderedDict([
                     ('heatmap',             nn.Sequential(OrderedDict([
@@ -132,7 +132,7 @@ class Cornernet(lnn.module.Lightnet):
                     ]))),
                 ]))),
                 ('bottomright',                 nn.Sequential(OrderedDict([
-                    ('45_corner',               lnn.layer.CornerPool(256, lnn.layer.TopPool, lnn.layer.LeftPool)),
+                    ('45_corner',               lnn.layer.CornerPool(256, lnn.layer.BottomPool, lnn.layer.RightPool)),
                     ('46_convbatch',            lnn.layer.Conv2dBatchReLU(256, 256, 3, 1, 1)),
                     ('output',                  lnn.layer.ParallelCat(OrderedDict([
                         ('heatmap',             nn.Sequential(OrderedDict([
@@ -257,11 +257,11 @@ class Cornernet(lnn.module.Lightnet):
         corner, mod = mod.split('_')
 
         if num == '0':
-            nk = 'detector.'
-            num = 0
-        else:
             nk = 'intermediate.'
             num = 22
+        else:
+            nk = 'detector.'
+            num = 0
         if corner == 'tl':
             nk += 'topleft.'
         else:

@@ -85,12 +85,12 @@ class GetCornerBoxes(BaseTransform):
 
         # Get batch number of the detections
         total_filter = class_filter & embedding_filter & corner_filter & confidence_filter
-        nums = torch.arange(1, batch+1, dtype=torch.uint8, device=total_filter.device)
+        nums = torch.arange(0, batch, dtype=torch.uint8, device=total_filter.device)
         batch_num = total_filter.view(batch, -1)
-        batch_num = (batch_num * nums[:, None])[batch_num] - 1
+        batch_num = nums[:, None].expand_as(batch_num)[batch_num]
 
         # Apply filters and combine values
-        bboxes = bboxes[total_filter[..., None].expand_as(bboxes)].view(-1, 4)
+        bboxes = bboxes[total_filter, :].view(-1, 4)
         confidence = confidence[total_filter].view(-1)
         class_idx = tl_classes[total_filter].view(-1)
 
