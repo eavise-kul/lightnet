@@ -30,7 +30,7 @@ except ImportError:
     log.warning('OpenCV is not installed and cannot be used')
     cv2 = None
 
-__all__ = ['Crop', 'Letterbox', 'RandomFlip', 'RandomHSV', 'RandomJitter', 'RandomRotate', 'BramboxToTensor']
+__all__ = ['Crop', 'Letterbox', 'Pad', 'RandomFlip', 'RandomHSV', 'RandomJitter', 'RandomRotate', 'BramboxToTensor']
 
 
 #
@@ -261,6 +261,85 @@ class Letterbox(BaseMultiTransform):
             anno.y_top_left *= self.scale
             anno.width *= self.scale
             anno.height *= self.scale
+        if self.pad is not None:
+            anno.x_top_left += self.pad[0]
+            anno.y_top_left += self.pad[1]
+
+        return anno
+
+
+class Pad(BaseMultiTransform):
+    """ Pad images/annotations so that the image dimensions become a multiple of a certain dimension.
+
+    Args:
+        dimension (int or tuple, optional): Default size for the padding, expressed as a single integer or as a (width, height) tuple; Default **None**
+        dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
+
+    Warning:
+        Do note that the ``dimension`` / ``dataset`` argument here uses the given width and height as a multiple instead of a real dimension.
+        Given a certain value X, the image (and annotations) will be padded, so that the image dimensions are a multiple of X. |br|
+        This is different compared to :class:`~lightnet.data.transform.Crop` or :class:`~lightnet.data.transform.Letterbox`.
+
+    Note:
+        Create 1 Pad object and use it for both image and annotation transforms.
+        This object will save data from the image transform and use that on the annotation transform.
+    """
+    def __init__(self, dimension=None, dataset=None, fill_color=127):
+        self.dimension = dimension
+        self.dataset = dataset
+        self.fill_color = fill_color
+        if self.dimension is None and self.dataset is None:
+            raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
+
+        self.pad = None
+        self.scale = None
+
+    def _tf_pil(self, img):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        elif isinstance(self.dimension, int):
+            net_w, net_h = self.dimension, self.dimension
+        else:
+            net_w, net_h = self.dimension
+        im_w, im_h = img.size
+
+        if im_w % net_w == 0 and im_h % net_h == 0:
+            self.pad = None
+            return img
+
+        # Padding
+        img_np = np.array(img)
+        channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
+        pad_w = (net_w - (im_w % net_w)) / 2
+        pad_h = (net_h - (im_h % net_h)) / 2
+        self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
+        img = ImageOps.expand(img, border=self.pad, fill=(self.fill_color,)*channels)
+        return img
+
+    def _tf_cv(self, img):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        elif isinstance(self.dimension, int):
+            net_w, net_h = self.dimension, self.dimension
+        else:
+            net_w, net_h = self.dimension
+        im_h, im_w = img.shape[:2]
+
+        if im_w % net_w == 0 and im_h % net_h == 0:
+            self.pad = None
+            return img
+
+        # Padding
+        channels = img.shape[2] if len(img.shape) > 2 else 1
+        pad_w = (net_w - (im_w % net_w)) / 2
+        pad_h = (net_h - (im_h % net_h)) / 2
+        self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
+        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=self.fill_color)
+        return img
+
+    def _tf_anno(self, anno):
+        anno = anno.copy()
+
         if self.pad is not None:
             anno.x_top_left += self.pad[0]
             anno.y_top_left += self.pad[1]
