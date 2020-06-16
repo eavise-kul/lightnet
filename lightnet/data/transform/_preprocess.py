@@ -54,10 +54,11 @@ class Crop(BaseMultiTransform):
         Create 1 Crop object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
     """
-    def __init__(self, dimension=None, dataset=None, center=True, intersection_threshold=0.001):
+    def __init__(self, dimension=None, dataset=None, center=True, crop_anno=False, intersection_threshold=0.001):
         self.dimension = dimension
         self.dataset = dataset
         self.center = center
+        self.crop_anno = crop_anno
         self.intersection_threshold = intersection_threshold
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
@@ -276,7 +277,7 @@ class Pad(BaseMultiTransform):
         dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
 
     Warning:
-        Do note that the ``dimension`` / ``dataset`` argument here uses the given width and height as a multiple instead of a real dimension.
+        Do note that the ``dimension`` or ``dataset`` argument here uses the given width and height as a multiple instead of a real dimension.
         Given a certain value X, the image (and annotations) will be padded, so that the image dimensions are a multiple of X. |br|
         This is different compared to :class:`~lightnet.data.transform.Crop` or :class:`~lightnet.data.transform.Letterbox`.
 
