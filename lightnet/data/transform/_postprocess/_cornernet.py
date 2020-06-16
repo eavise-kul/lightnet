@@ -14,16 +14,20 @@ class GetCornerBoxes(BaseTransform):
     """ Convert output from cornernet networks to bounding box tensor.
 
     Args:
-        TODO
-        #conf_thresh (Number [0-1]): Confidence threshold to filter detections
+        embedding_thresh (Number): Embedding distance threshold to filter matching corners
+        conf_thresh (Number [0-1]): Confidence threshold to filter detections
+        network_stride (Number): Downsampling factor of the network (most lightnet networks have a `inner_stride` attribute)
+        topk (Number, optional): Number of corners to select from the network output; Default **100**
+        subsample_kernel (Number, optional): Kernel size to perform maxpool subsampling; Default **0**
 
     Returns:
         (Tensor [Boxes x 7]]): **[batch_num, x_tl, y_tl, x_br, y_br, confidence, class_id]** for every bounding box
 
     Note:
-        The output tensor uses relative values for its coordinates.
+        If setting the subsample_kernel to **0**, you disable the subsampling.
+        Otherwise this post-processing will perform maxpooling on the heatmap with the specified kernel.
     """
-    def __init__(self, embedding_thresh, conf_thresh, topk=100, subsample_kernel=0):
+    def __init__(self, embedding_thresh, conf_thresh, network_stride, topk=100, subsample_kernel=0):
         super().__init__()
         self.embedding_thresh = embedding_thresh
         self.conf_thresh = conf_thresh
@@ -55,8 +59,8 @@ class GetCornerBoxes(BaseTransform):
         # Add XY offsets
         offset_x = torch.gather(offsets[:, :, 0].reshape(batch, 2, -1), 2, topk_idx)
         offset_y = torch.gather(offsets[:, :, 1].reshape(batch, 2, -1), 2, topk_idx)
-        topk_x = (topk_x + offset_x) / w
-        topk_y = (topk_y + offset_y) / h
+        topk_x = topk_x + offset_x
+        topk_y = topk_y + offset_y
 
         # Combine TL and BR corners
         tl_x = topk_x[:, 0, :, None].expand(-1, self.topk, self.topk)
@@ -64,6 +68,7 @@ class GetCornerBoxes(BaseTransform):
         br_x = topk_x[:, 1, None, :].expand(-1, self.topk, self.topk)
         br_y = topk_y[:, 1, None, :].expand(-1, self.topk, self.topk)
         bboxes = torch.stack([tl_x, tl_y, br_x, br_y], dim=3)
+        bboxes *= network_stride
 
         # Create corner filter
         corner_filter = (br_x >= tl_x) & (br_y >= tl_y)

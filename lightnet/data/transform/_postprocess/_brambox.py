@@ -20,7 +20,6 @@ class TensorToBrambox(BaseTransform):
     """ Converts a tensor to a list of brambox objects.
 
     Args:
-        network_size (tuple): Tuple containing the width and height of the images going in the network
         class_label_map (list, optional): List of class labels to transform the class id's in actual names; Default **None**
 
     Returns:
@@ -33,8 +32,7 @@ class TensorToBrambox(BaseTransform):
     Warning:
         If no `class_label_map` is given, this transform will simply convert the class id's to a string.
     """
-    def __init__(self, network_size, class_label_map=None):
-        self.width, self.height = network_size
+    def __init__(self, class_label_map=None):
         self.class_label_map = class_label_map
         if self.class_label_map is None:
             log.warning('No class_label_map given. The indexes will be used as class_labels.')
@@ -45,10 +43,6 @@ class TensorToBrambox(BaseTransform):
             df.image = df.image.astype(int)
             df.class_label = df.class_label.astype(str)
             return df
-
-        # coords: relative -> absolute
-        boxes[:, 1:4:2].mul_(self.width)
-        boxes[:, 2:5:2].mul_(self.height)
 
         # coords: width & height
         boxes[:, 3:5] -= boxes[:, 1:3]
