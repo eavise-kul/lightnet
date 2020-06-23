@@ -119,11 +119,12 @@ class NMS(BaseTransform):
     def _pandas_nms(self, boxes):
         bboxes = boxes[['x_top_left', 'y_top_left', 'width', 'height']].values
         scores = boxes['confidence'].values
-        classes = boxes['class_label'].values
 
         # Sort coordinates by descending score
         order = scores.argsort()[::-1]
-        x1, y1, x2, y2 = np.split(bboxes[order], 4, 1)
+        x1, y1, w, h = np.split(bboxes[order], 4, 1)
+        x2 = x1 + w
+        y2 = y1 + h
 
         # Compute dx and dy between each pair of boxes (these mat contain every pair twice...)
         dx = np.clip(np.minimum(x2, x2.transpose()) - np.maximum(x1, x1.transpose()), 0, None)
@@ -131,14 +132,14 @@ class NMS(BaseTransform):
 
         # Compute iou
         intersections = dx * dy
-        areas = (x2 - x1) * (y2 - y1)
+        areas = w * h
         unions = (areas + areas.transpose()) - intersections
         ious = intersections / unions
 
         # Filter based on iou (and class)
         conflicting = np.triu(ious > self.nms_thresh, 1)
         if self.class_nms:
-            classes = classes[order]
+            classes = boxes['class_label'].values[order]
             same_class = (classes[None, ...] == classes[..., None])
             conflicting = (conflicting & same_class)
 
@@ -257,11 +258,12 @@ class NMSFast(BaseTransform):
     def _pandas_nms(self, boxes):
         bboxes = boxes[['x_top_left', 'y_top_left', 'width', 'height']].values
         scores = boxes['confidence'].values
-        classes = boxes['class_label'].values
 
         # Sort coordinates by descending score
         order = scores.argsort()[::-1]
-        x1, y1, x2, y2 = np.split(bboxes[order], 4, 1)
+        x1, y1, w, h = np.split(bboxes[order], 4, 1)
+        x2 = x1 + w
+        y2 = y1 + h
 
         # Compute dx and dy between each pair of boxes (these mat contain every pair twice...)
         dx = np.clip(np.minimum(x2, x2.transpose()) - np.maximum(x1, x1.transpose()), 0, None)
@@ -269,19 +271,21 @@ class NMSFast(BaseTransform):
 
         # Compute iou
         intersections = dx * dy
-        areas = (x2 - x1) * (y2 - y1)
+        areas = w * h
         unions = (areas + areas.transpose()) - intersections
         ious = intersections / unions
 
         # Filter based on iou (and class)
         conflicting = np.triu(ious > self.nms_thresh, 1)
         if self.class_nms:
-            classes = classes[order]
+            classes = boxes['class_label'].values[order]
             same_class = (classes[None, ...] == classes[..., None])
             conflicting = (conflicting & same_class)
 
+        # Return filtered boxes
         keep = conflicting.sum(0) == 0
-        return boxes[keep]
+        orig_order = order.argsort()
+        return boxes[keep[orig_order]]
 
 
 class NMSSoft(BaseTransform):
@@ -389,7 +393,9 @@ class NMSSoft(BaseTransform):
         # Sort coordinates by descending score
         order = scores.argsort()[::-1]
         scores = scores[order]
-        x1, y1, x2, y2 = np.split(bboxes[order], 4, 1)
+        x1, y1, w, h = np.split(bboxes[order], 4, 1)
+        x2 = x1 + w
+        y2 = y1 + h
 
         # Compute dx and dy between each pair of boxes (these mat contain every pair twice...)
         dx = np.clip(np.minimum(x2, x2.transpose()) - np.maximum(x1, x1.transpose()), 0, None)
@@ -397,7 +403,7 @@ class NMSSoft(BaseTransform):
 
         # Compute iou
         intersections = dx * dy
-        areas = (x2 - x1) * (y2 - y1)
+        areas = w * h
         unions = (areas + areas.transpose()) - intersections
         ious = intersections / unions
 
