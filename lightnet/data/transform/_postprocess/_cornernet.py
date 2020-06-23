@@ -31,6 +31,7 @@ class GetCornerBoxes(BaseTransform):
         super().__init__()
         self.embedding_thresh = embedding_thresh
         self.conf_thresh = conf_thresh
+        self.network_stride = network_stride
         self.topk = topk
         self.subsample_kernel = subsample_kernel
 
@@ -68,7 +69,7 @@ class GetCornerBoxes(BaseTransform):
         br_x = topk_x[:, 1, None, :].expand(-1, self.topk, self.topk)
         br_y = topk_y[:, 1, None, :].expand(-1, self.topk, self.topk)
         bboxes = torch.stack([tl_x, tl_y, br_x, br_y], dim=3)
-        bboxes *= network_stride
+        bboxes *= self.network_stride
 
         # Create corner filter
         corner_filter = (br_x >= tl_x) & (br_y >= tl_y)
