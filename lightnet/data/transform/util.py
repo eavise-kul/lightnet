@@ -18,58 +18,6 @@ __all__ = ['Compose']
 log = logging.getLogger(__name__)
 
 
-class Compose(list):
-    """ This is lightnet's own version of :class:`torchvision.transforms.Compose`.
-
-    Note:
-        The reason we have our own version is because this one offers more freedom to the user.
-        For all intends and purposes this class is just a list.
-        This `Compose` version allows the user to access elements through index, append items, extend it with another list, etc.
-        When calling instances of this class, it behaves just like :class:`torchvision.transforms.Compose`.
-
-    Note:
-        I proposed to change :class:`torchvision.transforms.Compose` to something similar to this version,
-        which would render this class useless. In the meanwhile, we use our own version
-        and you can track `the issue`_ to see if and when this comes to torchvision.
-
-    Example:
-        >>> tf = ln.data.transform.Compose([lambda n: n+1])
-        >>> tf(10)  # 10+1
-        11
-        >>> tf.append(lambda n: n*2)
-        >>> tf(10)  # (10+1)*2
-        22
-        >>> tf.insert(0, lambda n: n//2)
-        >>> tf(10)  # ((10//2)+1)*2
-        12
-        >>> del tf[2]
-        >>> tf(10)  # (10//2)+1
-        6
-
-    .. _the issue: https://github.com/pytorch/vision/issues/456
-    """
-    def __call__(self, data):
-        for tf in self:
-            data = tf(data)
-        return data
-
-    def __str__(self):
-        string = f'{self.__class__.__name__} ['
-        for tf in self:
-            string += f'{str(tf)}, '
-        return string[:-2] + ']'
-
-    def __repr__(self):
-        format_string = self.__class__.__name__ + ' ['
-        for tf in self:
-            tfrepr = repr(tf)
-            if '\n' in tfrepr:
-                tfrepr = tfrepr.replace('\n', '\n  ')
-            format_string += f'\n  {tfrepr}'
-        format_string += '\n]'
-        return format_string
-
-
 class BaseTransform(ABC):
     """ Base transform class for the pre- and post-processing functions.
     This class allows to create an object with some case specific settings, and then call it with the data to perform the transformation.
@@ -176,3 +124,91 @@ class BaseMultiTransform(ABC):
             string += f'  {name} = {valrepr},\n'
 
         return string + ')'
+
+
+class Compose(list):
+    """ This is lightnet's own version of :class:`torchvision.transforms.Compose`, which has some extra bells and whistles.
+
+    One of its main features is that you can create a single pipeline for both your images and annotations.
+    When you want to run your pipeline, you simply call this compose list with a tuple,
+    containing your image and your annotations (in that specific order).
+    This class will then run through the transformations and apply each of them.
+    If a transformation is of a type :class:`~lightnet.data.transform.util.BaseMultiTransform`,
+    all elements from the data tuple will be run through this transformation sequentially,
+    otherwise only the first item will be transformed.
+
+    If you pass anything other than a tuple, it will just be transformed by each transformation sequentially.
+
+    Args:
+        transformations (list of callables): A list of all your transformations in the right order.
+
+    Attributes:
+        self.multi_tf (tuple): Which classes to consider to be multi-transforms that act on both images and annotations; Default **(BaseMultiTransform,)**
+
+    Example:
+        >>> tf = ln.data.transform.Compose([lambda n: n+1])
+        >>> tf(10)  # 10+1
+        11
+        >>> tf.append(lambda n: n*2)
+        >>> tf(10)  # (10+1)*2
+        22
+        >>> tf.insert(0, lambda n: n//2)
+        >>> tf(10)  # ((10//2)+1)*2
+        12
+        >>> del tf[2]
+        >>> tf(10)  # (10//2)+1
+        6
+    """
+    multi_tf = (BaseMultiTransform,)
+
+    def __call__(self, data):
+        """ Run your data through the transformation pipeline.
+
+        Args:
+            data: The data to modify. If it is a tuple, only the first item will be transformed, unless the transform is an instance of self.multi_tf.
+        """
+        if isinstance(data, tuple):
+            for tf in self:
+                if isinstance(tf, self.multi_tf):
+                    data = tuple(tf(d) for d in data)
+                else:
+                    data = tuple(tf(d) if i == 0 else d for i, d in enumerate(data))
+        else:
+            for tf in self:
+                data = tf(data)
+
+        return data
+
+    def __getitem__(self, index):
+        """ Get a specific item from the transformation list.
+
+        If the index is a string, we compare this string with the classnames of the transformations in the list (all lowercase).
+        If there are multiple transforms from the same class, we return the first match.
+
+        If the index is not a string, we simply call the ``__getitem__()`` method from list, which expects an integer.
+        """
+        if isinstance(index, str):
+            index = index.lower()
+            keys = tuple(tf.__class__.__name__.lower() for tf in self)
+            if index not in keys:
+                raise KeyError(f'[{index}] not found in transforms')
+
+            return super().__getitem__(keys.index(index))
+        else:
+            return super().__getitem__(index)
+
+    def __str__(self):
+        string = f'{self.__class__.__name__} ['
+        for tf in self:
+            string += f'{str(tf)}, '
+        return string[:-2] + ']'
+
+    def __repr__(self):
+        format_string = self.__class__.__name__ + ' ['
+        for tf in self:
+            tfrepr = repr(tf)
+            if '\n' in tfrepr:
+                tfrepr = tfrepr.replace('\n', '\n  ')
+            format_string += f'\n  {tfrepr}'
+        format_string += '\n]'
+        return format_string
