@@ -147,12 +147,12 @@ class RegionLoss(nn.modules.loss._Loss):
                 self.loss_cls = self.class_scale * self.cel(cls, tcls) / nB
             else:
                 self.loss_cls = torch.tensor(0.0).to(device)
-            self.loss_tot = self.loss_coord + self.loss_conf + self.loss_cls
+            self.loss = self.loss_coord + self.loss_conf + self.loss_cls
         else:
             self.loss_cls = torch.tensor(0.0)
-            self.loss_tot = self.loss_coord + self.loss_conf
+            self.loss = self.loss_coord + self.loss_conf
 
-        return self.loss_tot
+        return self.loss
 
     def build_targets(self, pred_boxes, ground_truth, nB, nH, nW):
         """ Compare prediction boxes and targets, convert targets to network output tensors """
@@ -278,8 +278,8 @@ class RegionLoss(nn.modules.loss._Loss):
 
             # Create ground_truth tensor
             gt = torch.empty((gt_filtered.shape[0], 4), requires_grad=False)
-            gt[:, 2] = torch.from_numpy(gt_filtered.width.values) / self.stride
-            gt[:, 3] = torch.from_numpy(gt_filtered.height.values) / self.stride
+            gt[:, 2] = torch.from_numpy(gt_filtered.width.values).float() / self.stride
+            gt[:, 3] = torch.from_numpy(gt_filtered.height.values).float() / self.stride
             gt[:, 0] = torch.from_numpy(gt_filtered.x_top_left.values).float() / self.stride + (gt[:, 2] / 2)
             gt[:, 1] = torch.from_numpy(gt_filtered.y_top_left.values).float() / self.stride + (gt[:, 3] / 2)
 

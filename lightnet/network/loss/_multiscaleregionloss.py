@@ -79,5 +79,5 @@ class MultiScaleRegionLoss(RegionLoss):
         self.loss_coord = loss_coord / len(output)
         self.loss_conf = loss_conf / len(output)
         self.loss_cls = loss_cls / len(output)
-        self.loss_tot = loss / len(output)
-        return self.loss_tot
+        self.loss = loss / len(output)
+        return self.loss
