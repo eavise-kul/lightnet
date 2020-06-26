@@ -57,20 +57,20 @@ class CornerLoss(nn.modules.loss._Loss):
         # Split output
         output = output.view(nB, 2, -1, nH, nW)                                             # BATCH, TLBR, NUM_CLASSES+3, H, W
         out_heatmaps = output[:, :, :-3].sigmoid().clamp(min=1e-4, max=1-1e-4)              # BATCH, TLBR, NUM_CLASSES,   H, W
-        out_embeddings = output[:, :, -3].view(nB, 2, -1)                                   # BATCH, TLBR,                 HxW
+        out_embeddings = output[:, :, -3].permute(1, 0, 2, 3)                               # TLBR, BATCH,                H, W
         out_offsets = output[:, :, -2:]                                                     # BATCH, TLBR, XY,            H, W
 
         # Split intermediate
         if intermediate is not None:
             intermediate = intermediate.view(nB, 2, -1, nH, nW)                             # BATCH, TLBR, NUM_CLASSES+3, H, W
             inter_heatmaps = intermediate[:, :, :-3].sigmoid().clamp(min=1e-4, max=1-1e-4)  # BATCH, TLBR, NUM_CLASSES,   H, W
-            inter_embeddings = intermediate[:, :, -3].view(nB, 2, -1)                       # BATCH, TLBR,                 HxW
+            inter_embeddings = intermediate[:, :, -3].permute(1, 0, 2, 3)                   # TLBR, BATCH,                H, W
             inter_offsets = intermediate[:, :, -2:]                                         # BATCH, TLBR, XY,            H, W
 
         # Get ground truth tensors
         gt_heatmaps, gt_embeddings, gt_offsets, gt_mask = self.build_targets(target, nB, nClasses, nH, nW)
         gt_heatmaps = gt_heatmaps.to(device)
-        gt_embeddings = [embed.to(device) for embed in gt_embeddings]
+        gt_embeddings = gt_embeddings.to(device)
         gt_offsets = gt_offsets.to(device)
         gt_mask = gt_mask[:, :, None, ...].expand_as(gt_offsets).to(device)
         nGT = gt_mask.sum().item()
@@ -82,26 +82,28 @@ class CornerLoss(nn.modules.loss._Loss):
                 + self.inter_scale * self.focal_loss(inter_heatmaps, gt_heatmaps)
             )
 
-            self.loss_embedding = (
-                self.pushpull_loss(out_embeddings, gt_embeddings)
-                + self.inter_scale * self.pushpull_loss(inter_embeddings, gt_embeddings)
-            )
-
             if nGT > 0:
+                self.loss_embedding = (
+                    self.pushpull_loss(out_embeddings, gt_embeddings)
+                    + self.inter_scale * self.pushpull_loss(inter_embeddings, gt_embeddings)
+                )
+
                 self.loss_offset = self.offset_scale * (
                     self.l1(out_offsets[gt_mask], gt_offsets[gt_mask])
                     + self.inter_scale * self.l1(inter_offsets[gt_mask], gt_offsets[gt_mask])
                 )
             else:
+                self.loss_embedding = torch.tensor(0.0)
                 self.loss_offset = torch.tensor(0.0)
 
             self.loss = (self.loss_heatmap + self.loss_embedding + self.loss_offset) / (1 + self.inter_scale)
         else:
             self.loss_heatmap = self.heatmap_scale * self.focal_loss(out_heatmaps, gt_heatmaps)
-            self.loss_embedding = self.pushpull_loss(out_embeddings, gt_embeddings)
             if nGT > 0:
+                self.loss_embedding = self.pushpull_loss(out_embeddings, gt_embeddings)
                 self.loss_offset = self.offset_scale * self.l1(out_offsets[gt_mask], gt_offsets[gt_mask])
             else:
+                self.loss_embedding = torch.tensor(0.0)
                 self.loss_offset = torch.tensor(0.0)
 
             self.loss = self.loss_heatmap + self.loss_embedding + self.loss_offset
@@ -135,7 +137,7 @@ class CornerLoss(nn.modules.loss._Loss):
                 coords1[:, 0:3:2].clamp_(max=nW)
                 coords1[:, 1:4:2].clamp_(max=nH)
                 for idx, r in enumerate(radii):
-                    g = create_gaussian(r, r/3+0.5)
+                    g = create_gaussian(r, (r+0.5)/3)
 
                     sxtl = slice(coords0[idx, 0], coords1[idx, 0])
                     gxtl = slice(0, sxtl.stop - sxtl.start)
@@ -165,14 +167,19 @@ class CornerLoss(nn.modules.loss._Loss):
             mask[b, 1, coords_idx[:, 3], coords_idx[:, 2]] = True
 
             # Embeddings
-            embedding.append(coords_idx[:, 1:4:2] * nW + coords_idx[:, 0:3:2])
+            embedding.append((b * nW * nH) + (coords_idx[:, 1:4:2] * nW) + coords_idx[:, 0:3:2])
 
             # Offsets
             off = (coords - coords_idx).transpose(0, 1).contiguous()
             offsets[b, 0, :, coords_idx[:, 1], coords_idx[:, 0]] = off[0:2]
             offsets[b, 1, :, coords_idx[:, 3], coords_idx[:, 2]] = off[2:4]
 
-        return (heatmaps, embedding, offsets, mask)
+        return (
+            heatmaps,
+            torch.cat(embedding, dim=0),
+            offsets,
+            mask
+        )
 
     def focal_loss(self, pred, gt):
         p_mask = gt.eq(1)
@@ -191,23 +198,16 @@ class CornerLoss(nn.modules.loss._Loss):
             return -1 * (p_loss + n_loss) / num_pos
 
     def pushpull_loss(self, pred, gt):
-        push = 0
-        pull = 0
+        nGT = gt.shape[0]
+        gt = gt.transpose(0, 1)
+        tl = torch.take(pred[0], gt[0])
+        br = torch.take(pred[1], gt[1])
 
-        for b, gt_batch in enumerate(gt):
-            nGT = gt_batch.shape[0]
-            if nGT <= 0:
-                continue
+        pred_mean = (tl + br) / 2
+        pull = ((tl - pred_mean) ** 2 + (br - pred_mean) ** 2).sum() / (nGT + self.eps)
 
-            pred_batch = torch.gather(pred[b], 1, gt_batch.transpose(0, 1))     # TLBR, nGT
-
-            # Pull
-            pred_mean = (pred_batch[0] + pred_batch[1]) / 2
-            pull += ((pred_batch[0] - pred_mean) ** 2 + (pred_batch[1] - pred_mean) ** 2).sum() / (nGT + self.eps)
-
-            # Push
-            dist = (1 - torch.abs(pred_mean[..., None] - pred_mean[None, ...])).clamp(min=0)
-            push += dist.triu(1).sum() / ((nGT - 1) * nGT + self.eps)
+        dist = (1 - torch.abs(pred_mean[..., None] - pred_mean[None, ...])).clamp(min=0)
+        push = dist.triu(1).sum() / ((nGT - 1) * nGT + self.eps)
 
         return self.push_scale * push + self.pull_scale * pull
 
@@ -239,6 +239,6 @@ def gaussian_radius(box_width, box_height, iou):
 
 
 def create_gaussian(radius, sigma=1):
-    x = torch.arange(-radius, radius+1)[None, ...]
+    x = torch.arange(-radius, radius+1, dtype=torch.float)[None, ...]
     y = x.clone().view(-1, 1)
     return (-1 * (x**2 + y**2) / (2 * sigma**2)).exp()
