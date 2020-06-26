@@ -37,7 +37,6 @@ Data loading
 .. autoclass:: lightnet.data.DataLoader
    :members:
 .. autofunction:: lightnet.data.brambox_collate
-.. autofunction:: lightnet.data.list_collate
 
 Util
 ----

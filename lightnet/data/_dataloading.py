@@ -21,7 +21,7 @@ except ModuleNotFoundError:
     bb = None
 
 
-__all__ = ['Dataset', 'DataLoader', 'brambox_collate', 'list_collate']
+__all__ = ['Dataset', 'DataLoader', 'brambox_collate']
 log = logging.getLogger(__name__)
 
 
@@ -104,7 +104,6 @@ class DataLoader(torchDataLoader):
         >>> dl = ln.data.DataLoader(
         ...     CustomSet((200,200)),
         ...     batch_size = 2,
-        ...     collate_fn = ln.data.list_collate   # We want the data to be grouped as a list
         ... )
         >>> dl.dataset.input_dim    # Default input_dim
         (200, 200)
@@ -247,28 +246,3 @@ def brambox_collate(batch):
         return [brambox_collate(samples) for samples in transposed]
     else:
         return default_collate(batch)
-
-
-def list_collate(batch):
-    """ Function that collates lists or tuples together into one list (of lists/tuples) and concatenates dataframes together.
-    Use this as the collate function in a Dataloader, if you want to have a list of items as an output, as opposed to tensors (eg. Brambox.boxes).
-
-    Deprecated:
-        This function is deprecated in favor of the new :func:`~lightnet.data._dataloading.brambox_collate`.
-    """
-    log.deprecated('This function is deprecated and will be removed in future version, please use "brambox_collate"')
-    items = list(zip(*batch))
-
-    for i in range(len(items)):
-        first = items[i][0]
-        if isinstance(first, (pd.DataFrame)):
-            if 'image' in first.columns and first.image.dtype == 'category':
-                items[i] = bb.util.concat(items[i], ignore_index=True)
-            else:
-                items[i] = pd.concat(items[i], ignore_index=True)
-        elif isinstance(first, (list, tuple)):
-            items[i] = list(items[i])
-        else:
-            items[i] = default_collate(items[i])
-
-    return items
