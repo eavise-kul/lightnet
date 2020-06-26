@@ -124,6 +124,8 @@ class CornerLoss(nn.modules.loss._Loss):
             coords[:, 0:2] = torch.from_numpy(gt_batch[['x_top_left', 'y_top_left']].values).float() / self.stride
             coords[:, 2:4] = coords[:, 0:2] + size
             coords_idx = coords.long()
+            coords_idx[:, 0:3:2].clamp_(max=nW-1)
+            coords_idx[:, 1:4:2].clamp_(max=nH-1)
 
             # Heatmaps
             if self.gaussian_iou:
