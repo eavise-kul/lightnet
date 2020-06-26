@@ -69,7 +69,10 @@ class CornerLoss(nn.modules.loss._Loss):
 
         # Get ground truth tensors
         gt_heatmaps, gt_embeddings, gt_offsets, gt_mask = self.build_targets(target, nB, nClasses, nH, nW)
-        gt_mask = gt_mask[:, :, None, ...].expand_as(gt_offsets)
+        gt_heatmaps = gt_heatmaps.to(device)
+        gt_embeddings = [embed.to(device) for embed in gt_embeddings]
+        gt_offsets = gt_offsets.to(device)
+        gt_mask = gt_mask[:, :, None, ...].expand_as(gt_offsets).to(device)
         nGT = gt_mask.sum().item()
 
         # Losses
