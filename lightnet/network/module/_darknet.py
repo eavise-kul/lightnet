@@ -42,8 +42,6 @@ class Darknet(Lightnet):
             super().load(weights_file, *args, **kwargs)
         else:
             log.debug('Loading weights from darknet file')
-            if strict:
-                log.warning('Cannot enforce strict behaviour for binary darknet weights')
             self._load_darknet_weights(weights_file)
 
     def save(self, weights_file, *args, **kwargs):
