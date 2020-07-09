@@ -12,13 +12,7 @@ from torch.utils.data.dataset import Dataset as torchDataset
 from torch.utils.data.sampler import BatchSampler as torchBatchSampler
 from torch.utils.data.dataloader import DataLoader as torchDataLoader
 from torch.utils.data.dataloader import default_collate
-
-try:
-    import pandas as pd
-    import brambox as bb
-except ModuleNotFoundError:
-    pd = None
-    bb = None
+from ._imports import pd, bb
 
 
 __all__ = ['Dataset', 'DataLoader', 'brambox_collate']

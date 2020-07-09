@@ -6,13 +6,8 @@
 
 import logging
 from abc import ABC, abstractmethod
-from PIL import Image
 import numpy as np
-
-try:
-    import pandas as pd
-except ModuleNotFoundError:
-    pd = None
+from .._imports import pd, Image
 
 __all__ = ['Compose']
 log = logging.getLogger(__name__)
@@ -66,9 +61,11 @@ class BaseMultiTransform(ABC):
     def __call__(self, data):
         if data is None:
             return None
+        elif isinstance(data, torch.Tensor):
+            return self._tf_torch(data)
         elif pd is not None and isinstance(data, pd.DataFrame):
             return self._tf_anno(data)
-        elif isinstance(data, Image.Image):
+        elif Image is not None and isinstance(data, Image.Image):
             return self._tf_pil(data)
         elif isinstance(data, np.ndarray):
             return self._tf_cv(data)
@@ -93,6 +90,10 @@ class BaseMultiTransform(ABC):
 
         res_target = obj(target)
         return res_data, res_target
+
+    @abstractmethod
+    def _tf_torch(self, img):
+        return img
 
     @abstractmethod
     def _tf_pil(self, img):

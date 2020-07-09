@@ -10,27 +10,12 @@ import collections
 import logging
 import math
 import numpy as np
-from PIL import Image, ImageOps
 import torch
 from .util import BaseTransform, BaseMultiTransform
-
-log = logging.getLogger(__name__)
-
-try:
-    import pandas as pd
-    import brambox as bb
-except ImportError:
-    log.warning('Brambox is not installed and thus all data functionality related to it cannot be used')
-    pd = None
-    bb = None
-
-try:
-    import cv2
-except ImportError:
-    log.warning('OpenCV is not installed and cannot be used')
-    cv2 = None
+from .._imports import pd, bb, cv2, Image, ImageOps
 
 __all__ = ['Crop', 'Letterbox', 'Pad', 'RandomFlip', 'RandomHSV', 'RandomJitter', 'RandomRotate', 'BramboxToTensor']
+log = logging.getLogger(__name__)
 
 
 #
