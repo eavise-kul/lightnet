@@ -6,12 +6,13 @@
 import pytest
 import numpy as np
 from PIL import Image
+import torch
 import pandas as pd
 import brambox as bb
 import lightnet.data.transform as tf
 
 
-@pytest.fixture(scope='module', params=['np', 'pil'])
+@pytest.fixture(scope='module', params=['np', 'pil', 'torch'])
 def image(request):
     def _image_np(width, height, grayscale=False):
         if grayscale:
@@ -25,10 +26,18 @@ def image(request):
         else:
             return Image.new('RGB', (width, height))
 
+    def _image_torch(width, height, grayscale=False):
+        if grayscale:
+            return torch.zeros([height, width])
+        else:
+            return torch.zeros([3, height, width])
+
     if (request.param == 'np'):
         return _image_np
-    else:
+    elif (request.param == 'pil'):
         return _image_pil
+    else:
+        return _image_torch
 
 
 @pytest.fixture(scope='module')
@@ -54,6 +63,9 @@ def assert_img_size(img, width, height):
     if isinstance(img, np.ndarray):
         assert img.shape[0] == height
         assert img.shape[1] == width
+    elif isinstance(img, torch.Tensor):
+        assert img.shape[-2] == height
+        assert img.shape[-1] == width
     else:
         w, h = img.size
         assert w == width

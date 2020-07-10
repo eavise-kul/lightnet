@@ -79,7 +79,7 @@ class Crop(BaseMultiTransform):
         # Rescale
         if self.scale != 1:
             bands = img.split()
-            bands = [b.resize((int(self.scale * im_w + 0.5), int(self.scale * im_h + 0.5))) for b in bands]
+            bands = [b.resize((int(self.scale * im_w + 0.5), int(self.scale * im_h + 0.5)), resample=Image.BILINEAR) for b in bands]
             img = Image.merge(img.mode, bands)
             im_w, im_h = img.size
 
@@ -99,11 +99,33 @@ class Crop(BaseMultiTransform):
 
         # Rescale
         if self.scale != 1:
-            img = cv2.resize(img, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_CUBIC)
+            img = cv2.resize(img, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_LINEAR)
 
         # Crop
         if self.crop is not None:
             img = img[self.crop[1]:self.crop[3], self.crop[0]:self.crop[2]]
+
+        return img
+
+    def _tf_torch(self, img):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        else:
+            net_w, net_h = self.dimension
+        im_h, im_w = img.shape[-2:]
+        self._get_crop(im_w, im_h, net_w, net_h)
+
+        # Rescale
+        if self.scale != 1:
+            if img.ndim == 3:
+                img = img[None, ...]
+            elif img.ndim == 2:
+                img = img[None, None, ...]
+            img = torch.nn.functional.interpolate(img, scale_factor=self.scale, mode='bilinear').squeeze().clamp(min=0, max=255)
+
+        # Crop
+        if self.crop is not None:
+            img = img[..., self.crop[1]:self.crop[3], self.crop[0]:self.crop[2]]
 
         return img
 
@@ -155,20 +177,36 @@ class Letterbox(BaseMultiTransform):
     Args:
         dimension (tuple, optional): Default size for the letterboxing, expressed as a (width, height) tuple; Default **None**
         dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
+        fill_color (int or float, optional): Fill color to be used for padding (if int, will be divided by 255); Default **0.5**
 
     Note:
         Create 1 Letterbox object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
     """
-    def __init__(self, dimension=None, dataset=None, fill_color=127):
+    def __init__(self, dimension=None, dataset=None, fill_color=0.5):
         self.dimension = dimension
         self.dataset = dataset
-        self.fill_color = fill_color
+        self.fill_color = fill_color if isinstance(fill_color, float) else fill_color / 255
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
 
         self.pad = None
         self.scale = None
+
+    def _get_letterbox(self, im_w, im_h, net_w, net_h):
+        if im_w / net_w >= im_h / net_h:
+            self.scale = net_w / im_w
+            pad_w = 0
+            pad_h = (net_h - int(im_h * self.scale)) / 2
+        else:
+            self.scale = net_h / im_h
+            pad_w = (net_w - int(im_w * self.scale)) / 2
+            pad_h = 0
+
+        if pad_w == 0 and pad_h == 0:
+            self.pad = None
+        else:
+            self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
 
     def _tf_pil(self, img):
         if self.dataset is not None:
@@ -176,34 +214,20 @@ class Letterbox(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_w, im_h = img.size
+        self._get_letterbox(im_w, im_h, net_w, net_h)
 
-        if im_w == net_w and im_h == net_h:
-            self.scale = None
-            self.pad = None
-            return img
-
-        # Rescaling
-        if im_w / net_w >= im_h / net_h:
-            self.scale = net_w / im_w
-        else:
-            self.scale = net_h / im_h
+        # Rescale
         if self.scale != 1:
             bands = img.split()
-            bands = [b.resize((int(self.scale*im_w), int(self.scale*im_h))) for b in bands]
+            bands = [b.resize((int(self.scale*im_w), int(self.scale*im_h)), resample=Image.BILINEAR) for b in bands]
             img = Image.merge(img.mode, bands)
-            im_w, im_h = img.size
 
-        if im_w == net_w and im_h == net_h:
-            self.pad = None
-            return img
+        # Pad
+        if self.pad is not None:
+            shape = np.array(img).shape
+            channels = shape[2] if len(shape) > 2 else 1
+            img = ImageOps.expand(img, border=self.pad, fill=(int(self.fill_color*255),)*channels)
 
-        # Padding
-        img_np = np.array(img)
-        channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
-        pad_w = (net_w - im_w) / 2
-        pad_h = (net_h - im_h) / 2
-        self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = ImageOps.expand(img, border=self.pad, fill=(self.fill_color,)*channels)
         return img
 
     def _tf_cv(self, img):
@@ -212,31 +236,39 @@ class Letterbox(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
+        self._get_letterbox(im_w, im_h, net_w, net_h)
 
-        if im_w == net_w and im_h == net_h:
-            self.scale = None
-            self.pad = None
-            return img
-
-        # Rescaling
-        if im_w / net_w >= im_h / net_h:
-            self.scale = net_w / im_w
-        else:
-            self.scale = net_h / im_h
+        # Rescale
         if self.scale != 1:
-            img = cv2.resize(img, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_CUBIC)
-            im_h, im_w = img.shape[:2]
+            img = cv2.resize(img, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_LINEAR)
 
-        if im_w == net_w and im_h == net_h:
-            self.pad = None
-            return img
+        # Pad
+        if self.pad is not None:
+            channels = img.shape[2] if len(img.shape) > 2 else 1
+            img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=(int(self.fill_color*255),)*channels)
 
-        # Padding
-        channels = img.shape[2] if len(img.shape) > 2 else 1
-        pad_w = (net_w - im_w) / 2
-        pad_h = (net_h - im_h) / 2
-        self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=self.fill_color)
+        return img
+
+    def _tf_torch(self, img):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        else:
+            net_w, net_h = self.dimension
+        im_h, im_w = img.shape[-2:]
+        self._get_letterbox(im_w, im_h, net_w, net_h)
+
+        # Rescale
+        if self.scale != 1:
+            if img.ndim == 3:
+                img = img[None, ...]
+            elif img.ndim == 2:
+                img = img[None, None, ...]
+            img = torch.nn.functional.interpolate(img, scale_factor=self.scale, mode='bilinear').squeeze().clamp(min=0, max=255)
+
+        # Pad
+        if self.pad is not None:
+            img = torch.nn.functional.pad(img, (self.pad[0], self.pad[2], self.pad[1], self.pad[3]), value=self.fill_color)
+
         return img
 
     def _tf_anno(self, anno):
@@ -260,6 +292,7 @@ class Pad(BaseMultiTransform):
     Args:
         dimension (int or tuple, optional): Default size for the padding, expressed as a single integer or as a (width, height) tuple; Default **None**
         dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
+        fill_color (int or float, optional): Fill color to be used for padding (if int, will be divided by 255); Default **0.5**
 
     Warning:
         Do note that the ``dimension`` or ``dataset`` argument here uses the given width and height as a multiple instead of a real dimension.
@@ -273,12 +306,20 @@ class Pad(BaseMultiTransform):
     def __init__(self, dimension=None, dataset=None, fill_color=127):
         self.dimension = dimension
         self.dataset = dataset
-        self.fill_color = fill_color
+        self.fill_color = fill_color if isinstance(fill_color, float) else fill_color / 255
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
 
         self.pad = None
         self.scale = None
+
+    def _get_pad(self, im_w, im_h, net_w, net_h):
+        if im_w % net_w == 0 and im_h % net_h == 0:
+            self.pad = None
+        else:
+            pad_w = (net_w - (im_w % net_w)) / 2
+            pad_h = (net_h - (im_h % net_h)) / 2
+            self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
 
     def _tf_pil(self, img):
         if self.dataset is not None:
@@ -288,18 +329,14 @@ class Pad(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_w, im_h = img.size
+        self._get_pad(im_w, im_h, net_w, net_h)
 
-        if im_w % net_w == 0 and im_h % net_h == 0:
-            self.pad = None
-            return img
+        # Pad
+        if self.pad is not None:
+            shape = np.array(img).shape
+            channels = shape[2] if len(shape) > 2 else 1
+            img = ImageOps.expand(img, border=self.pad, fill=(int(self.fill_color*255),)*channels)
 
-        # Padding
-        img_np = np.array(img)
-        channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
-        pad_w = (net_w - (im_w % net_w)) / 2
-        pad_h = (net_h - (im_h % net_h)) / 2
-        self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = ImageOps.expand(img, border=self.pad, fill=(self.fill_color,)*channels)
         return img
 
     def _tf_cv(self, img):
@@ -310,17 +347,27 @@ class Pad(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
+        self._get_pad(im_w, im_h, net_w, net_h)
 
-        if im_w % net_w == 0 and im_h % net_h == 0:
-            self.pad = None
-            return img
+        # Pad
+        if self.pad is not None:
+            channels = img.shape[2] if len(img.shape) > 2 else 1
+            img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=(int(self.fill_color*255),)*channels)
 
-        # Padding
-        channels = img.shape[2] if len(img.shape) > 2 else 1
-        pad_w = (net_w - (im_w % net_w)) / 2
-        pad_h = (net_h - (im_h % net_h)) / 2
-        self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
-        img = cv2.copyMakeBorder(img, self.pad[1], self.pad[3], self.pad[0], self.pad[2], cv2.BORDER_CONSTANT, value=self.fill_color)
+        return img
+
+    def _tf_torch(self, img):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        else:
+            net_w, net_h = self.dimension
+        im_h, im_w = img.shape[-2:]
+        self._get_pad(im_w, im_h, net_w, net_h)
+
+        # Pad
+        if self.pad is not None:
+            img = torch.nn.functional.pad(img, (self.pad[0], self.pad[2], self.pad[1], self.pad[3]), value=self.fill_color)
+
         return img
 
     def _tf_anno(self, anno):
