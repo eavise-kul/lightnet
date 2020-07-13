@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from ..util import BaseTransform
 
-__all__ = ['NMS', 'NMSFast', 'NMSSoft', 'NonMaxSuppression']
+__all__ = ['NMS', 'NMSFast', 'NMSSoft', 'NMSSoftFast', 'NonMaxSuppression']
 log = logging.getLogger(__name__)
 
 
@@ -153,7 +153,7 @@ class NMS(BaseTransform):
         return boxes[keep]
 
 
-class NMSFast(BaseTransform):
+class NMSFast(NMS):
     """ Performs fast NMS on the bounding boxes, filtering boxes with a high overlap.
     This function can either work on a pytorch bounding box tensor or a brambox dataframe.
 
@@ -197,24 +197,6 @@ class NMSFast(BaseTransform):
         self.class_nms = class_nms
         self.reset_index = reset_index
 
-    def __call__(self, boxes):
-        if isinstance(boxes, torch.Tensor):
-            return self._torch(boxes)
-        else:
-            return self._pandas(boxes)
-
-    def _torch(self, boxes):
-        if boxes.numel() == 0:
-            return boxes
-
-        batches = boxes[:, 0]
-        keep = torch.empty(boxes.shape[0], dtype=torch.bool, device=boxes.device)
-        for batch in torch.unique(batches, sorted=False):
-            mask = batches == batch
-            keep[mask] = self._torch_nms(boxes[mask])
-
-        return boxes[keep]
-
     def _torch_nms(self, boxes):
         if boxes.numel() == 0:
             return boxes
@@ -246,14 +228,6 @@ class NMSFast(BaseTransform):
 
         keep = conflicting.sum(0) == 0
         return keep.scatter(0, order, keep)
-
-    def _pandas(self, boxes):
-        if len(boxes.index) == 0:
-            return boxes
-        boxes = boxes.groupby('image', group_keys=False, observed=True).apply(self._pandas_nms)
-        if self.reset_index:
-            return boxes.reset_index(drop=True)
-        return boxes
 
     def _pandas_nms(self, boxes):
         bboxes = boxes[['x_top_left', 'y_top_left', 'width', 'height']].values
@@ -289,8 +263,160 @@ class NMSFast(BaseTransform):
 
 
 class NMSSoft(BaseTransform):
-    """ Performs soft NMS on the bounding boxes, as explained in :cite:`soft_nms`.
+    """ Performs soft NMS with exponential decaying on the bounding boxes, as explained in :cite:`soft_nms`.
     This function can either work on a pytorch bounding box tensor or a brambox dataframe.
+
+    Args:
+        sigma (Number): Sensitivity value for the confidence rescaling (exponential decay)
+        conf_thresh (Number [0-1], optional): Confidence threshold to filter the bounding boxes after decaying them; Default **0**
+        class_nms (Boolean, optional): Whether to perform nms per class; Default **True**
+        force_cpu (Boolean, optional): Whether to force a part of the computation on CPU (tensor only, see Note); Default **True**
+        reset_index (Boolean, optional): Whether to reset the index of the returned dataframe (dataframe only); Default **True**
+
+    Input:
+        boxes (Tensor [Boxes x 7] or pandas.Dataframe): bounding boxes
+
+    Returns:
+        boxes (Tensor [Boxes x 7] or pandas.Dataframe): filtered bounding boxes
+
+    Note:
+        This post-processing function expects the input bounding boxes to be either a PyTorch tensor or a brambox dataframe.
+
+        The PyTorch tensor needs to be formatted as follows: **[batch_num, x_tl, y_tl, x_br, y_br, confidence, class_id]** for every bounding box.
+        This corresponds to the output from the Get***Boxes classes available in lightnet.
+
+        The brambox dataframe should be a detection dataframe,
+        as it needs the x_top_left, y_top_left, width, height, confidence and class_label columns.
+    """
+    def __init__(self, sigma, conf_thresh=0, class_nms=True, force_cpu=True, reset_index=True):
+        self.sigma = sigma
+        self.conf_thresh = conf_thresh
+        self.class_nms = class_nms
+        self.force_cpu = force_cpu
+        self.reset_index = reset_index
+
+    def __call__(self, boxes):
+        if isinstance(boxes, torch.Tensor):
+            return self._torch(boxes)
+        else:
+            return self._pandas(boxes)
+
+    def _torch(self, boxes):
+        if boxes.numel() == 0:
+            return boxes
+
+        batches = boxes[:, 0]
+        for batch in torch.unique(batches, sorted=False):
+            mask = batches == batch
+            boxes[mask, 5] = self._torch_nms(boxes[mask])
+
+        if self.conf_thresh > 0:
+            keep = boxes[:, 5] > self.conf_thresh
+            return boxes[keep]
+
+        return boxes
+
+    def _torch_nms(self, boxes):
+        if boxes.numel() == 0:
+            return boxes
+
+        bboxes = boxes[:, 1:5]
+        scores = boxes[:, 5]
+        classes = boxes[:, 6]
+
+        # Sort coordinates by descending score
+        scores, order = scores.sort(0, descending=True)
+        x1, y1, x2, y2 = bboxes[order].split(1, 1)
+
+        # Compute dx and dy between each pair of boxes (these mat contain every pair twice...)
+        dx = (x2.min(x2.t()) - x1.max(x1.t())).clamp(min=0)
+        dy = (y2.min(y2.t()) - y1.max(y1.t())).clamp(min=0)
+
+        # Compute iou
+        intersections = dx * dy
+        areas = (x2 - x1) * (y2 - y1)
+        unions = (areas + areas.t()) - intersections
+        ious = intersections / unions
+
+        # Filter class
+        if self.class_nms:
+            classes = classes[order]
+            same_class = (classes.unsqueeze(0) == classes.unsqueeze(1))
+            ious *= same_class
+
+        # Decay scores
+        decay = torch.exp(-(ious.triu(1) ** 2) / self.sigma)
+        if self.force_cpu:
+            scores = scores.cpu()
+            decay = decay.cpu()
+        for i in range(scores.shape[0]):
+            scores[i] *= decay[:, i].prod()
+            if scores[i] <= self.conf_thresh:
+                decay[i] = 1
+
+        scores = scores.to(boxes.device)
+        return scores.scatter(0, order, scores)
+
+    def _pandas(self, boxes):
+        if len(boxes.index) == 0:
+            return boxes
+
+        boxes = boxes.groupby('image', group_keys=False, observed=True).apply(self._pandas_nms)
+        if self.conf_thresh > 0:
+            boxes = boxes[boxes.confidence > self.conf_thresh].copy()
+        if self.reset_index:
+            return boxes.reset_index(drop=True)
+
+        return boxes
+
+    def _pandas_nms(self, boxes):
+        bboxes = boxes[['x_top_left', 'y_top_left', 'width', 'height']].values
+        scores = boxes['confidence'].values
+
+        # Sort coordinates by descending score
+        order = scores.argsort()[::-1]
+        scores = scores[order]
+        x1, y1, w, h = np.split(bboxes[order], 4, 1)
+        x2 = x1 + w
+        y2 = y1 + h
+
+        # Compute dx and dy between each pair of boxes (these mat contain every pair twice...)
+        dx = np.clip(np.minimum(x2, x2.transpose()) - np.maximum(x1, x1.transpose()), 0, None)
+        dy = np.clip(np.minimum(y2, y2.transpose()) - np.maximum(y1, y1.transpose()), 0, None)
+
+        # Compute iou
+        intersections = dx * dy
+        areas = w * h
+        unions = (areas + areas.transpose()) - intersections
+        ious = intersections / unions
+
+        # Filter class
+        if self.class_nms:
+            classes = boxes['class_label'].values[order]
+            same_class = (classes[None, ...] == classes[..., None])
+            ious *= same_class
+
+        # Decay scores
+        decay = np.triu(ious, 1)
+        decay = np.exp(-(decay ** 2) / self.sigma)
+        for i in range(scores.shape[0]):
+            scores[i] *= np.prod(decay[:, i], 0)
+            if scores[i] <= self.conf_thresh:
+                decay[i] = 1
+
+        # Set scores back
+        orig_order = order.argsort()
+        boxes['confidence'] = scores[orig_order]
+
+        return boxes
+
+
+class NMSSoftFast(BaseTransform):
+    """ Performs soft NMS with exponential decaying on the bounding boxes, as explained in :cite:`soft_nms`.
+    This function can either work on a pytorch bounding box tensor or a brambox dataframe.
+
+    This version of NMS makes the same "mistake" as :class:`~lightnet.data.transform.NMSFast`,
+    which in turn allows it to be faster than the regular :class:`~lightnet.data.transform.NMSSoft` algorithm.
 
     Args:
         sigma (Number): Sensitivity value for the confidence rescaling (exponential decay)

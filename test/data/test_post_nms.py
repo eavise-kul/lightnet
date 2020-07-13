@@ -105,7 +105,7 @@ def test_nms_soft(boxes):
     assert list(out1[:, 0]) == [1, 0, 0, 0, 0]
     assert list(out1[:, 1]) == [0, 0, 200, 100, 0]
     assert list(out1[:, 3]) == [250, 250, 450, 350, 250]
-    # assert list(out1[:, 5]) == [0.5, 0.6, 0.4288, 0.5054, 0.9]  # TODO : compute this manually
+    # assert list(out1[:, 5]) == []  # TODO : compute scores manually
 
     # Compare pandas and torch
     out1_pd = tf.TensorToBrambox.apply(out1).sort_values('confidence').reset_index(drop=True)
@@ -113,7 +113,7 @@ def test_nms_soft(boxes):
     pd.testing.assert_frame_equal(out1_pd, out2)
 
 
-def test_nms_soft_ignore_class(boxes):
+def test_nms_soft_fast_ignore_class(boxes):
     input_tensor = torch.tensor(boxes)
     input_pd = tf.TensorToBrambox.apply(input_tensor.clone())
     nms = tf.NMSSoft(0.4, class_nms=False)
@@ -125,7 +125,47 @@ def test_nms_soft_ignore_class(boxes):
     assert list(out1[:, 0]) == [1, 0, 0, 0, 0]
     assert list(out1[:, 1]) == [0, 0, 200, 100, 0]
     assert list(out1[:, 3]) == [250, 250, 450, 350, 250]
-    # assert list(out1[:, 5]) == [0.5, 0.6, 0.4288, 0.5054, 0.9]  # TODO : compute this manually
+    # assert list(out1[:, 5]) == []  # TODO : compute scores manually
+
+    # Compare pandas and torch
+    out1_pd = tf.TensorToBrambox.apply(out1).sort_values('confidence').reset_index(drop=True)
+    out2 = nms(input_pd).sort_values('confidence').reset_index(drop=True)
+    pd.testing.assert_frame_equal(out1_pd, out2)
+
+
+def test_nms_soft_fast(boxes):
+    input_tensor = torch.tensor(boxes)
+    input_pd = tf.TensorToBrambox.apply(input_tensor.clone())
+    nms = tf.NMSSoftFast(0.4)
+
+    # Check tensor output
+    out1 = nms(input_tensor)
+    assert out1.shape[0] == 5
+    assert out1.shape[1] == 7
+    assert list(out1[:, 0]) == [1, 0, 0, 0, 0]
+    assert list(out1[:, 1]) == [0, 0, 200, 100, 0]
+    assert list(out1[:, 3]) == [250, 250, 450, 350, 250]
+    # assert list(out1[:, 5]) == []  # TODO : compute scores manually
+
+    # Compare pandas and torch
+    out1_pd = tf.TensorToBrambox.apply(out1).sort_values('confidence').reset_index(drop=True)
+    out2 = nms(input_pd).sort_values('confidence').reset_index(drop=True)
+    pd.testing.assert_frame_equal(out1_pd, out2)
+
+
+def test_nms_soft_fast_ignore_class(boxes):
+    input_tensor = torch.tensor(boxes)
+    input_pd = tf.TensorToBrambox.apply(input_tensor.clone())
+    nms = tf.NMSSoftFast(0.4, class_nms=False)
+
+    # Check tensor output
+    out1 = nms(input_tensor)
+    assert out1.shape[0] == 5
+    assert out1.shape[1] == 7
+    assert list(out1[:, 0]) == [1, 0, 0, 0, 0]
+    assert list(out1[:, 1]) == [0, 0, 200, 100, 0]
+    assert list(out1[:, 3]) == [250, 250, 450, 350, 250]
+    # assert list(out1[:, 5]) == []  # TODO : compute scores manually
 
     # Compare pandas and torch
     out1_pd = tf.TensorToBrambox.apply(out1).sort_values('confidence').reset_index(drop=True)
