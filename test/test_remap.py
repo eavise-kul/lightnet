@@ -20,9 +20,10 @@ remaps = [
     (ln.models.MobilenetV1,     ln.models.MobilenetYolo,    ln.models.MobilenetYolo.remap_mobilenet_v1),
 ]
 
-# Difficult to test
+# Difficult to test (usually remaps from other repos)
 remap_skips = [
     ln.models.Cornernet.remap_princeton_vl,
+    ln.models.CornernetSqueeze.remap_princeton_vl,
 ]
 
 

@@ -10,7 +10,7 @@ import lightnet as ln
 
 classification_networks = ['Darknet', 'Darknet19', 'Darknet53', 'MobileDarknet19', 'MobilenetV1', 'MobilenetV2']
 anchor_detection_networks = ['DYolo', 'MobilenetYolo', 'MobileYoloV2', 'TinyYoloV2', 'TinyYoloV3', 'YoloV2', 'YoloV3', 'Yolt']
-corner_detection_networks = ['Cornernet']
+corner_detection_networks = ['Cornernet', 'CornernetSqueeze']
 special_networks = ['YoloFusion']
 
 

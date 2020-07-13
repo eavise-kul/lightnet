@@ -35,3 +35,4 @@ from ._network_yolo_fusion import *
 
 # Cornernet
 from ._network_cornernet import *
+from ._network_cornernet_squeeze import *
