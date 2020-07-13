@@ -17,11 +17,24 @@ log = logging.getLogger(__name__)
 class BaseTransform(ABC):
     """ Base transform class for the pre- and post-processing functions.
     This class allows to create an object with some case specific settings, and then call it with the data to perform the transformation.
-    It also allows to call the static method ``apply`` with the data and settings. This is usefull if you want to transform a single data object.
+    It also allows to call the static method ``apply()`` with the data and settings. This is usefull if you want to transform a single data object.
+
+    There are 2 ways to use this base class.
+        - You provide implementations for ``_tf_pil()``, ``_tf_cv()`` and ``_tf_torch()`` to transform the different image types.
+        - You override the ``__call__()`` method and provide your own data transformation pipeline.
     """
-    @abstractmethod
     def __call__(self, data):
-        return data
+        if data is None:
+            return None
+        elif isinstance(data, torch.Tensor):
+            return self._tf_torch(data)
+        elif Image is not None and isinstance(data, Image.Image):
+            return self._tf_pil(data)
+        elif isinstance(data, np.ndarray):
+            return self._tf_cv(data)
+        else:
+            log.error(f'{self.__class__.__name__} only works with <brambox dataframes>, <PIL images>, <OpenCV images> or <torch Tensors> [{type(data)}]')
+            return data
 
     @classmethod
     def apply(cls, data, **kwargs):
@@ -33,6 +46,15 @@ class BaseTransform(ABC):
         """
         obj = cls(**kwargs)
         return obj(data)
+
+    def _tf_pil(self, img):
+        raise NotImplementedError('This transformation is not implemented for PIL images.')
+
+    def _tf_cv(self, img):
+        raise NotImplementedError('This transformation is not implemented for OpenCV NumPy images.')
+
+    def _tf_torch(self, img):
+        raise NotImplementedError('This transformation is not implemented for PyTorch Tensor images.')
 
     def __str__(self):
         return self.__class__.__name__
@@ -58,6 +80,9 @@ class BaseMultiTransform(ABC):
     """ Base multiple transform class that is mainly used in pre-processing functions.
     This class exists for transforms that affect both images and annotations.
     It provides a classmethod ``apply``, that will perform the transormation on one (data, target) pair.
+
+    In order to use this base class, you need to provide implementations for ``_tf_pil()``, ``_tf_cv()`` and ``_tf_torch()`` to transform the different image types
+    and ``_tf_anno()`` to transform the annotations.
     """
     def __call__(self, data):
         if data is None:
@@ -71,7 +96,7 @@ class BaseMultiTransform(ABC):
         elif isinstance(data, np.ndarray):
             return self._tf_cv(data)
         else:
-            log.error(f'{self.__class__.__name__} only works with <brambox annotation dataframes>, <PIL images> or <OpenCV images> [{type(data)}]')
+            log.error(f'{self.__class__.__name__} only works with <brambox dataframes>, <PIL images>, <OpenCV images> or <torch Tensors> [{type(data)}]')
             return data
 
     @classmethod
@@ -93,15 +118,15 @@ class BaseMultiTransform(ABC):
         return res_data, res_target
 
     @abstractmethod
-    def _tf_torch(self, img):
-        return img
-
-    @abstractmethod
     def _tf_pil(self, img):
         return img
 
     @abstractmethod
     def _tf_cv(self, img):
+        return img
+
+    @abstractmethod
+    def _tf_torch(self, img):
         return img
 
     @abstractmethod

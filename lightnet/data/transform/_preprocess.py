@@ -51,7 +51,7 @@ class Crop(BaseMultiTransform):
         self.scale = 1
         self.crop = None
 
-    def _get_crop(self, im_w, im_h, net_w, net_h):
+    def _get_params(self, im_w, im_h, net_w, net_h):
         if net_w / im_w >= net_h / im_h:
             self.scale = net_w / im_w
             ds = int(im_h * self.scale - net_h + 0.5)
@@ -74,7 +74,7 @@ class Crop(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_w, im_h = img.size
-        self._get_crop(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Rescale
         if self.scale != 1:
@@ -95,7 +95,7 @@ class Crop(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
-        self._get_crop(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Rescale
         if self.scale != 1:
@@ -113,7 +113,7 @@ class Crop(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_h, im_w = img.shape[-2:]
-        self._get_crop(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Rescale
         if self.scale != 1:
@@ -193,7 +193,7 @@ class Letterbox(BaseMultiTransform):
         self.pad = None
         self.scale = None
 
-    def _get_letterbox(self, im_w, im_h, net_w, net_h):
+    def _get_params(self, im_w, im_h, net_w, net_h):
         if im_w / net_w >= im_h / net_h:
             self.scale = net_w / im_w
             pad_w = 0
@@ -214,7 +214,7 @@ class Letterbox(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_w, im_h = img.size
-        self._get_letterbox(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Rescale
         if self.scale != 1:
@@ -236,7 +236,7 @@ class Letterbox(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
-        self._get_letterbox(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Rescale
         if self.scale != 1:
@@ -255,7 +255,7 @@ class Letterbox(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_h, im_w = img.shape[-2:]
-        self._get_letterbox(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Rescale
         if self.scale != 1:
@@ -313,7 +313,7 @@ class Pad(BaseMultiTransform):
         self.pad = None
         self.scale = None
 
-    def _get_pad(self, im_w, im_h, net_w, net_h):
+    def _get_params(self, im_w, im_h, net_w, net_h):
         if im_w % net_w == 0 and im_h % net_h == 0:
             self.pad = None
         else:
@@ -329,7 +329,7 @@ class Pad(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_w, im_h = img.size
-        self._get_pad(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Pad
         if self.pad is not None:
@@ -347,7 +347,7 @@ class Pad(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
-        self._get_pad(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Pad
         if self.pad is not None:
@@ -362,7 +362,7 @@ class Pad(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
         im_h, im_w = img.shape[-2:]
-        self._get_pad(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h, net_w, net_h)
 
         # Pad
         if self.pad is not None:
@@ -402,12 +402,12 @@ class RandomFlip(BaseMultiTransform):
         self.im_w = None
         self.im_h = None
 
-    def _get_flip(self):
+    def _get_params(self):
         self.flip_h = random.random() < self.horizontal
         self.flip_v = random.random() < self.vertical
 
     def _tf_pil(self, img):
-        self._get_flip()
+        self._get_params()
         self.im_w, self.im_h = img.size
 
         if self.flip_h and self.flip_v:
@@ -420,7 +420,7 @@ class RandomFlip(BaseMultiTransform):
         return img
 
     def _tf_cv(self, img):
-        self._get_flip()
+        self._get_params()
         self.im_h, self.im_w = img.shape[:2]
 
         if self.flip_h and self.flip_v:
@@ -429,6 +429,18 @@ class RandomFlip(BaseMultiTransform):
             img = cv2.flip(img, 1)
         elif self.flip_v:
             img = cv2.flip(img, 0)
+
+        return img
+
+    def _tf_torch(self, img):
+        self._get_params()
+
+        if self.flip_h and self.flip_v:
+            img = torch.flip(img, (1, 2))
+        elif self.flip_h:
+            img = torch.flip(img, (2,))
+        elif self.flip_v:
+            img = torch.flip(img, (1,))
 
         return img
 
@@ -455,39 +467,31 @@ class RandomHSV(BaseTransform):
         If you use OpenCV as your image processing library, make sure the image is RGB before using this transform.
         By default OpenCV uses BGR, so you must use `cvtColor`_ function to transform it to RGB.
 
-    .. _cvtColor: https://docs.opencv.org/master/d7/d1b/group__imgproc__misc.html#ga397ae87e1288a81d2363b61574eb8cab
+    .. _cvtColor: https://docs.opencv.org/3.4/d8/d01/group__imgproc__color__conversions.html#ga397ae87e1288a81d2363b61574eb8cab
     """
     def __init__(self, hue, saturation, value):
         self.hue = hue
         self.saturation = saturation
         self.value = value
 
-    def __call__(self, data):
-        dh = random.uniform(-self.hue, self.hue)
-        ds = random.uniform(1, self.saturation)
-        if random.random() < 0.5:
-            ds = 1/ds
-        dv = random.uniform(1, self.value)
-        if random.random() < 0.5:
-            dv = 1/dv
+    def _get_params(self):
+        self.dh = random.uniform(-self.hue, self.hue)
 
-        if data is None:
-            return None
-        elif isinstance(data, Image.Image):
-            return self._tf_pil(data, dh, ds, dv)
-        elif isinstance(data, np.ndarray):
-            return self._tf_cv(data, dh, ds, dv)
-        else:
-            log.error(f'HSVShift only works with <PIL images> or <OpenCV images> [{type(data)}]')
-            return data     # Pass on data to not destroy pipeline with annos
+        self.ds = random.uniform(1, self.saturation)
+        if random.random() < 0.5:
+            self.ds = 1 / self.ds
 
-    @staticmethod
-    def _tf_pil(img, dh, ds, dv):
+        self.dv = random.uniform(1, self.value)
+        if random.random() < 0.5:
+            self.dv = 1 / self.dv
+
+    def _tf_pil(self, img):
+        self._get_params()
         img = img.convert('HSV')
         channels = list(img.split())
 
         def wrap_hue(x):
-            x += int(dh * 255)
+            x += int(self.dh * 255)
             if x > 255:
                 x -= 255
             elif x < 0:
@@ -495,30 +499,86 @@ class RandomHSV(BaseTransform):
             return x
 
         channels[0] = channels[0].point(wrap_hue)
-        channels[1] = channels[1].point(lambda i: min(255, max(0, int(i*ds))))
-        channels[2] = channels[2].point(lambda i: min(255, max(0, int(i*dv))))
+        channels[1] = channels[1].point(lambda i: min(255, max(0, int(i*self.ds))))
+        channels[2] = channels[2].point(lambda i: min(255, max(0, int(i*self.dv))))
 
         img = Image.merge(img.mode, tuple(channels))
         img = img.convert('RGB')
         return img
 
-    @staticmethod
-    def _tf_cv(img, dh, ds, dv):
+    def _tf_cv(self, img):
+        self._get_params()
         img = img.astype(np.float32) / 255.0
         img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
 
-        def wrap_hue(x):
-            x[x >= 360.0] -= 360.0
-            x[x < 0.0] += 360.0
-            return x
-
-        img[:, :, 0] = wrap_hue(img[:, :, 0] + (360.0 * dh))
-        img[:, :, 1] = np.clip(ds * img[:, :, 1], 0.0, 1.0)
-        img[:, :, 2] = np.clip(dv * img[:, :, 2], 0.0, 1.0)
+        img[:, :, 0] = self.wrap_hue(img[:, :, 0] + (360.0 * self.dh))
+        img[:, :, 1] = np.clip(self.ds * img[:, :, 1], 0.0, 1.0)
+        img[:, :, 2] = np.clip(self.dv * img[:, :, 2], 0.0, 1.0)
 
         img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
         img = (img * 255).astype(np.uint8)
         return img
+
+    def _tf_torch(self, img):
+        self._get_params()
+
+        # Transform to HSV
+        maxval, _ = img.max(0)
+        minval, _ = img.min(0)
+        diff = maxval - minval
+
+        h = torch.zeros_like(diff)
+        mask = (diff != 0) & (maxval == img[0])
+        h[mask] = (60 * (img[1, mask] - img[2, mask]) / diff[mask] + 360)
+        mask = (diff != 0) & (maxval == img[1])
+        h[mask] = (60 * (img[2, mask] - img[0, mask]) / diff[mask] + 120)
+        mask = (diff != 0) & (maxval == img[2])
+        h[mask] = (60 * (img[0, mask] - img[1, mask]) / diff[mask] + 240)
+        h %= 360
+
+        s = torch.zeros_like(diff)
+        mask = maxval != 0
+        s[mask] = diff[mask] / maxval[mask]
+
+        # Random Shift
+        h = self.wrap_hue(h + (360 * self.dh))
+        s = torch.clamp(self.ds * s, 0, 1)
+        v = torch.clamp(self.dv * maxval, 0, 1)
+
+        # Transform to RGB
+        c = v * s
+        m = v - c
+        x = c * (1 - (((h / 60) % 2) - 1).abs())
+        cm = c + m
+        xm = x + m
+
+        img = torch.stack((m, m, m))
+        mask = (h >= 0) & (h <= 60)
+        img[0, mask] = cm[mask]
+        img[1, mask] = xm[mask]
+        mask = (h > 60) & (h <= 120)
+        img[0, mask] = xm[mask]
+        img[1, mask] = cm[mask]
+        mask = (h > 120) & (h <= 180)
+        img[1, mask] = cm[mask]
+        img[2, mask] = xm[mask]
+        mask = (h > 180) & (h <= 240)
+        img[1, mask] = xm[mask]
+        img[2, mask] = cm[mask]
+        mask = (h > 240) & (h <= 300)
+        img[0, mask] = xm[mask]
+        img[2, mask] = cm[mask]
+        mask = (h > 300) & (h <= 360)
+        img[0, mask] = cm[mask]
+        img[2, mask] = xm[mask]
+
+        return img
+
+    @staticmethod
+    def wrap_hue(h):
+        h[h >= 360.0] -= 360.0
+        h[h < 0.0] += 360.0
+        return h
 
 
 class RandomJitter(BaseMultiTransform):
@@ -528,6 +588,7 @@ class RandomJitter(BaseMultiTransform):
         jitter (Number [0-1]): Indicates how much of the image we can crop
         crop_anno(Boolean, optional): Whether we crop the annotations inside the image crop; Default **False**
         intersection_threshold(tuple(number) or number, optional): Minimal percentage of the annotation's box area that still needs to be inside the crop; Default **0.001**
+        fill_color (int or float, optional): Fill color to be used for padding (if int, will be divided by 255); Default **0.5**
 
     Note:
         If the `intersection_threshold` is a tuple of 2 numbers, then they are to be considered as **(width, height)** threshold values.
@@ -537,14 +598,14 @@ class RandomJitter(BaseMultiTransform):
         Create 1 RandomCrop object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
     """
-    def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001, fill_color=127):
+    def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001, fill_color=0.5):
         self.jitter = jitter
         self.crop_anno = crop_anno
-        self.fill_color = fill_color
+        self.fill_color = fill_color if isinstance(fill_color, float) else fill_color / 255
         self.intersection_threshold = intersection_threshold
         self.crop = None
 
-    def _get_crop(self, im_w, im_h):
+    def _get_params(self, im_w, im_h):
         dw, dh = int(im_w*self.jitter), int(im_h*self.jitter)
         crop_left = random.randint(-dw, dw)
         crop_right = random.randint(-dw, dw)
@@ -552,39 +613,58 @@ class RandomJitter(BaseMultiTransform):
         crop_bottom = random.randint(-dh, dh)
 
         self.crop = (crop_left, crop_top, im_w-crop_right, im_h-crop_bottom)
-        return self.crop
 
     def _tf_pil(self, img):
         im_w, im_h = img.size
-        crop = self._get_crop(im_w, im_h)
-        crop_w = crop[2] - crop[0]
-        crop_h = crop[3] - crop[1]
-        img_np = np.array(img)
-        channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
+        self._get_params(im_w, im_h)
+        crop_w = self.crop[2] - self.crop[0]
+        crop_h = self.crop[3] - self.crop[1]
+        shape = np.array(img).shape
+        channels = shape[2] if len(shape) > 2 else 1
 
-        img = img.crop((max(0, crop[0]), max(0, crop[1]), min(im_w, crop[2]-1), min(im_h, crop[3]-1)))
-        img_crop = Image.new(img.mode, (crop_w, crop_h), color=(self.fill_color,)*channels)
-        img_crop.paste(img, (max(0, -crop[0]), max(0, -crop[1])))
+        img = img.crop((max(0, self.crop[0]), max(0, self.crop[1]), min(im_w, self.crop[2]), min(im_h, self.crop[3])))
+        img_crop = Image.new(img.mode, (crop_w, crop_h), color=(int(self.fill_color*255),)*channels)
+        img_crop.paste(img, (max(0, -self.crop[0]), max(0, -self.crop[1])))
 
         return img_crop
 
     def _tf_cv(self, img):
         im_h, im_w = img.shape[:2]
-        crop = self._get_crop(im_w, im_h)
+        self._get_params(im_w, im_h)
 
-        crop_w = crop[2] - crop[0]
-        crop_h = crop[3] - crop[1]
-        img_crop = np.ones((crop_h, crop_w) + img.shape[2:], dtype=img.dtype) * self.fill_color
+        crop_w = self.crop[2] - self.crop[0]
+        crop_h = self.crop[3] - self.crop[1]
+        img_crop = np.ones((crop_h, crop_w) + img.shape[2:], dtype=img.dtype) * int(self.fill_color*255)
 
-        src_x1 = max(0, crop[0])
-        src_x2 = min(crop[2], im_w)
-        src_y1 = max(0, crop[1])
-        src_y2 = min(crop[3], im_h)
-        dst_x1 = max(0, -crop[0])
-        dst_x2 = crop_w - max(0, crop[2]-im_w)
-        dst_y1 = max(0, -crop[1])
-        dst_y2 = crop_h - max(0, crop[3]-im_h)
+        src_x1 = max(0, self.crop[0])
+        src_x2 = min(self.crop[2], im_w)
+        src_y1 = max(0, self.crop[1])
+        src_y2 = min(self.crop[3], im_h)
+        dst_x1 = max(0, -self.crop[0])
+        dst_x2 = crop_w - max(0, self.crop[2]-im_w)
+        dst_y1 = max(0, -self.crop[1])
+        dst_y2 = crop_h - max(0, self.crop[3]-im_h)
         img_crop[dst_y1:dst_y2, dst_x1:dst_x2] = img[src_y1:src_y2, src_x1:src_x2]
+
+        return img_crop
+
+    def _tf_torch(self, img):
+        im_h, im_w = img.shape[-2:]
+        self._get_params(im_w, im_h)
+
+        crop_w = self.crop[2] - self.crop[0]
+        crop_h = self.crop[3] - self.crop[1]
+        img_crop = torch.full((img.shape[0], crop_h, crop_w), self.fill_color, dtype=img.dtype)
+
+        src_x1 = max(0, self.crop[0])
+        src_x2 = min(self.crop[2], im_w)
+        src_y1 = max(0, self.crop[1])
+        src_y2 = min(self.crop[3], im_h)
+        dst_x1 = max(0, -self.crop[0])
+        dst_x2 = crop_w - max(0, self.crop[2]-im_w)
+        dst_y1 = max(0, -self.crop[1])
+        dst_y2 = crop_h - max(0, self.crop[3]-im_h)
+        img_crop[:, dst_y1:dst_y2, dst_x1:dst_x2] = img[:, src_y1:src_y2, src_x1:src_x2]
 
         return img_crop
 
@@ -640,21 +720,24 @@ class RandomRotate(BaseMultiTransform):
         self.im_w = None
         self.im_h = None
 
-    def _get_rotate(self, im_w, im_h):
+    def _get_params(self, im_w, im_h):
         self.im_w = im_w
         self.im_h = im_h
         self.angle = random.randint(-self.jitter, self.jitter)
 
     def _tf_pil(self, img):
         im_w, im_h = img.size
-        self._get_rotate(im_w, im_h)
+        self._get_params(im_w, im_h)
         return img.rotate(self.angle)
 
     def _tf_cv(self, img):
         im_h, im_w = img.shape[:2]
-        self._get_rotate(im_w, im_h)
+        self._get_params(im_w, im_h)
         M = cv2.getRotationMatrix2D((im_w/2, im_h/2), self.angle, 1)
         return cv2.warpAffine(img, M, (im_w, im_h))
+
+    def _tf_torch(self, img):
+        raise NotImplementedError('Random Rotate is not implemented for torch Tensors, you can use Kornia [https://github.com/kornia/kornia]')
 
     def _tf_anno(self, anno):
         anno = anno.copy()

@@ -3,6 +3,7 @@
 #   Copyright EAVISE
 #
 
+import random
 import pytest
 import torch
 import torchvision
@@ -168,4 +169,89 @@ def test_pad(image, grayscale):
     tf_np = pad(img_np)
     tf_pil = pad(img_pil)
     tf_torch = pad(img_torch)
+    assert_image_equal(tf_np, tf_pil, tf_torch)
+
+
+@pytest.mark.parametrize('grayscale', [True, False])
+def test_flip(image, grayscale):
+    img_np, img_pil, img_torch = image(400, 400, grayscale)
+
+    def get_params(tf):
+        tf.flip_h = bool(tf.horizontal)
+        tf.flip_v = bool(tf.vertical)
+
+    flip = tf.RandomFlip(1, 1)
+    flip._get_params = get_params.__get__(flip, tf.RandomFlip)
+
+    # Flip Horizontal
+    flip.horizontal = 1
+    flip.vertical = 0
+
+    assert_image_equal(img_np, img_pil, img_torch)
+    tf_np = flip(img_np)
+    tf_pil = flip(img_pil)
+    tf_torch = flip(img_torch)
+    assert_image_equal(tf_np, tf_pil, tf_torch)
+
+    # Flip Vertical
+    flip.horizontal = 0
+    flip.vertical = 1
+
+    assert_image_equal(img_np, img_pil, img_torch)
+    tf_np = flip(img_np)
+    tf_pil = flip(img_pil)
+    tf_torch = flip(img_torch)
+    assert_image_equal(tf_np, tf_pil, tf_torch)
+
+    # Flip Both
+    flip.horizontal = 1
+    flip.vertical = 1
+
+    assert_image_equal(img_np, img_pil, img_torch)
+    tf_np = flip(img_np)
+    tf_pil = flip(img_pil)
+    tf_torch = flip(img_torch)
+    assert_image_equal(tf_np, tf_pil, tf_torch)
+
+
+def test_hsv(image):
+    img_np, img_pil, img_torch = image(400, 400, False)
+    dh = random.uniform(-0.5, 0.5)
+    ds = random.uniform(1, 2)
+    dv = random.uniform(1, 2)
+
+    def get_params(tf):
+        tf.dh = dh
+        tf.ds = ds
+        tf.dv = dv
+
+    hsv = tf.RandomHSV(None, None, None)
+    hsv._get_params = get_params.__get__(hsv, tf.RandomHSV)
+
+    assert_image_equal(img_np, img_pil, img_torch)
+    tf_np = hsv(img_np)
+    tf_pil = hsv(img_pil)
+    tf_torch = hsv(img_torch)
+    assert_image_dim_equal(tf_np, tf_pil, tf_torch)
+    assert_image_content_equal(tf_np, None, tf_torch, np.testing.assert_allclose, atol=2)
+
+
+@pytest.mark.parametrize('grayscale', [True, False])
+def test_jitter(image, grayscale):
+    img_np, img_pil, img_torch = image(400, 400, grayscale)
+    crop_left = random.randint(-120, 120)
+    crop_right = random.randint(-120, 120)
+    crop_top = random.randint(-120, 120)
+    crop_bottom = random.randint(-120, 120)
+
+    def get_params(tf, w, h):
+        tf.crop = (crop_left, crop_top, w-crop_right, h-crop_bottom)
+
+    jitter = tf.RandomJitter(0.3, fill_color=50)
+    jitter._get_params = get_params.__get__(jitter, tf.RandomJitter)
+
+    assert_image_equal(img_np, img_pil, img_torch)
+    tf_np = jitter(img_np)
+    tf_pil = jitter(img_pil)
+    tf_torch = jitter(img_torch)
     assert_image_equal(tf_np, tf_pil, tf_torch)
