@@ -51,7 +51,14 @@ class Crop(BaseMultiTransform):
         self.scale = 1
         self.crop = None
 
-    def _get_params(self, im_w, im_h, net_w, net_h):
+    def _get_params(self, im_w, im_h):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        elif isinstance(self.dimension, int):
+            net_w, net_h = self.dimension, self.dimension
+        else:
+            net_w, net_h = self.dimension
+
         if net_w / im_w >= net_h / im_h:
             self.scale = net_w / im_w
             ds = int(im_h * self.scale - net_h + 0.5)
@@ -69,10 +76,6 @@ class Crop(BaseMultiTransform):
             self.crop = (dx, dy, dx + net_w, dy + net_h)
 
     def _tf_pil(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        else:
-            net_w, net_h = self.dimension
         im_w, im_h = img.size
         self._get_params(im_w, im_h, net_w, net_h)
 
@@ -90,12 +93,8 @@ class Crop(BaseMultiTransform):
         return img
 
     def _tf_cv(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        else:
-            net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Rescale
         if self.scale != 1:
@@ -108,12 +107,8 @@ class Crop(BaseMultiTransform):
         return img
 
     def _tf_torch(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        else:
-            net_w, net_h = self.dimension
         im_h, im_w = img.shape[-2:]
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Rescale
         if self.scale != 1:
@@ -193,7 +188,14 @@ class Letterbox(BaseMultiTransform):
         self.pad = None
         self.scale = None
 
-    def _get_params(self, im_w, im_h, net_w, net_h):
+    def _get_params(self, im_w, im_h):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        elif isinstance(self.dimension, int):
+            net_w, net_h = self.dimension, self.dimension
+        else:
+            net_w, net_h = self.dimension
+
         if im_w / net_w >= im_h / net_h:
             self.scale = net_w / im_w
             pad_w = 0
@@ -209,12 +211,8 @@ class Letterbox(BaseMultiTransform):
             self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
 
     def _tf_pil(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        else:
-            net_w, net_h = self.dimension
         im_w, im_h = img.size
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Rescale
         if self.scale != 1:
@@ -231,12 +229,8 @@ class Letterbox(BaseMultiTransform):
         return img
 
     def _tf_cv(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        else:
-            net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Rescale
         if self.scale != 1:
@@ -250,12 +244,8 @@ class Letterbox(BaseMultiTransform):
         return img
 
     def _tf_torch(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        else:
-            net_w, net_h = self.dimension
         im_h, im_w = img.shape[-2:]
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Rescale
         if self.scale != 1:
@@ -313,7 +303,14 @@ class Pad(BaseMultiTransform):
         self.pad = None
         self.scale = None
 
-    def _get_params(self, im_w, im_h, net_w, net_h):
+    def _get_params(self, im_w, im_h):
+        if self.dataset is not None:
+            net_w, net_h = self.dataset.input_dim
+        elif isinstance(self.dimension, int):
+            net_w, net_h = self.dimension, self.dimension
+        else:
+            net_w, net_h = self.dimension
+
         if im_w % net_w == 0 and im_h % net_h == 0:
             self.pad = None
         else:
@@ -322,14 +319,8 @@ class Pad(BaseMultiTransform):
             self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
 
     def _tf_pil(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        elif isinstance(self.dimension, int):
-            net_w, net_h = self.dimension, self.dimension
-        else:
-            net_w, net_h = self.dimension
         im_w, im_h = img.size
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Pad
         if self.pad is not None:
@@ -340,14 +331,8 @@ class Pad(BaseMultiTransform):
         return img
 
     def _tf_cv(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        elif isinstance(self.dimension, int):
-            net_w, net_h = self.dimension, self.dimension
-        else:
-            net_w, net_h = self.dimension
         im_h, im_w = img.shape[:2]
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Pad
         if self.pad is not None:
@@ -357,12 +342,8 @@ class Pad(BaseMultiTransform):
         return img
 
     def _tf_torch(self, img):
-        if self.dataset is not None:
-            net_w, net_h = self.dataset.input_dim
-        else:
-            net_w, net_h = self.dimension
         im_h, im_w = img.shape[-2:]
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Pad
         if self.pad is not None:
