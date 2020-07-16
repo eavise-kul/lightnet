@@ -158,7 +158,8 @@ class NMSFast(NMS):
     This function can either work on a pytorch bounding box tensor or a brambox dataframe.
 
     This faster alternative makes a small "mistake" during NMS computation,
-    in order to remove a necessary loop in the code, allowing it to run faster (most notable on GPU).
+    in order to remove a necessary loop in the code, allowing it to run faster.
+    The speed increase should be mostly notable when performing NMS with PyTorch tensors on the GPU.
 
     The difference is explained in the image below, where the boxes A and B overlap enough to be filtered out
     and the boxes B and C as well (but A and C do not). |br|
@@ -351,14 +352,17 @@ class NMSSoft(BaseTransform):
             order = order.cpu()
             decay = decay.cpu()
 
-        for i in range(scores.shape[0]):
-            if scores[i] <= self.conf_thresh:
+        tempscores = scores.clone()
+        for _ in range(scores.shape[0]):
+            maxidx = tempscores.argmax()
+            maxscore = tempscores[maxidx]
+            if maxscore <= self.conf_thresh:
                 break
 
-            scores[i+1:] *= decay[i, i+1:]
-            scores[i+1:], norder = scores[i+1:].sort(0, descending=True)
-            decay[i+1:, i+1:] = decay[i+1:, i+1:][norder][:, norder]
-            order[i+1:] = order[i+1:][norder]
+            tempscores[maxidx] = -1
+            mask = tempscores != -1
+            tempscores[mask] *= decay[maxidx, mask]
+            scores[mask] = tempscores[mask]
 
         scores = scores.to(boxes.device)
         order = order.to(boxes.device)
@@ -405,15 +409,17 @@ class NMSSoft(BaseTransform):
 
         # Decay scores
         decay = np.exp(-(ious ** 2) / self.sigma)
-        for i in range(scores.shape[0]):
-            if scores[i] <= self.conf_thresh:
+        tempscores = scores.copy()
+        for _ in range(scores.shape[0]):
+            maxidx = tempscores.argmax()
+            maxscore = tempscores[maxidx]
+            if maxscore <= self.conf_thresh:
                 break
 
-            scores[i+1:] *= decay[i, i+1:]
-            norder = scores.argsort()[::-1]
-            scores = scores[norder]
-            decay = decay[norder][:, norder]
-            order = order[norder]
+            tempscores[maxidx] = -1
+            mask = tempscores != -1
+            tempscores[mask] *= decay[maxidx, mask]
+            scores[mask] = tempscores[mask]
 
         # Set scores back
         orig_order = order.argsort()
@@ -428,6 +434,7 @@ class NMSSoftFast(BaseTransform):
 
     This version of NMS makes the same "mistake" as :class:`~lightnet.data.transform.NMSFast`,
     which in turn allows it to be faster than the regular :class:`~lightnet.data.transform.NMSSoft` algorithm.
+    The speed increase should be mostly notable when performing NMS with PyTorch tensors on the GPU.
 
     Args:
         sigma (Number): Sensitivity value for the confidence rescaling (exponential decay)
