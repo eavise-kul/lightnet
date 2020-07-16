@@ -345,16 +345,23 @@ class NMSSoft(BaseTransform):
             ious *= same_class
 
         # Decay scores
-        decay = torch.exp(-(ious.triu(1) ** 2) / self.sigma)
+        decay = torch.exp(-(ious ** 2) / self.sigma)
         if self.force_cpu:
             scores = scores.cpu()
+            order = order.cpu()
             decay = decay.cpu()
+
         for i in range(scores.shape[0]):
-            scores[i] *= decay[:, i].prod()
             if scores[i] <= self.conf_thresh:
-                decay[i] = 1
+                break
+
+            scores[i+1:] *= decay[i, i+1:]
+            scores, norder = scores.sort(0, descending=True)
+            decay = decay[norder][:, norder]
+            order = order[norder]
 
         scores = scores.to(boxes.device)
+        order = order.to(boxes.device)
         return scores.scatter(0, order, scores)
 
     def _pandas(self, boxes):
@@ -397,12 +404,16 @@ class NMSSoft(BaseTransform):
             ious *= same_class
 
         # Decay scores
-        decay = np.triu(ious, 1)
-        decay = np.exp(-(decay ** 2) / self.sigma)
+        decay = np.exp(-(ious ** 2) / self.sigma)
         for i in range(scores.shape[0]):
-            scores[i] *= np.prod(decay[:, i], 0)
             if scores[i] <= self.conf_thresh:
-                decay[i] = 1
+                break
+
+            scores[i+1:] *= decay[i, i+1:]
+            norder = scores.argsort()[::-1]
+            scores = scores[norder]
+            decay = decay[norder][:, norder]
+            order = order[norder]
 
         # Set scores back
         orig_order = order.argsort()
