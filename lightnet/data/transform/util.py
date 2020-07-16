@@ -209,18 +209,30 @@ class Compose(list):
     def __getitem__(self, index):
         """ Get a specific item from the transformation list.
 
-        If the index is a string, we compare this string with the classnames of the transformations in the list (all lowercase).
+        If the index is a string, we compare this string with the class or function names of the transformations in the list (all lowercase).
+        For classes, we use `tf.__class__.__name__.lower()`, otherwise we use `tf.__name__.lower()`.
         If there are multiple transforms from the same class, we return the first match.
 
         If the index is not a string, we simply call the ``__getitem__()`` method from list, which expects an integer.
         """
         if isinstance(index, str):
             index = index.lower()
-            keys = tuple(tf.__class__.__name__.lower() for tf in self)
+            keys = tuple(tf.__class__.__name__.lower() if tf.__class__.__name__ != 'function' else tf.__name__.lower() for tf in self)
             if index not in keys:
                 raise KeyError(f'[{index}] not found in transforms')
 
             return super().__getitem__(keys.index(index))
+        else:
+            return super().__getitem__(index)
+
+    def __contains__(self, key):
+        """ Check if a class or function is in this compose list.
+        If the key is a string, we compare it with the class or function names of the transformations in this list (all lowercase).
+        For classes, we use `tf.__class__.__name__.lower()`, otherwise we use `tf.__name__.lower()`.
+        """
+        if isinstance(key, str):
+            keys = tuple(tf.__class__.__name__.lower() if tf.__class__.__name__ != 'function' else tf.__name__.lower() for tf in self)
+            return key.lower() in keys
         else:
             return super().__getitem__(index)
 
