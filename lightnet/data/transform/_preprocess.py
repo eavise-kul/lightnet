@@ -77,7 +77,7 @@ class Crop(BaseMultiTransform):
 
     def _tf_pil(self, img):
         im_w, im_h = img.size
-        self._get_params(im_w, im_h, net_w, net_h)
+        self._get_params(im_w, im_h)
 
         # Rescale
         if self.scale != 1:
@@ -277,25 +277,29 @@ class Letterbox(BaseMultiTransform):
 
 
 class Pad(BaseMultiTransform):
-    """ Pad images/annotations so that the image dimensions become a multiple of a certain dimension.
+    """ Pad images/annotations to a certain dimension.
 
     Args:
         dimension (int or tuple, optional): Default size for the padding, expressed as a single integer or as a (width, height) tuple; Default **None**
         dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
+        multiple_dim (boolean, optional): Consider given dimensions to be multiples instead of exact values; Default **True**
         fill_color (int or float, optional): Fill color to be used for padding (if int, will be divided by 255); Default **0.5**
 
     Warning:
-        Do note that the ``dimension`` or ``dataset`` argument here uses the given width and height as a multiple instead of a real dimension.
+        Do note that the ``dimension`` or ``dataset`` argument here uses the given width and height as a multiple instead of a real dimension by default.
         Given a certain value X, the image (and annotations) will be padded, so that the image dimensions are a multiple of X. |br|
         This is different compared to :class:`~lightnet.data.transform.Crop` or :class:`~lightnet.data.transform.Letterbox`.
+
+        You can toggle this behaviour by setting ``multiple_dim=False``, but keep in mind that the given dimensions should always be bigger than the original input image dimensions.
 
     Note:
         Create 1 Pad object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
     """
-    def __init__(self, dimension=None, dataset=None, fill_color=127):
+    def __init__(self, dimension=None, dataset=None, multiple_dim=True, fill_color=127):
         self.dimension = dimension
         self.dataset = dataset
+        self.multiple_dim = multiple_dim
         self.fill_color = fill_color if isinstance(fill_color, float) else fill_color / 255
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
@@ -311,12 +315,22 @@ class Pad(BaseMultiTransform):
         else:
             net_w, net_h = self.dimension
 
-        if im_w % net_w == 0 and im_h % net_h == 0:
-            self.pad = None
+        if self.multiple_dim:
+            if im_w % net_w == 0 and im_h % net_h == 0:
+                self.pad = None
+            else:
+                pad_w = (net_w - (im_w % net_w)) / 2
+                pad_h = (net_h - (im_h % net_h)) / 2
+                self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
         else:
-            pad_w = (net_w - (im_w % net_w)) / 2
-            pad_h = (net_h - (im_h % net_h)) / 2
-            self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
+            if im_w == net_w and im_h == net_h:
+                self.pad = None
+            elif im_w <= net_w and im_h <= net_h:
+                pad_w = (net_w - im_w) / 2
+                pad_h = (net_h - im_h) / 2
+                self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
+            else:
+                raise ValueError(f'Can only pad to bigger dimensions. Image is bigger than network dimensions [({im_h}, {im_w}) -> ({net_h}, {net_w})]')
 
     def _tf_pil(self, img):
         im_w, im_h = img.size
