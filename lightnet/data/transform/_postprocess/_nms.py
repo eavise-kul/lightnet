@@ -356,9 +356,9 @@ class NMSSoft(BaseTransform):
                 break
 
             scores[i+1:] *= decay[i, i+1:]
-            scores, norder = scores.sort(0, descending=True)
-            decay = decay[norder][:, norder]
-            order = order[norder]
+            scores[i+1:], norder = scores[i+1:].sort(0, descending=True)
+            decay[i+1:, i+1:] = decay[i+1:, i+1:][norder][:, norder]
+            order[i+1:] = order[i+1:][norder]
 
         scores = scores.to(boxes.device)
         order = order.to(boxes.device)
