@@ -9,5 +9,6 @@ from ._cornernet import *
 from ._darknet import *
 
 # Util
+from ._brambox import *
 from ._nms import *
 from ._reverse_fit import *
