@@ -16,7 +16,7 @@ class GetDarknetBoxes(BaseTransform):
 
     Args:
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
-        network_stride (Number): Downsampling factor of the network (most lightnet networks have a `inner_stride` attribute)
+        network_stride (Number): Downsampling factor of the network (most lightnet networks have a `stride` attribute)
         anchors (list): 2D list representing anchor boxes (see :class:`lightnet.models.YoloV2`)
 
     Returns:
@@ -25,7 +25,7 @@ class GetDarknetBoxes(BaseTransform):
     def __init__(self, conf_thresh, network_stride, anchors):
         self.conf_thresh = conf_thresh
         self.network_stride = network_stride
-        self.anchors = torch.Tensor(anchors)
+        self.anchors = torch.tensor(anchors)
         self.num_anchors = self.anchors.shape[0]
         self.anchors_step = self.anchors.shape[1]
 
@@ -88,7 +88,7 @@ class GetMultiScaleDarknetBoxes(GetDarknetBoxes):
 
     Args:
         conf_thresh (Number [0-1]): Confidence threshold to filter detections
-        network_strides (list): Downsampling factors of the network (most lightnet networks have a `inner_stride` attribute)
+        network_strides (list): Downsampling factors of the network (most lightnet networks have a `stride` attribute)
         anchors (list): 3D list representing anchor boxes (see :class:`lightnet.models.YoloV3`)
 
     Returns:
@@ -105,7 +105,7 @@ class GetMultiScaleDarknetBoxes(GetDarknetBoxes):
         and as such did not implement overlapping class labels.
     """
     def __init__(self, conf_thresh, network_strides, anchors):
-        super().__init__(conf_thresh, anchors[0], network_strides[0])
+        super().__init__(conf_thresh, network_strides[0], anchors[0])
         self.root_strides = network_strides
         self.root_anchors = torch.tensor(anchors, requires_grad=False)
 
