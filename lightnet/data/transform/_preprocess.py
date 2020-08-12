@@ -61,18 +61,17 @@ class Crop(BaseMultiTransform):
 
         if net_w / im_w >= net_h / im_h:
             self.scale = net_w / im_w
-            ds = int(im_h * self.scale - net_h + 0.5)
-            dx = 0
-            dy = ds // 2 if self.center else random.randint(0, ds)
         else:
             self.scale = net_h / im_h
-            ds = int(im_w * self.scale - net_w + 0.5)
-            dx = ds // 2 if self.center else random.randint(0, ds)
             dy = 0
 
-        if ds == 0:
+        xcrop = int(im_w * self.scale - net_w + 0.5)
+        ycrop = int(im_h * self.scale - net_h + 0.5)
+        if xcrop == 0 and ycrop == 0:
             self.crop = None
         else:
+            dx = xcrop // 2 if self.center else random.randint(0, xcrop)
+            dy = ycrop // 2 if self.center else random.randint(0, ycrop)
             self.crop = (dx, dy, dx + net_w, dy + net_h)
 
     def _tf_pil(self, img):
@@ -198,13 +197,11 @@ class Letterbox(BaseMultiTransform):
 
         if im_w / net_w >= im_h / net_h:
             self.scale = net_w / im_w
-            pad_w = 0
-            pad_h = (net_h - int(im_h * self.scale)) / 2
         else:
             self.scale = net_h / im_h
-            pad_w = (net_w - int(im_w * self.scale)) / 2
-            pad_h = 0
 
+        pad_w = (net_w - int(im_w * self.scale)) / 2
+        pad_h = (net_h - int(im_h * self.scale)) / 2
         if pad_w == 0 and pad_h == 0:
             self.pad = None
         else:
