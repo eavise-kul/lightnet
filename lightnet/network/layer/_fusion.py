@@ -49,7 +49,6 @@ class Fusion(nn.Module):
         ...   ln.network.layer.Conv2dBatchReLU(32, 64, 3, 1, 1),
         ...   ln.network.layer.Conv2dBatchReLU(64, 32, 3, 1, 1),
         ... ]
-        >>> 
         >>> # Streams are fused in the middle of the module
         >>> module = ln.network.layer.Fusion(layers, fuse_layer=1)
         >>> print(module)
@@ -63,7 +62,6 @@ class Fusion(nn.Module):
             (1): Conv2dBatchReLU(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
           )
         )
-        >>> 
         >>> # Streams are fused at the end of the module (after last convolution)
         >>> module = ln.network.layer.Fusion(layers, fuse_layer=3)
         >>> print(module)
@@ -75,7 +73,6 @@ class Fusion(nn.Module):
           )
           (Fuse): Conv2d(64, 32, kernel_size=(1, 1), stride=(1, 1), bias=False)
         )
-        >>> 
         >>> # Streams are fused before the first layer
         >>> module = ln.network.layer.Fusion(layers, fuse_layer=0)
         >>> print(module)
@@ -87,7 +84,6 @@ class Fusion(nn.Module):
             (2): Conv2dBatchReLU(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
           )
         )
-        >>> 
         >>> # Streams were fused before this module and thus there is no fusion involved (only combined sequential)
         >>> module = ln.network.layer.Fusion(layers, fuse_layer=None)
         >>> print(module)
@@ -98,7 +94,6 @@ class Fusion(nn.Module):
             (2): Conv2dBatchReLU(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
           )
         )
-        >>> 
         >>> # Streams are not fused in this module (duplicated regular and fusion sequentials)
         >>> module = ln.network.layer.Fusion(layers, fuse_layer=4)
         >>> print(module)

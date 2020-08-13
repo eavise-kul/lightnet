@@ -36,10 +36,8 @@ class Residual(nn.Sequential):
         ...     ln.network.layer.Conv2dBatchReLU(3, 32, 3, 1, 1),
         ...     ln.network.layer.Conv2dBatchReLU(32, 64, 3, 1, 1),
         ...     ln.network.layer.Conv2dBatchReLU(64, 32, 3, 1, 1),
-        ... 
         ...     # The skip block should ensure that the output tensor has the same number of channels
         ...     skip=ln.network.layer.Conv2dBatchReLU(3, 32, 1, 1, 0),
-        ... 
         ...     # The post block should run on the summed tensor,
         ...     # so the in_channels are equal to the out_channels of the output of the residual
         ...     post=ln.network.layer.Conv2dBatchReLU(32, 1, 1, 1, 0)
@@ -52,7 +50,6 @@ class Residual(nn.Sequential):
           (skip): Conv2dBatchReLU(3, 32, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0), ReLU(inplace=True))
           (post): Conv2dBatchReLU(32, 1, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0), ReLU(inplace=True))
         )
-        >>> 
         >>> in_tensor = torch.rand(1, 3, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape
@@ -114,12 +111,12 @@ class SequentialSelect(nn.Sequential):
             >>> module = ln.network.layer.SequentialSelect(
             ...     # We want to return the output from layers '1' and '3'
             ...     [1, 3],
-            ...  
+            ...
             ...     # The `return_selection` argument can also be passed as first or last of the *args
             ...     # Since we specify False, the selected outputs will not be returned,
             ...     # but we can access them as `module.selected`
             ...     False,
-            ... 
+            ...
             ...     # Sequential
             ...     ln.network.layer.Conv2dBatchReLU(3, 32, 3, 1, 1),
             ...     ln.network.layer.Conv2dBatchReLU(32, 64, 3, 1, 1),
@@ -138,7 +135,6 @@ class SequentialSelect(nn.Sequential):
               (4): Conv2dBatchReLU(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
               (5): Conv2dBatchReLU(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
             )
-            >>> 
             >>> in_tensor = torch.rand(1, 3, 10, 10)
             >>> out_tensor = module(in_tensor)
             >>> print(out_tensor.shape)
@@ -158,7 +154,6 @@ class SequentialSelect(nn.Sequential):
             ...     ln.network.layer.Conv2dBatchReLU(32, 64, 3, 1, 1),
             ...     ln.network.layer.Conv2dBatchReLU(64, 128, 3, 1, 1),
             ... )
-            >>> 
             >>> in_tensor = torch.rand(1, 3, 10, 10)
             >>> out_tensor, selected = module(in_tensor)
             >>> print(out_tensor.shape)
@@ -288,7 +283,7 @@ class ParallelCat(nn.Sequential):
         ...         ln.network.layer.Conv2dBatchReLU(64, 32, 3, 1, 1),
         ...     ),
         ...     ln.network.layer.InvertedBottleneck(3, 32, 3, 1, 1),
-        ... 
+        ...
         ...     # The post block should run on the concatenated tensor,
         ...     # so the in_channels are equal to the sum of the out_channels of the parallel modules
         ...     post=ln.network.layer.Conv2dBatchReLU(96, 32, 1, 1, 0)
@@ -304,7 +299,6 @@ class ParallelCat(nn.Sequential):
           (2): InvertedBottleneck(3, 32, kernel_size=(3, 3), stride=(1, 1), expansion=1, ReLU(inplace=True))
           (post): Conv2dBatchReLU(96, 32, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0), ReLU(inplace=True))
         )
-        >>> 
         >>> in_tensor = torch.rand(1, 3, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape
@@ -351,7 +345,7 @@ class ParallelSum(nn.Sequential):
         ...         ln.network.layer.Conv2dBatchReLU(64, 32, 3, 1, 1),
         ...     ),
         ...     ln.network.layer.InvertedBottleneck(3, 32, 3, 1, 1),
-        ... 
+        ...
         ...     # The post block should run on the summed tensor,
         ...     # so the in_channels are equal to the out_channels of the parallel modules
         ...     post=ln.network.layer.Conv2dBatchReLU(32, 1, 1, 1, 0),
@@ -367,7 +361,6 @@ class ParallelSum(nn.Sequential):
           (2): InvertedBottleneck(3, 32, kernel_size=(3, 3), stride=(1, 1), expansion=1, ReLU(inplace=True))
           (post): Conv2dBatchReLU(32, 1, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0), ReLU(inplace=True))
         )
-        >>> 
         >>> in_tensor = torch.rand(1, 3, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape

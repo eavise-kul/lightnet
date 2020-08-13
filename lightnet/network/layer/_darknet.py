@@ -36,16 +36,13 @@ class Conv2dBatchReLU(nn.Module):
         >>> module = ln.network.layer.Conv2dBatchReLU(3, 32, 3, 1, 1)
         >>> print(module)
         Conv2dBatchReLU(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
-        >>> 
         >>> in_tensor = torch.rand(1, 3, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape
         torch.Size([1, 32, 10, 10])
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
-                 momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, momentum=0.1, relu=lambda: nn.ReLU(inplace = True)):
         super().__init__()
-
         self.layers = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False),
             nn.BatchNorm2d(out_channels, momentum=momentum),
@@ -115,7 +112,6 @@ class PaddedMaxPool2d(nn.Module):
         >>> module = ln.network.layer.PaddedMaxPool2d(2, 1, (0, 1, 0, 1))
         >>> print(module)
         PaddedMaxPool2d(kernel_size=2, stride=1, padding=(0, 1, 0, 1), dilation=1)
-        >>> 
         >>> in_tensor = torch.rand(1, 3, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape

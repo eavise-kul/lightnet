@@ -37,14 +37,12 @@ class Conv2dDepthWise(nn.Module):
         >>> module = ln.network.layer.Conv2dDepthWise(3, 32, 3, 1, 1)
         >>> print(module)
         Conv2dDepthWise(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
-        >>> 
         >>> in_tensor = torch.rand(1, 3, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape
         torch.Size([1, 32, 10, 10])
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
-                 momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, momentum=0.1, relu=lambda: nn.ReLU(inplace = True)):
         super().__init__()
 
         self.layers = nn.Sequential(
@@ -107,7 +105,6 @@ class InvertedBottleneck(nn.Module):
         >>> module = ln.network.layer.InvertedBottleneck(3, 32, 3, 1, 3)
         >>> print(module)
         InvertedBottleneck(3, 32, kernel_size=(3, 3), stride=(1, 1), expansion=3, ReLU(inplace=True))
-        >>> 
         >>> in_tensor = torch.rand(1, 3, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape
@@ -117,7 +114,6 @@ class InvertedBottleneck(nn.Module):
         >>> module = ln.network.layer.InvertedBottleneck(32, 32, 3, 2, 3)
         >>> print(module)
         InvertedBottleneck(32, 32, kernel_size=(3, 3), stride=(2, 2), expansion=3, ReLU(inplace=True))
-        >>> 
         >>> in_tensor = torch.rand(1, 32, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape
@@ -127,14 +123,12 @@ class InvertedBottleneck(nn.Module):
         >>> module = ln.network.layer.InvertedBottleneck(32, 32, 3, 1, 3)
         >>> print(module)
         InvertedBottleneck(32, 32, kernel_size=(3, 3), stride=(1, 1), expansion=3, ReLU(inplace=True), residual_connection)
-        >>> 
         >>> in_tensor = torch.rand(1, 32, 10, 10)
         >>> out_tensor = module(in_tensor)
         >>> out_tensor.shape
         torch.Size([1, 32, 10, 10])
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride, expansion,
-                 momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, expansion, momentum=0.1, relu=lambda: nn.ReLU(inplace = True)):
         super().__init__()
 
         # Parameters
