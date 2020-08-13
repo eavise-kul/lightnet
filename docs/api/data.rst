@@ -132,7 +132,7 @@ Some random classes and functions that are used in the data subpackage.
 .. autosummary::
    :toctree: generated
    :nosignatures:
-   :template: member-template.rst
+   :template: allmember-template.rst
 
    lightnet.data.Dataset
    lightnet.data.DataLoader

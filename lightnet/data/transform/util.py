@@ -134,7 +134,7 @@ class BaseMultiTransform(ABC):
         return anno
 
     def __str__(self):
-        return f'{self.__class__.__name__} [MULTI-TF]'
+        return f'{self.__class__.__name__}'
 
     def __repr__(self):
         string = f'{self.__class__.__name__} [MULTI-TF] (\n'
@@ -162,9 +162,10 @@ class Compose(list):
     This class will then run through the transformations and apply each of them.
     If a transformation is of a type :class:`~lightnet.data.transform.util.BaseMultiTransform`,
     all elements from the data tuple will be run through this transformation sequentially,
-    otherwise only the first item will be transformed.
-
+    otherwise only the first item will be transformed. |br|
     If you pass anything other than a tuple, it will just be transformed by each transformation sequentially.
+
+    Check out the `tutorial <../notes/02-A-basics.html#Pre-processing-pipeline>`_ for more information.
 
     Args:
         transformations (list of callables): A list of all your transformations in the right order.
@@ -173,18 +174,59 @@ class Compose(list):
         self.multi_tf (tuple): Which classes to consider to be multi-transforms that act on both images and annotations; Default **(BaseMultiTransform,)**
 
     Example:
+        Adding and removing transformations on the fly, using list methods:
+
         >>> tf = ln.data.transform.Compose([lambda n: n+1])
         >>> tf(10)  # 10+1
         11
+        >>> # We can append using the append method
         >>> tf.append(lambda n: n*2)
         >>> tf(10)  # (10+1)*2
         22
+        >>> # Because our composition class is a list, we can also append by adding a list
+        >>> tf += [lambda n: n**2]
+        >>> tf(10)  # ((10+1)*2)**2
+        484
+        >>> # Inserting at a random place in the list
         >>> tf.insert(0, lambda n: n//2)
-        >>> tf(10)  # ((10//2)+1)*2
-        12
+        >>> tf(10)  # (((10//2)+1)*2)**2
+        144
+        >>> # Removing an operator
         >>> del tf[2]
-        >>> tf(10)  # (10//2)+1
-        6
+        >>> tf(10)  # ((10//2)+1)**2
+        36
+
+        Combining pipelines:
+
+        >>> pipeline1 = ln.data.transform.Compose([lambda n: n+1])
+        >>> pipeline1(10)   # 10+1
+        11
+        >>> pipeline2 = ln.data.transform.Compose([lambda n: n-1])
+        >>> pipeline2(10)   # 10-1
+        9
+        >>> pipeline = pipeline1 + pipeline2
+        >>> pipeline(10)    # (10+1)-1
+        10
+
+        Named indexes:
+
+        >>> pipeline = ln.data.transform.Compose([
+        ...     ln.data.transform.RandomHSV(hue=1, saturation=2, value=2),
+        ...     ln.data.transform.Letterbox(dimension=(416, 416)),
+        ... ])
+        >>> print(pipeline)
+        Compose [RandomHSV, Letterbox]
+        >>> # Access transforms by index
+        >>> print(pipeline[1])
+        Letterbox
+        >>> # Access transforms by name (casing does not matter)
+        >>> print(pipeline['randomhsv'])
+        RandomHSV
+        >>> # Check if a certain transformation is in this pipeline
+        >>> 'letterbox' in pipeline
+        True
+        >>> 'RandomCrop' in pipeline
+        False
     """
     multi_tf = (BaseMultiTransform,)
 
@@ -251,3 +293,15 @@ class Compose(list):
             format_string += f'\n  {tfrepr}'
         format_string += '\n]'
         return format_string
+
+    def __add__(self, other):
+        return Compose(super().__add__(other))
+
+    def __radd__(self, other):
+        return self + other
+
+    def __mul__(self, other):
+        return Compose(super().__mul__(other))
+
+    def __rmul__(self, other):
+        return self * other
