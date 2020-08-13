@@ -7,33 +7,49 @@ Networks
 --------
 Classification
 ~~~~~~~~~~~~~~
-.. autoclass:: lightnet.models.Darknet
-.. autoclass:: lightnet.models.Darknet19
-.. autoclass:: lightnet.models.Darknet53
-.. autoclass:: lightnet.models.MobileDarknet19
-.. autoclass:: lightnet.models.MobilenetV1
-.. autoclass:: lightnet.models.MobilenetV2
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+   :template: nomember-template.rst
+
+   lightnet.models.Darknet
+   lightnet.models.Darknet19
+   lightnet.models.Darknet53
+   lightnet.models.MobileDarknet19
+   lightnet.models.MobilenetV1
+   lightnet.models.MobilenetV2
 
 
 Detection
 ~~~~~~~~~
-.. autoclass:: lightnet.models.DYolo
-.. autoclass:: lightnet.models.MobilenetYolo
-.. autoclass:: lightnet.models.MobileYoloV2
-.. autoclass:: lightnet.models.TinyYoloV2
-.. autoclass:: lightnet.models.TinyYoloV3
-.. autoclass:: lightnet.models.YoloV2
-.. autoclass:: lightnet.models.YoloV3
-.. autoclass:: lightnet.models.YoloFusion
-.. autoclass:: lightnet.models.Yolt
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+   :template: nomember-template.rst
 
+   lightnet.models.Cornernet
+   lightnet.models.CornernetSqueeze
+   lightnet.models.DYolo
+   lightnet.models.MobilenetYolo
+   lightnet.models.MobileYoloV2
+   lightnet.models.TinyYoloV2
+   lightnet.models.TinyYoloV3
+   lightnet.models.YoloV2
+   lightnet.models.YoloV3
+   lightnet.models.YoloFusion
+   lightnet.models.Yolt
+
+----
 
 Data
 ----
-.. autoclass:: lightnet.models.BramboxDataset
-   :members: __getitem__
-.. autoclass:: lightnet.models.DarknetDataset
-   :members:
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+   :template: getitemmember-template.rst
+
+   lightnet.models.BramboxDataset
+   lightnet.models.DarknetDataset
 
 
-.. include:: ../links.rst
+.. include:: /links.rst

@@ -214,9 +214,9 @@ class CornernetSqueeze(lnn.module.Lightnet):
     def get_hourglass(residual):
         return lnn.layer.HourGlass(
             4, [256, 256, 384, 384, 512],
-            make_up=lambda c: nn.Sequential(*[residual(c, c) for i in range(2)]),
+            make_upper=lambda ci, co: nn.Sequential(*[residual(ci, co) for _ in range(2)]),
             make_down1=lambda ci, co: nn.Sequential(residual(ci, co, stride=2), residual(co, co)),
-            make_inner=lambda c: nn.Sequential(*[residual(c, c) for i in range(4)]),
+            make_inner=lambda ci, co: nn.Sequential(*[residual(ci, co) for _ in range(4)]),
             make_down2=lambda ci, co: nn.Sequential(residual(ci, ci), residual(ci, co), nn.ConvTranspose2d(co, co, 4, 2, 1))
         )
 
@@ -262,7 +262,7 @@ class CornernetSqueeze(lnn.module.Lightnet):
 
             k = (
                 k[16:]
-                .replace('up1', 'up')
+                .replace('up1', 'upper')
                 .replace('up2', 'down.down2.2')
                 .replace('low1', 'down.down1')
                 .replace('low3', 'down.down2')

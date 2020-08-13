@@ -196,9 +196,9 @@ class Cornernet(lnn.module.Lightnet):
     def get_hourglass(residual):
         return lnn.layer.HourGlass(
             5, [256, 256, 384, 384, 384, 512],
-            make_up=lambda c: nn.Sequential(*[residual(c, c) for i in range(2)]),
+            make_upper=lambda ci, co: nn.Sequential(*[residual(ci, co) for _ in range(2)]),
             make_down1=lambda ci, co: nn.Sequential(residual(ci, co, stride=2), residual(co, co)),
-            make_inner=lambda c: nn.Sequential(*[residual(c, c) for i in range(4)]),
+            make_inner=lambda ci, co: nn.Sequential(*[residual(ci, co) for _ in range(4)]),
             make_down2=lambda ci, co: nn.Sequential(residual(ci, ci), residual(ci, co), nn.Upsample(scale_factor=2, mode='nearest'))
         )
 
@@ -239,7 +239,7 @@ class Cornernet(lnn.module.Lightnet):
 
             k = (
                 k[16:]
-                .replace('up1', 'up')
+                .replace('up1', 'upper')
                 .replace('low1', 'down.down1')
                 .replace('low3', 'down.down2')
                 .replace('conv1', '0')
