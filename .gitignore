@@ -5,6 +5,7 @@ docs/notes/example.jpg
 docs/notes/example.xml
 docs/notes/*.pt
 docs/notes/*.weights
+docs/api/generated/*.rst
 
 # Python specific
 __pycache__/

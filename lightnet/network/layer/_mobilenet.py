@@ -12,7 +12,14 @@ log = logging.getLogger(__name__)
 
 
 class Conv2dDepthWise(nn.Module):
-    """ This layer implements the depthwise separable convolution :cite:`mobilenet_v1`.
+    """ This layer implements the depthwise separable convolution :cite:`mobilenet_v1`. |br|
+    Instead of performing a regular convolution,
+    this layer first does a depthwise convolution, followed by a pointwise convolution.
+    This reduces the number of computations, while maintaining a similar accuracy.
+
+    .. figure:: /.static/api/conv2ddepthwise.*
+       :width: 100%
+       :alt: Conv2dDepthWise module design
 
     Args:
         in_channels (int): Number of input channels
@@ -24,12 +31,17 @@ class Conv2dDepthWise(nn.Module):
         relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU`
 
     Note:
-        If you require the `relu` class to get extra parameters, you can use a `lambda` or `functools.partial`:
+        The bias term in both :class:`~torch.nn.Conv2d` is disabled for this module.
 
-        >>> conv = ln.layer.Conv2dDepthWise(
-        ...     in_c, out_c, kernel, stride, padding,
-        ...     relu=functools.partial(torch.nn.ReLU6, inplace=True)
-        ... )   # doctest: +SKIP
+    Example:
+        >>> module = ln.network.layer.Conv2dDepthWise(3, 32, 3, 1, 1)
+        >>> print(module)
+        Conv2dDepthWise(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+        >>> 
+        >>> in_tensor = torch.rand(1, 3, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([1, 32, 10, 10])
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
                  momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
@@ -63,7 +75,15 @@ class Conv2dDepthWise(nn.Module):
 
 
 class InvertedBottleneck(nn.Module):
-    """ This is an implementation of the inverted bottleneck layer :cite:`mobilenet_v2`.
+    """ This is an implementation of the inverted bottleneck layer :cite:`mobilenet_v2`. |br|
+    We first use a pointwise convolution to expand the number of channels followed by a depthwise convolution.
+    Finally we use another pointwise convolution to reduce the number of channels to the required amount.
+    If the number of input channels is equal to the number of output channels, we add the original input to the output,
+    in order to more easily propagate the gradient in the network.
+
+    .. figure:: /.static/api/invertedbottleneck.*
+       :width: 100%
+       :alt: Conv2dDepthWise module design
 
     Args:
         in_channels (int): Number of input channels
@@ -75,17 +95,43 @@ class InvertedBottleneck(nn.Module):
         relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU`
 
     Note:
+        The bias term in all 3 :class:`~torch.nn.Conv2d` is disabled for this module.
+
+    Note:
         This layer uses a residual connection for easier propagation of the gradient.
         Whether or not this residual connection is made, depends on the ``in_channels``, ``out_channels`` and ``stride`` arguments.
         If the input channels and output channels are equal and the stride is equal to 1, the residual connection is made.
 
-    Note:
-        In order to pass arguments to your relu argument, you can use a lambda or partial application.
+    Example:
+        >>> # In_channels is not equal to out_channels, so no residual connection
+        >>> module = ln.network.layer.InvertedBottleneck(3, 32, 3, 1, 3)
+        >>> print(module)
+        InvertedBottleneck(3, 32, kernel_size=(3, 3), stride=(1, 1), expansion=3, ReLU(inplace=True))
+        >>> 
+        >>> in_tensor = torch.rand(1, 3, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([1, 32, 10, 10])
 
-        >>> conv = InvertedBottleneck(
-        ...     in_c, out_c, kernel, stride, expansion,
-        ...     relu=functools.partial(torch.nn.ReLU6, inplace=True)
-        ... )  # doctest: +SKIP
+        >>> # Stride is not 1, so no residual connection
+        >>> module = ln.network.layer.InvertedBottleneck(32, 32, 3, 2, 3)
+        >>> print(module)
+        InvertedBottleneck(32, 32, kernel_size=(3, 3), stride=(2, 2), expansion=3, ReLU(inplace=True))
+        >>> 
+        >>> in_tensor = torch.rand(1, 32, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([1, 32, 5, 5])
+
+        >>> # Residual connection is made
+        >>> module = ln.network.layer.InvertedBottleneck(32, 32, 3, 1, 3)
+        >>> print(module)
+        InvertedBottleneck(32, 32, kernel_size=(3, 3), stride=(1, 1), expansion=3, ReLU(inplace=True), residual_connection)
+        >>> 
+        >>> in_tensor = torch.rand(1, 32, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([1, 32, 10, 10])
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, expansion,
                  momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):

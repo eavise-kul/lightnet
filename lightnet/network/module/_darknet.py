@@ -25,12 +25,12 @@ class Darknet(Lightnet):
 
     def load(self, weights_file, *args, **kwargs):
         """ This function will load the weights from a file.
-        If the file extension is ``.pt``, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/stable/notes/serialization.html#recommended-approach-for-saving-a-model>`_.
+        If the file extension is _.pt_, it will be considered as a `pytorch pickle file <http://pytorch.org/docs/stable/notes/serialization.html#recommended-approach-for-saving-a-model>`_.
         Otherwise, the file is considered to be a darknet binary weight file.
 
         Args:
             weights_file (str): path to file
-            *args, **kwargs: Extra arguments passed to :func:`lightnet.network.module.Lightnet.load` when loading pytorch weights
+            *args, \*\*kwargs: Extra arguments passed to :func:`lightnet.network.module.Lightnet.load` when loading pytorch weights
 
         Note:
             Darknet weight files also contain the number of images the network has been trained on. |br|
@@ -51,7 +51,7 @@ class Darknet(Lightnet):
 
         Args:
             weights_file (str): path to file
-            *args, **kwargs: Extra arguments passed to :func:`lightnet.network.module.Lightnet.save` when saving as pytorch weights
+            *args, \*\*kwargs: Extra arguments passed to :func:`lightnet.network.module.Lightnet.save` when saving as pytorch weights
         """
         if os.path.splitext(weights_file)[1] == '.pt':
             log.debug('Saving weights to pytorch file')

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="nms-fast.svg"
+   inkscape:version="1.0 (1.0+r73+1)"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 119.06252 83.608328"
+   height="315.99997"
+   width="450.00009">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     inkscape:window-maximized="1"
+     inkscape:window-y="0"
+     inkscape:window-x="0"
+     inkscape:window-height="1050"
+     inkscape:window-width="1920"
+     fit-margin-bottom="25"
+     fit-margin-right="25"
+     fit-margin-left="25"
+     fit-margin-top="25"
+     units="px"
+     lock-margins="true"
+     inkscape:bbox-nodes="true"
+     inkscape:snap-bbox="true"
+     showgrid="false"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="mm"
+     inkscape:cy="171.39923"
+     inkscape:cx="199.55391"
+     inkscape:zoom="2.0031716"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-14.762395,-5.7527813)"
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <rect
+       y="13.19107"
+       x="22.200684"
+       height="64.498421"
+       width="64.498421"
+       id="rect841"
+       style="fill:none;fill-opacity:0.406481;stroke:#5875a4;stroke-width:1.64741;stroke-linecap:round" />
+    <rect
+       style="fill:none;fill-opacity:0.406481;stroke:#dd8452;stroke-width:1.64741;stroke-linecap:round"
+       id="rect843"
+       width="64.498421"
+       height="64.498421"
+       x="42.044464"
+       y="15.307734" />
+    <rect
+       y="17.4244"
+       x="61.888214"
+       height="64.498421"
+       width="64.498421"
+       id="rect847"
+       style="fill:none;fill-opacity:0.406481;stroke:#55a868;stroke-width:1.64741;stroke-linecap:round" />
+    <text
+       id="text851"
+       y="18.446238"
+       x="23.95529"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889px;line-height:1;font-family:Roboto;-inkscape-font-specification:'Roboto, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-size:4.93889px;fill:#4c72b0;stroke-width:0.264583"
+         y="18.446238"
+         x="23.95529"
+         id="tspan849"
+         sodipodi:role="line">A (90%)</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889px;line-height:1;font-family:Roboto;-inkscape-font-specification:'Roboto, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#dd8452;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="43.799072"
+       y="20.562902"
+       id="text855"><tspan
+         sodipodi:role="line"
+         id="tspan853"
+         x="43.799072"
+         y="20.562902"
+         style="font-size:4.93889px;fill:#dd8452;stroke-width:0.264583">B (80%)</tspan></text>
+    <text
+       id="text859"
+       y="22.679569"
+       x="63.302792"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93889px;line-height:1;font-family:Roboto;-inkscape-font-specification:'Roboto, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#55a868;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-size:4.93889px;fill:#55a868;stroke-width:0.264583"
+         y="22.679569"
+         x="63.302792"
+         id="tspan857"
+         sodipodi:role="line">C (70%)</tspan></text>
+  </g>
+</svg>

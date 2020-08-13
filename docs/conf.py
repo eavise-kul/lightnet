@@ -35,6 +35,7 @@ import lightnet
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
@@ -70,6 +71,7 @@ else:
     nbsphinx_execute = 'never'
 
 # Add any paths that contain templates here, relative to this directory.
+autosummary_generate = True
 templates_path = ['.templates']
 
 # The suffix(es) of source filenames.

@@ -27,6 +27,10 @@ class Fusion(nn.Module):
         layers (dict or list of pytorch modules): Layers that will be used. These layers are internally passed to a :class:`~torch.nn.Sequential` and must thus comply with the rules for this class
         fuse_layer (int, optional): Number between 0 and the number of layers + 1, that controls where to fuse both streams; Default **None**
 
+    .. figure:: /.static/api/fusion.*
+       :width: 100%
+       :alt: Fusion module and fuse layer
+
     Note:
         Depending on the value of the `fuse_layer` attribute, fusion is performed at different stages of the module. |br|
 
@@ -39,7 +43,74 @@ class Fusion(nn.Module):
 
         These rules allow the chain multiple :class:`~lightnet.network.layer.Fusion` modules together, only fusing in one of them at a certain time.
 
-    Note:
+    Example:
+        >>> layers = [
+        ...   ln.network.layer.Conv2dBatchReLU(3,  32, 3, 1, 1),
+        ...   ln.network.layer.Conv2dBatchReLU(32, 64, 3, 1, 1),
+        ...   ln.network.layer.Conv2dBatchReLU(64, 32, 3, 1, 1),
+        ... ]
+        >>> 
+        >>> # Streams are fused in the middle of the module
+        >>> module = ln.network.layer.Fusion(layers, fuse_layer=1)
+        >>> print(module)
+        Fusion(
+          (Regular & Fusion): Sequential(
+            (0): Conv2dBatchReLU(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+          )
+          (Fuse): Conv2d(64, 32, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (Combined): Sequential(
+            (0): Conv2dBatchReLU(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (1): Conv2dBatchReLU(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+          )
+        )
+        >>> 
+        >>> # Streams are fused at the end of the module (after last convolution)
+        >>> module = ln.network.layer.Fusion(layers, fuse_layer=3)
+        >>> print(module)
+        Fusion(
+          (Regular & Fusion): Sequential(
+            (0): Conv2dBatchReLU(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (1): Conv2dBatchReLU(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (2): Conv2dBatchReLU(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+          )
+          (Fuse): Conv2d(64, 32, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+        >>> 
+        >>> # Streams are fused before the first layer
+        >>> module = ln.network.layer.Fusion(layers, fuse_layer=0)
+        >>> print(module)
+        Fusion(
+          (Fuse): Conv2d(6, 3, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (Combined): Sequential(
+            (0): Conv2dBatchReLU(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (1): Conv2dBatchReLU(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (2): Conv2dBatchReLU(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+          )
+        )
+        >>> 
+        >>> # Streams were fused before this module and thus there is no fusion involved (only combined sequential)
+        >>> module = ln.network.layer.Fusion(layers, fuse_layer=None)
+        >>> print(module)
+        Fusion(
+          (Combined): Sequential(
+            (0): Conv2dBatchReLU(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (1): Conv2dBatchReLU(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (2): Conv2dBatchReLU(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+          )
+        )
+        >>> 
+        >>> # Streams are not fused in this module (duplicated regular and fusion sequentials)
+        >>> module = ln.network.layer.Fusion(layers, fuse_layer=4)
+        >>> print(module)
+        Fusion(
+          (Regular & Fusion): Sequential(
+            (0): Conv2dBatchReLU(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (1): Conv2dBatchReLU(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+            (2): Conv2dBatchReLU(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+          )
+        )
+
+    Warning:
         This module will create a :class:`~torch.nn.Sequential` for the regular convolutional stream and deepcopy that for the fusion stream.
         This will effectively create 2 different streams that have their own weights, but it does mean that both streams start with identical weights. |br|
         It is strongly advised to use pretrained weights or initialize your weights randomly after having created these modules.
@@ -84,7 +155,7 @@ class Fusion(nn.Module):
             self.fuse = self._get_fuse_conv()
         elif self.fuse_layer > len(layers):     # Reg/Fusion
             if self.fuse_layer > len(layers) + 1:
-                log.warning(f'fuse_layer variable is too high, setting it to {len(layers)+1} which will not perform any fusion [{self.fuse_layer}/{len(layers)+1}]')
+                log.debug(f'fuse_layer variable is too high, setting it to {len(layers)+1} which will not perform any fusion [{self.fuse_layer}/{len(layers)+1}]')
                 self.fuse_layer = len(layers) + 1
 
             if isinstance(layers, dict):
@@ -118,7 +189,7 @@ class Fusion(nn.Module):
             mod_str = _addindent(repr(self.combined), 2)
             main_str += '\n  (Combined): ' + mod_str
 
-        return main_str
+        return main_str + '\n)'
 
     def _get_fuse_conv(self):
         channels = None

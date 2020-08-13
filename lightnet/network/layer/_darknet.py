@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-__all__ = ['Conv2dBatchReLU', 'Flatten', 'GlobalAvgPool2d', 'PaddedMaxPool2d', 'Reorg']
+__all__ = ['Conv2dBatchReLU', 'Flatten', 'PaddedMaxPool2d', 'Reorg']
 log = logging.getLogger(__name__)
 
 
@@ -25,13 +25,22 @@ class Conv2dBatchReLU(nn.Module):
         momentum (number, optional): momentum of the moving averages of the normalization; Default **0.1**
         relu (class, optional): Which ReLU to use; Default :class:`torch.nn.ReLU`
 
-    Note:
-        If you require the `relu` class to get extra parameters, you can use a `lambda` or `functools.partial`:
+    .. figure:: /.static/api/conv2dbatchrelu.*
+       :width: 100%
+       :alt: Conv2dBatchReLU module design
 
-        >>> conv = ln.layer.Conv2dBatchReLU(
-        ...     in_c, out_c, kernel, stride, padding,
-        ...     relu=functools.partial(torch.nn.LeakyReLU, 0.1, inplace=True)
-        ... )   # doctest: +SKIP
+    Note:
+        The bias term in the :class:`~torch.nn.Conv2d` is disabled for this module.
+
+    Example:
+        >>> module = ln.network.layer.Conv2dBatchReLU(3, 32, 3, 1, 1)
+        >>> print(module)
+        Conv2dBatchReLU(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), ReLU(inplace=True))
+        >>> 
+        >>> in_tensor = torch.rand(1, 3, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([1, 32, 10, 10])
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
                  momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
@@ -65,6 +74,21 @@ class Flatten(nn.Module):
 
     Args:
         batch (boolean, optional): If True, consider input to be batched and do not flatten first dim; Default **True**
+
+    Example:
+        >>> # By default batch_mode is true
+        >>> module = ln.network.layer.Flatten()
+        >>> in_tensor = torch.rand(8, 3, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([8, 300])
+
+        >>> # Disable batch_mode
+        >>> module = ln.network.layer.Flatten(False)
+        >>> in_tensor = torch.rand(8, 3, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([2400])
     """
     def __init__(self, batch=True):
         super().__init__()
@@ -77,47 +101,25 @@ class Flatten(nn.Module):
             return x.view(-1)
 
 
-class GlobalAvgPool2d(nn.Module):
-    """ This layer averages each channel to a single number.
-
-    Args:
-        squeeze (boolean, optional): Whether to reduce dimensions to [batch, channels]; Default **True**
-
-    Deprecated:
-        This function is deprecated in favor of :class:`torch.nn.AdaptiveAvgPool2d`. |br|
-        To replicate the behaviour with `squeeze` set to **True**, append a Flatten layer afterwards:
-
-        >>> layer = torch.nn.Sequential(
-        ...     torch.nn.AdaptiveAvgPool2d(1),
-        ...     ln.network.layer.Flatten()
-        ... )
-    """
-    def __init__(self, squeeze=True):
-        super().__init__()
-        self.squeeze = squeeze
-        log.deprecated('The GlobalAvgPool2d layer is deprecated and will be removed in future version, please use "torch.nn.AdaptiveAvgPool2d"')
-
-    def forward(self, x):
-        B = x.data.size(0)
-        C = x.data.size(1)
-        H = x.data.size(2)
-        W = x.data.size(3)
-        x = F.avg_pool2d(x, (H, W))
-
-        if self.squeeze:
-            x = x.view(B, C)
-
-        return x
-
-
 class PaddedMaxPool2d(nn.Module):
-    """ Maxpool layer with a replicating padding.
+    """ Maxpool layer with replicate-padding instead of the zero-padding from :class:`torch.nn.MaxPool2d`. |br|
+    This layer is not a traditional pooling layer in the sence that it does not modify the dimension of the input tensor.
 
     Args:
         kernel_size (int or tuple): Kernel size for maxpooling
         stride (int or tuple, optional): The stride of the window; Default ``kernel_size``
         padding (tuple, optional): (left, right, top, bottom) padding; Default **None**
         dilation (int or tuple, optional): A parameter that controls the stride of elements in the window
+
+    Example:
+        >>> module = ln.network.layer.PaddedMaxPool2d(2, 1, (0, 1, 0, 1))
+        >>> print(module)
+        PaddedMaxPool2d(kernel_size=2, stride=1, padding=(0, 1, 0, 1), dilation=1)
+        >>> 
+        >>> in_tensor = torch.rand(1, 3, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([1, 3, 10, 10])
     """
     def __init__(self, kernel_size, stride=None, padding=(0, 0, 0, 0), dilation=1):
         super().__init__()
@@ -136,10 +138,31 @@ class PaddedMaxPool2d(nn.Module):
 
 class Reorg(nn.Module):
     """ This layer reorganizes a tensor according to a stride.
-    The dimensions 2,3 will be sliced by the stride and then stacked in dimension 1. (input must have 4 dimensions)
+    The width and height dimensions (2 and 3) will be sliced by the stride and then stacked in dimension 1. (input must have 4 dimensions)
 
     Args:
         stride (int): stride to divide the input tensor
+
+    Note:
+        This implementation follows the darknet reorg layer implementation, which we took from this `issue <reorglink_>`_. |br|
+        This specific implementation requires that the channel dimension should be divisible by :math:`stride^{\,2}`.
+
+    Example:
+        >>> # Divide width and height by 2 and stack in channels (thus multiplying by 4)
+        >>> module = ln.network.layer.Reorg(stride=2)
+        >>> in_tensor = torch.rand(8, 4, 10, 10)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([8, 16, 5, 5])
+
+        >>> # Divide width and height by 4, Note that channel should thus be divisible by 4^2
+        >>> module = ln.network.layer.Reorg(stride=4)
+        >>> in_tensor = torch.rand(8, 16, 16, 16)
+        >>> out_tensor = module(in_tensor)
+        >>> out_tensor.shape
+        torch.Size([8, 256, 4, 4])
+
+    .. _reorglink: https://github.com/thtrieu/darkflow/issues/173#issuecomment-296048648
     """
     def __init__(self, stride=2):
         super().__init__()
@@ -156,7 +179,6 @@ class Reorg(nn.Module):
         assert H % self.stride == 0, f'Dimension height mismatch: {H} is not divisible by {self.stride}'
         assert W % self.stride == 0, f'Dimension width mismatch: {W} is not divisible by {self.stride}'
 
-        # from: https://github.com/thtrieu/darkflow/issues/173#issuecomment-296048648
         x = x.view(B, C//(self.stride**2), H, self.stride, W, self.stride).contiguous()
         x = x.permute(0, 3, 5, 1, 2, 4).contiguous()
         x = x.view(B, -1, H//self.stride, W//self.stride)

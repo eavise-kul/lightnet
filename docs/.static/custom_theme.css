@@ -134,3 +134,16 @@ nav .hidden-section {
   border-top: 3px solid #00BFD8;
   color: #00BFD8;
 }
+
+/* override table width restrictions */
+@media screen and (min-width: 767px) {
+   .wy-table-responsive table td {
+      white-space: normal !important;
+      padding-top: 10px !important;
+      padding-bottom: 10px !important;
+   }
+
+   .wy-table-responsive {
+      overflow: visible !important;
+   }
+}
