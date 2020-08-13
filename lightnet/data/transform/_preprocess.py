@@ -771,6 +771,9 @@ class RandomRotate(BaseMultiTransform):
 class BramboxToTensor(BaseTransform):
     """ Converts a list of brambox annotation objects to a tensor.
 
+    Warning:
+        This class is deprectated, because you can use brambox dataframes in the loss functions.
+
     Args:
         dimension (tuple, optional): Default size of the transformed images, expressed as a (width, height) tuple; Default **None**
         dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
@@ -788,6 +791,7 @@ class BramboxToTensor(BaseTransform):
         If that fails, it is simply given the number 0.
     """
     def __init__(self, dimension=None, dataset=None, max_anno=50, class_label_map=None):
+        log.deprecated('This class is deprecated and will be removed in a future version of lightnet. Please use brambox dataframes instead of tensors in the various loss functions.')
         self.dimension = dimension
         self.dataset = dataset
         self.max_anno = max_anno

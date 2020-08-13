@@ -103,20 +103,20 @@ class DataLoader(torchDataLoader):
         (200, 200)
         >>> for d in dl:
         ...     d
-        [[(200, 200), (200, 200)]]
-        [[(200, 200), (200, 200)]]
+        [[tensor([200, 200]), tensor([200, 200])]]
+        [[tensor([200, 200]), tensor([200, 200])]]
         >>> dl.change_input_dim(320, random_range=None)
         (320, 320)
         >>> for d in dl:
         ...     d
-        [[(320, 320), (320, 320)]]
-        [[(320, 320), (320, 320)]]
+        [[tensor([320, 320]), tensor([320, 320])]]
+        [[tensor([320, 320]), tensor([320, 320])]]
         >>> dl.change_input_dim((480, 320), random_range=None)
         (480, 320)
         >>> for d in dl:
         ...     d
-        [[(480, 320), (480, 320)]]
-        [[(480, 320), (480, 320)]]
+        [[tensor([480, 480]), tensor([320, 320])]]
+        [[tensor([480, 480]), tensor([320, 320])]]
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

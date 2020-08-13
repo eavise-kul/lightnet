@@ -154,7 +154,7 @@ class NMSFast(NMS):
     Fast NMS will not do this and will only keep box A in this situation. |br|
     Depending on the use-case (closely clustered and overlapping objects), this might be a problem or not.
 
-    .. figure:: ../.static/nms-fast.png
+    .. figure:: /.static/api/nms-fast.*
        :width: 100%
        :alt: Fast NMS problem
 
@@ -381,7 +381,7 @@ class NMSSoft(BaseTransform):
 
 
 class NMSSoftFast(BaseTransform):
-    """ Performs soft NMS with exponential decaying on the bounding boxes, as explained in :cite:`soft_nms`.
+    """ Faster version of SoftNMS which filters boxes with a high overlap, using exponential decay.
     This function can either work on a pytorch bounding box tensor or a brambox dataframe.
 
     This version of NMS makes the same "mistake" as :class:`~lightnet.data.transform.NMSFast`,
