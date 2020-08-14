@@ -41,7 +41,7 @@ class Conv2dBatchReLU(nn.Module):
         >>> out_tensor.shape
         torch.Size([1, 32, 10, 10])
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, momentum=0.1, relu=lambda: nn.ReLU(inplace = True)):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
         super().__init__()
         self.layers = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False),

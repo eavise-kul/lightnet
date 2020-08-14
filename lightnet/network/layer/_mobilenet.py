@@ -42,7 +42,7 @@ class Conv2dDepthWise(nn.Module):
         >>> out_tensor.shape
         torch.Size([1, 32, 10, 10])
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, momentum=0.1, relu=lambda: nn.ReLU(inplace = True)):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
         super().__init__()
 
         self.layers = nn.Sequential(
@@ -128,7 +128,7 @@ class InvertedBottleneck(nn.Module):
         >>> out_tensor.shape
         torch.Size([1, 32, 10, 10])
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride, expansion, momentum=0.1, relu=lambda: nn.ReLU(inplace = True)):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, expansion, momentum=0.1, relu=lambda: nn.ReLU(inplace=True)):
         super().__init__()
 
         # Parameters

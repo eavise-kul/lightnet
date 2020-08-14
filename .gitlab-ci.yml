@@ -10,8 +10,9 @@ cache:
 
 before_script:
     - apt-get update --fix-missing && apt-get install -y pandoc
-    - pip3 install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-    - pip install pillow
+    - pip install -U pip
+    - pip install opencv-python-headless pillow
+    - pip install torch==1.6.0+cpu torchvision==0.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
     - pip install -r develop.txt
 
 stages:
@@ -21,8 +22,7 @@ stages:
 lint:
   stage: test
   script:
-    - pycodestyle --max-line-length=250 lightnet/
-    - pycodestyle --max-line-length=250 test/
+    - make lint
 
 unittest:
   stage: test
@@ -31,7 +31,7 @@ unittest:
     - master
     - develop
   script:
-    - python -m pytest ./test/
+    - make unittest
 
 doctest:
   stage: test
@@ -40,7 +40,7 @@ doctest:
     - master
     - develop
   script:
-    - cd docs; make doctest; cd ..
+    - make doctest
 
 pypi:
   stage: deploy
