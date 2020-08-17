@@ -147,3 +147,23 @@ nav .hidden-section {
       overflow: visible !important;
    }
 }
+
+/* deprecated */
+div.deprecated {
+  padding: 12px;
+  line-height: 24px;
+  margin-bottom: 24px;
+  background: #FFCCCC;
+}
+
+div.deprecated::before {
+  content: ' Deprecated';
+  font: normal normal normal 16px/1 Lato,FontAwesome;
+  display: block;
+  margin: -12px;
+  margin-bottom: 12px;
+  padding: 6px 12px;
+  color: #FFF;
+  font-weight: bold;
+  background: #ED6666;
+}

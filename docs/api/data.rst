@@ -30,6 +30,7 @@ The latter only works with `Lightnet Datasets <#lightnet.data.Dataset>`_ and all
    lightnet.data.transform.Crop
    lightnet.data.transform.Letterbox
    lightnet.data.transform.Pad
+   lightnet.data.transform.FitAnno
 
 Augmentation
 ~~~~~~~~~~~~
@@ -55,6 +56,7 @@ Miscellaneous pre-processing operators that don’t fit in any other category.
    :nosignatures:
    :template: nomember-template.rst
 
+   lightnet.data.transform.AnnoTransform
    lightnet.data.transform.BramboxToTensor
 
 

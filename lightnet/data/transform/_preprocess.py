@@ -14,7 +14,7 @@ import torch
 from .util import BaseTransform, BaseMultiTransform
 from .._imports import pd, bb, cv2, Image, ImageOps
 
-__all__ = ['Crop', 'Letterbox', 'Pad', 'RandomFlip', 'RandomHSV', 'RandomJitter', 'RandomRotate', 'BramboxToTensor']
+__all__ = ['Crop', 'Letterbox', 'Pad', 'FitAnno', 'RandomFlip', 'RandomHSV', 'RandomJitter', 'RandomRotate', 'BramboxToTensor', 'AnnoTransform']
 log = logging.getLogger(__name__)
 
 
@@ -29,22 +29,20 @@ class Crop(BaseMultiTransform):
         dimension (tuple, optional): Default size for the letterboxing, expressed as a (width, height) tuple; Default **None**
         dataset (lightnet.data.Dataset, optional): Dataset that uses this transform; Default **None**
         center (Boolean, optional): Whether to take the crop from the center or randomly.
-        intersection_threshold(number, optional): Minimal percentage of the annotation's box area that still needs to be inside the crop; Default **0.001**
-
-    Note:
-        If the `intersection_threshold` is a tuple of 2 numbers, then they are to be considered as **(width, height)** threshold values.
-        Ohterwise the threshold is to be considered as an area threshold.
 
     Note:
         Create 1 Crop object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
+
+    Warning:
+        This transformation only modifies the annotations to fit the new scale and origin point of the image.
+        It does not crop the annotations to fit inside the new boundaries, nor does it filter annotations that fall outside of these new boundaries.
+        Check out :class:`~lightnet.data.transform.FitAnno` for a transformation that does this.
     """
-    def __init__(self, dimension=None, dataset=None, center=True, crop_anno=False, intersection_threshold=0.001):
+    def __init__(self, dimension=None, dataset=None, center=True):
         self.dimension = dimension
         self.dataset = dataset
         self.center = center
-        self.crop_anno = crop_anno
-        self.intersection_threshold = intersection_threshold
         if self.dimension is None and self.dataset is None:
             raise ValueError('This transform either requires a dimension or a dataset to infer the dimension')
 
@@ -133,36 +131,12 @@ class Crop(BaseMultiTransform):
             anno.width *= self.scale
             anno.height *= self.scale
 
-        # Filter and Crop
+        # Crop
         if self.crop is not None:
-            cropped = np.empty((4, len(anno.index)), dtype=np.float64)
-            cropped[0] = anno.x_top_left.clip(lower=self.crop[0]).values
-            cropped[1] = anno.y_top_left.clip(lower=self.crop[1]).values
-            cropped[2] = (anno.x_top_left + anno.width).clip(upper=self.crop[2]).values - cropped[0]
-            cropped[3] = (anno.y_top_left + anno.height).clip(upper=self.crop[3]).values - cropped[1]
-
-            if isinstance(self.intersection_threshold, collections.Sequence):
-                mask = ((cropped[2] / anno.width.values) >= self.intersection_threshold[0]) & ((cropped[3] / anno.height.values) >= self.intersection_threshold[1])
-            else:
-                mask = ((cropped[2] * cropped[3]) / (anno.width.values * anno.height.values)) >= self.intersection_threshold
-            mask = mask & (cropped[2] > 0) & (cropped[3] > 0)
-
-            anno = anno[mask].copy()
-            if len(anno.index) == 0:
-                return anno
-
-            if self.crop_anno:
-                cropped = cropped[:, mask]
-                anno.truncated = (cropped[2] * cropped[3]) / ((anno.width * anno.height) / (1 - anno.truncated)).clip(lower=0)
-                anno.x_top_left = cropped[0]
-                anno.y_top_left = cropped[1]
-                anno.width = cropped[2]
-                anno.height = cropped[3]
-
             anno.x_top_left -= self.crop[0]
             anno.y_top_left -= self.crop[1]
 
-            return anno
+        return anno
 
 
 class Letterbox(BaseMultiTransform):
@@ -368,6 +342,94 @@ class Pad(BaseMultiTransform):
         if self.pad is not None:
             anno.x_top_left += self.pad[0]
             anno.y_top_left += self.pad[1]
+
+        return anno
+
+
+class FitAnno(BaseMultiTransform):
+    """ Crop and filter annotations to fit inside of the image boundaries. |br|
+    This transformation also modifies the `truncated` columns of the annotations, by computing how much of the annotation was cut off.
+
+    Args:
+        crop (boolean, optional): Whether to actually crop annotations to fit inside the image boundaries; Default **True**
+        filter (boolean, optional): Whether to filter the annotations if they are not completely inside of the image boundaries; Default **True**
+        filter_type (string, optional): How to filter ('remove' or 'ignore'); Default **remove**
+        filter_threshold (number, optional): Minimal percentage of the bounding box area that still needs to be inside the image; Default **0.001**
+        remove_empty (boolean, optional): Whether to remove annotations whose bounding box area is zero; Default **True**
+
+    Note:
+        This transformation does not modify the image data, but is still a multi-transform as it needs to read the image to get the dimensions.
+        Create 1 FitAnno object and use it for both image and annotation transforms.
+
+    Note:
+        If the `filter_threshold` is a tuple of 2 numbers, then they are to be considered as **(width, height)** threshold values.
+        Ohterwise the threshold is to be considered as an area threshold.
+    """
+    def __init__(self, crop=True, filter=True, filter_type='remove', filter_threshold=0.001, remove_empty=True):
+        self.crop = crop
+        self.filter = filter
+        self.filter_type == filter_type.lower()
+        self.filter_threshold = filter_threshold
+        self.remove_empty = True
+
+        self.image_dim = None
+
+    def _get_params(self, im_w, im_h):
+        self.image_dim = (im_w, im_h)
+
+    def _tf_pil(self, img):
+        im_w, im_h = img.size
+        self._get_params(im_w, im_h)
+
+    def _tf_cv(self, img):
+        im_h, im_w = img.shape[:2]
+        self._get_params(im_w, im_h)
+
+    def _tf_torch(self, img):
+        im_h, im_w = img.shape[-2:]
+        self._get_params(im_w, im_h)
+
+    def _tf_anno(self, anno):
+        anno = anno.copy()
+
+        crop_coords = np.empty((4, len(anno.index)), dtype=np.float64)
+        crop_coords[0] = anno.x_top_left.values
+        crop_coords[1] = boundary_coords[0] + anno.width.values
+        crop_coords[2] = anno.y_top_left.values
+        crop_coords[3] = boundary_coords[2] + anno.height.values
+        crop_coords[:2] = boundary_coords[:2].clip(0, self.image_dim[0])
+        crop_coords[2:] = boundary_coords[:2].clip(0, self.image_dim[1])
+        crop_width = crop_coords[1] - crop_coords[0]
+        crop_height = crop_coords[3] - crop_coords[2]
+
+        # Filter
+        if self.filter is not None:
+            if isinstance(self.filter_threshold, collections.Sequence):
+                mask = (
+                    ((crop_width / anno.width.values) >= self.filter_threshold[0]) &
+                    ((crop_height / anno.height.values) >= self.filter_threshold[1])
+                )
+            else:
+                mask = ((crop_width * crop_height) / (anno.width.values * anno.height.values)) >= self.filter_threshold
+
+            if self.filter_type == 'ignore':
+                anno.loc[mask, 'ignore'] = True
+            else:
+                anno = anno[mask].copy()
+                if len(anno.index) == 0:
+                    return anno
+
+        # Crop
+        if self.crop is not None:
+            anno.truncated = (1 - ((crop_width * crop_height * (1 - anno.truncated.values)) / (anno.width.values * anno.height.values))).clip(0, 1)
+            anno.x_top_left = crop_coords[0]
+            anno.y_top_left = crop_coords[2]
+            anno.width = crop_width
+            anno.height = crop_height
+
+        # Remove empty
+        if self.remove_empty:
+            anno = anno[(anno.width > 0) & (anno.height > 0)].copy()
 
         return anno
 
@@ -578,23 +640,20 @@ class RandomJitter(BaseMultiTransform):
 
     Args:
         jitter (Number [0-1]): Indicates how much of the image we can crop
-        crop_anno(Boolean, optional): Whether we crop the annotations inside the image crop; Default **False**
-        intersection_threshold(tuple(number) or number, optional): Minimal percentage of the annotation's box area that still needs to be inside the crop; Default **0.001**
         fill_color (int or float, optional): Fill color to be used for padding (if int, will be divided by 255); Default **0.5**
-
-    Note:
-        If the `intersection_threshold` is a tuple of 2 numbers, then they are to be considered as **(width, height)** threshold values.
-        Ohterwise the threshold is to be considered as an area threshold.
 
     Note:
         Create 1 RandomCrop object and use it for both image and annotation transforms.
         This object will save data from the image transform and use that on the annotation transform.
+
+    Warning:
+        This transformation only modifies the annotations to fit the new origin point of the image.
+        It does not crop the annotations to fit inside the new boundaries, nor does it filter annotations that fall outside of these new boundaries.
+        Check out :class:`~lightnet.data.transform.FitAnno` for a transformation that does this.
     """
-    def __init__(self, jitter, crop_anno=False, intersection_threshold=0.001, fill_color=0.5):
+    def __init__(self, jitter, fill_color=0.5):
         self.jitter = jitter
-        self.crop_anno = crop_anno
         self.fill_color = fill_color if isinstance(fill_color, float) else fill_color / 255
-        self.intersection_threshold = intersection_threshold
         self.crop = None
 
     def _get_params(self, im_w, im_h):
@@ -662,32 +721,6 @@ class RandomJitter(BaseMultiTransform):
 
     def _tf_anno(self, anno):
         anno = anno.copy()
-
-        # Filter annotations inside crop
-        cropped = np.empty((4, len(anno.index)), dtype=np.float64)
-        cropped[0] = anno.x_top_left.clip(lower=self.crop[0]).values
-        cropped[1] = anno.y_top_left.clip(lower=self.crop[1]).values
-        cropped[2] = (anno.x_top_left + anno.width).clip(upper=self.crop[2]).values - cropped[0]
-        cropped[3] = (anno.y_top_left + anno.height).clip(upper=self.crop[3]).values - cropped[1]
-
-        if isinstance(self.intersection_threshold, collections.Sequence):
-            mask = ((cropped[2] / anno.width.values) >= self.intersection_threshold[0]) & ((cropped[3] / anno.height.values) >= self.intersection_threshold[1])
-        else:
-            mask = ((cropped[2] * cropped[3]) / (anno.width.values * anno.height.values)) >= self.intersection_threshold
-        mask = mask & (cropped[2] > 0) & (cropped[3] > 0)
-
-        anno = anno[mask].copy()
-        if len(anno.index) == 0:
-            return anno
-
-        # Crop annotations
-        if self.crop_anno:
-            cropped = cropped[:, mask]
-            anno.truncated = (cropped[2] * cropped[3]) * (1 - anno.truncated) / (anno.width * anno.height)
-            anno.x_top_left = cropped[0]
-            anno.y_top_left = cropped[1]
-            anno.width = cropped[2]
-            anno.height = cropped[3]
 
         anno.x_top_left -= self.crop[0]
         anno.y_top_left -= self.crop[1]
@@ -768,10 +801,36 @@ class RandomRotate(BaseMultiTransform):
 #
 #   Util
 #
+class AnnoTransform(BaseMultiTransform):
+    """ MultiTransform that allows to modify annotations.
+        Its main use is to be able to transform annotations when creating a single :class:`~lightnet.data.transform.Compose` transformation pipeline for both images and annotations.
+
+        Because the Compose pipeline will only run transformations on the image data, unless it is a multi-transform,
+        it is necessary to encapsulate functions for annotaions in a such a class.
+
+        Args:
+            fn (callable): Function that is called with the annotation dataframe
+    """
+    def __init__(self, fn):
+        self.fn = fn
+
+    def _tf_pil(self, img):
+        return img
+
+    def _tf_cv(self, img):
+        return img
+
+    def _tf_torch(self, img):
+        return img
+
+    def _tf_anno(self, anno):
+        return self.fn(anno)
+
+
 class BramboxToTensor(BaseTransform):
     """ Converts a list of brambox annotation objects to a tensor.
 
-    Warning:
+    .. deprecated:: 2.0.0
         This class is deprectated, because you can use brambox dataframes in the loss functions.
 
     Args:

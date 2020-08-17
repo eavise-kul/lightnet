@@ -14,6 +14,9 @@ log = logging.getLogger(__name__)
 class LinePlotter:
     """ Wrapper to easily plot curves and lines.
 
+    .. deprecated:: 1.1.0
+        This class is deprectated in favor of the new TensorBoard integration in PyTorch
+
     Args:
         visdom (object): Visdom plotting object
         window (str, optional): Name of the window to plot lines; Default **None**
@@ -24,9 +27,6 @@ class LinePlotter:
     Note:
         If the visdom argument is None, this plotter will do nothing.
         This can be used to disable using the visdom plotter, without having to check for it in the application code.
-
-    Warning:
-        This class is deprectated in favor of the new TensorBoard integration in PyTorch
     """
     def __init__(self, visdom, window=None, env=None, name=None, opts={}):
         log.deprecated('This class is deprectated in favor of the new TensorBoard integration in PyTorch')
