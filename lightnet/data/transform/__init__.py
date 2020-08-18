@@ -3,6 +3,6 @@
 #   Copyright EAVISE
 #
 
-from ._preprocess import *
-from ._postprocess import *
+from .pre import *
+from .post import *
 from .util import *

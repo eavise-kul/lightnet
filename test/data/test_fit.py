@@ -94,43 +94,6 @@ def test_crop(image, boxes, mode):
     assert list(df_tf.height) == [50, 25]
 
 
-def test_crop_anno_crop(image, boxes):
-    img = image(200, 200, False)
-    df = boxes(200, 200)
-
-    img_tf, df_tf = tf.Crop.apply(img, df, dimension=(50, 100), center=True, crop_anno=True)
-    assert list(df_tf.x_top_left) == [0, 25]
-    assert list(df_tf.y_top_left) == [0, 50]
-    assert list(df_tf.width) == [25, 25]
-    assert list(df_tf.height) == [50, 25]
-
-
-def test_crop_anno_intersection(image, boxes):
-    img = image(200, 200, False)
-    df = boxes(200, 200)
-
-    # Area
-    img_tf, df_tf = tf.Crop.apply(img, df, dimension=(50, 100), center=True, intersection_threshold=0.6)
-    assert list(df_tf.x_top_left) == [25]
-    assert list(df_tf.y_top_left) == [50]
-    assert list(df_tf.width) == [25]
-    assert list(df_tf.height) == [25]
-
-    # Width
-    img_tf, df_tf = tf.Crop.apply(img, df, dimension=(50, 100), center=True, intersection_threshold=(0.6, 0.1))
-    assert list(df_tf.x_top_left) == [25]
-    assert list(df_tf.y_top_left) == [50]
-    assert list(df_tf.width) == [25]
-    assert list(df_tf.height) == [25]
-
-    # Height
-    img_tf, df_tf = tf.Crop.apply(img, df, dimension=(50, 100), center=True, intersection_threshold=(0.1, 0.6))
-    assert list(df_tf.x_top_left) == [-25, 25]
-    assert list(df_tf.y_top_left) == [0, 50]
-    assert list(df_tf.width) == [50, 25]
-    assert list(df_tf.height) == [50, 25]
-
-
 def test_reverse_crop(image, boxes):
     img = image(200, 200, False)
     df = boxes(200, 200)
@@ -203,3 +166,111 @@ def test_reverse_pad(image, boxes):
     img_tf, df_tf = tf.Pad.apply(img, df, dimension=(50, 100))
     df_rev = tf.ReversePad.apply(df_tf, network_factor=(50, 100), image_size=(195, 230))
     pd.testing.assert_frame_equal(df, df_rev)
+
+
+@pytest.mark.parametrize('mode', [True, False])
+def test_fitanno(image, boxes, mode):
+    img = image(200, 200, mode)
+    df = boxes(300, 300)
+    df = df.append({
+        'image': '0',
+        'class_label': '.',
+        'x_top_left': 200,
+        'y_top_left': 200,
+        'width': 50,
+        'height': 100,
+        'occluded': 0.0,
+        'truncated': 0.0,
+        'lost': False,
+        'difficult': False,
+        'ignore': False,
+    }, ignore_index=True)
+    df.loc[0, 'x_top_left'] = -50
+
+    _, df_tf = tf.FitAnno.apply(img, df)
+    assert list(df_tf.x_top_left) == [0, 150]
+    assert list(df_tf.y_top_left) == [0, 150]
+    assert list(df_tf.width) == [100, 50]
+    assert list(df_tf.height) == [150, 50]
+
+
+def test_fitanno_filter(image, boxes):
+    img = image(200, 200, False)
+    df = boxes(200, 200)
+    df.loc[0, 'x_top_left'] = -50
+    df.loc[0, 'width'] = 100
+
+    # Filter area
+    _, df_tf = tf.FitAnno.apply(img, df, crop=False, filter_threshold=0.6)
+    assert len(df_tf.index) == 1
+    assert list(df_tf.x_top_left) == [100]
+
+    # Filter width/height
+    _, df_tf = tf.FitAnno.apply(img, df, crop=False, filter_threshold=(0.6, 0.2))
+    assert len(df_tf.index) == 1
+    assert list(df_tf.x_top_left) == [100]
+
+    _, df_tf = tf.FitAnno.apply(img, df, crop=False, filter_threshold=(0.2, 0.6))
+    assert len(df_tf.index) == 2
+    assert list(df_tf.x_top_left) == [-50, 100]
+
+    # Filter ignore
+    _, df_tf = tf.FitAnno.apply(img, df, crop=False, filter_threshold=0.6, filter_type='ignore')
+    assert len(df_tf.index) == 2
+    assert list(df_tf.x_top_left) == [-50, 100]
+    assert list(df_tf.ignore) == [True, False]
+
+    # Remove Empty
+    df = df.append({
+        'image': '0',
+        'class_label': '.',
+        'x_top_left': 200,
+        'y_top_left': 200,
+        'width': 0,
+        'height': 0,
+        'occluded': 0.0,
+        'truncated': 0.0,
+        'lost': False,
+        'difficult': False,
+        'ignore': False,
+    }, ignore_index=True)
+
+    _, df_tf = tf.FitAnno.apply(img, df, crop=False, filter_threshold=0.6, filter_type='ignore')
+    assert len(df_tf.index) == 2
+    assert list(df_tf.x_top_left) == [-50, 100]
+    assert list(df_tf.ignore) == [True, False]
+
+
+def test_fitanno_crop(image, boxes):
+    img = image(200, 200, False)
+    df = boxes(200, 200)
+    df.loc[0, 'x_top_left'] = -50
+    df.loc[0, 'width'] = 100
+    df.loc[1, 'width'] = 250
+
+    # Crop
+    _, df_tf = tf.FitAnno.apply(img, df, filter=False)
+    assert list(df_tf.x_top_left) == [0, 100]
+    assert list(df_tf.y_top_left) == [0, 100]
+    assert list(df_tf.width) == [50, 100]
+    assert list(df_tf.height) == [100, 50]
+
+    # Remove Empty
+    df = df.append({
+        'image': '0',
+        'class_label': '.',
+        'x_top_left': 200,
+        'y_top_left': 200,
+        'width': 50,
+        'height': 100,
+        'occluded': 0.0,
+        'truncated': 0.0,
+        'lost': False,
+        'difficult': False,
+        'ignore': False,
+    }, ignore_index=True)
+    print(df[['x_top_left', 'y_top_left', 'width', 'height']])
+
+    _, df_tf = tf.FitAnno.apply(img, df, filter=False)
+    assert len(df_tf.index) == 2
+    assert list(df_tf.x_top_left) == [0, 100]
