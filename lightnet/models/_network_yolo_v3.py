@@ -57,7 +57,7 @@ class YoloV3(lnn.module.Darknet):
         relu = functools.partial(nn.LeakyReLU, 0.1, inplace=True)
         momentum = 0.01
         self.extractor = lnn.layer.SequentialSelect(
-            ['k_residual', 's_residual'],
+            ['k_residual', 's_residual'], True,
             OrderedDict([
                 ('1_convbatch',         lnn.layer.Conv2dBatchReLU(input_channels, 32, 3, 1, 1, relu=relu, momentum=momentum)),
                 ('2_convbatch',         lnn.layer.Conv2dBatchReLU(32, 64, 3, 2, 1, relu=relu, momentum=momentum)),
@@ -163,7 +163,7 @@ class YoloV3(lnn.module.Darknet):
         self.detector = nn.ModuleList([
             # Sequence 0 : input = extractor
             lnn.layer.SequentialSelect(
-                ['57_convbatch'],
+                ['57_convbatch'], True,
                 OrderedDict([
                     ('53_convbatch',    lnn.layer.Conv2dBatchReLU(1024, 512, 1, 1, 0, relu=relu, momentum=momentum)),
                     ('54_convbatch',    lnn.layer.Conv2dBatchReLU(512, 1024, 3, 1, 1, relu=relu, momentum=momentum)),
@@ -185,7 +185,7 @@ class YoloV3(lnn.module.Darknet):
 
             # Sequence 2 : input = 61_upsample and s_residual
             lnn.layer.SequentialSelect(
-                ['66_convbatch'],
+                ['66_convbatch'], True,
                 OrderedDict([
                     ('62_convbatch',    lnn.layer.Conv2dBatchReLU(256+512, 256, 1, 1, 0, relu=relu, momentum=momentum)),
                     ('63_convbatch',    lnn.layer.Conv2dBatchReLU(256, 512, 3, 1, 1, relu=relu, momentum=momentum)),

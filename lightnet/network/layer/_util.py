@@ -89,8 +89,8 @@ class SequentialSelect(nn.Sequential):
 
         Args:
             selection (list): names of the layers for which you want to get the output
-            *args: Arguments that are passed to the Sequential init function
             return_selection (bool): Whether to return the selected layers, or just store them as `self.selected`
+            *args: Arguments that are passed to the Sequential init function
 
         .. figure:: /.static/api/sequentialselect.*
            :width: 100%
@@ -112,7 +112,6 @@ class SequentialSelect(nn.Sequential):
             ...     # We want to return the output from layers '1' and '3'
             ...     [1, 3],
             ...
-            ...     # The `return_selection` argument can also be passed as first or last of the *args
             ...     # Since we specify False, the selected outputs will not be returned,
             ...     # but we can access them as `module.selected`
             ...     False,
@@ -163,14 +162,7 @@ class SequentialSelect(nn.Sequential):
             >>> print(selected['3'].shape)
             torch.Size([1, 32, 10, 10])
     """
-    def __init__(self, selection, *args, return_selection=True):
-        if isinstance(args[0], bool):
-            return_selection = args[0]
-            args = args[1:]
-        elif isinstance(args[-1], bool):
-            return_selection = args[-1]
-            args = args[:-1]
-
+    def __init__(self, selection, return_selection, *args):
         super().__init__(*args)
 
         self.return_selection = return_selection

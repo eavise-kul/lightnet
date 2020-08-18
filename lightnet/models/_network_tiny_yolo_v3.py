@@ -56,7 +56,7 @@ class TinyYoloV3(lnn.module.Darknet):
         relu = functools.partial(nn.LeakyReLU, 0.1, inplace=True)
         momentum = 0.01
         self.extractor = lnn.layer.SequentialSelect(
-            ['9_convbatch'],
+            ['9_convbatch'], True,
             # Sequence 0 : input = input_channels
             OrderedDict([
                 ('1_convbatch',     lnn.layer.Conv2dBatchReLU(input_channels, 16, 3, 1, 1, relu=relu, momentum=momentum)),
