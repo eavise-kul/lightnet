@@ -1,21 +1,9 @@
 SHELL := /bin/bash
 DEBUG := 
 all: test docs
-.PHONY: docker docs doctest unittest lint test build
-.SILENT: docker docs doctest test build
-.NOTPARALLEL: docker docs doctest unittest lint test build
-
-docker: name := TOP_lightnet
-docker: image := top/pytorch
-docker:
-	${DEBUG} NV_GPU=1 nvidia-docker run -it --rm --name ${name} -h ${name} -e TERM \
-		-e DISPLAY --net=host --ipc=host \
-    -v ${PWD}:/developer/project \
-    ${image} /bin/bash -c \
-    "cd project; \
-		pip install -r develop.txt; \
-    clear; \
-    /bin/bash"
+.PHONY: docs doctest unittest lint test build
+.SILENT: docs doctest test build
+.NOTPARALLEL: docs doctest unittest lint test build
 
 docs: notebook:= 0
 docs:
