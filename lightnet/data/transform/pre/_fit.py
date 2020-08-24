@@ -372,14 +372,17 @@ class FitAnno(BaseMultiTransform):
     def _tf_pil(self, img):
         im_w, im_h = img.size
         self._get_params(im_w, im_h)
+        return img
 
     def _tf_cv(self, img):
         im_h, im_w = img.shape[:2]
         self._get_params(im_w, im_h)
+        return img
 
     def _tf_torch(self, img):
         im_h, im_w = img.shape[-2:]
         self._get_params(im_w, im_h)
+        return img
 
     def _tf_anno(self, anno):
         anno = anno.copy()

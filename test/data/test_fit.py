@@ -187,7 +187,8 @@ def test_fitanno(image, boxes, mode):
     }, ignore_index=True)
     df.loc[0, 'x_top_left'] = -50
 
-    _, df_tf = tf.FitAnno.apply(img, df)
+    img_tf, df_tf = tf.FitAnno.apply(img, df)
+    assert_img_size(img_tf, 200, 200)
     assert list(df_tf.x_top_left) == [0, 150]
     assert list(df_tf.y_top_left) == [0, 150]
     assert list(df_tf.width) == [100, 50]
