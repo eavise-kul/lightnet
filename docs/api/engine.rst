@@ -2,19 +2,15 @@ Engine
 ======
 .. automodule:: lightnet.engine
 
-.. autoclass:: Engine
-   :members:
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+   :template: member-template.rst
 
-.. autoclass:: HyperParameters
-   :members:
-
-.. autoclass:: SchedulerCompositor
-   :members:
-
-.. autoclass:: LinePlotter
-   :members:
-   :special-members: __call__
-
+   lightnet.engine.Engine
+   lightnet.engine.HyperParameters
+   lightnet.engine.SchedulerCompositor
+   lightnet.engine.LinePlotter
 
 
 .. include:: ../links.rst

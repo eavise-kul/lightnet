@@ -43,7 +43,7 @@ class BramboxToTensor(BaseTransform):
     """ Converts a list of brambox annotation objects to a tensor.
 
     .. deprecated:: 2.0.0
-        This class is deprectated, because you can use brambox dataframes in the loss functions.
+        |br| This class is deprectated, because you can use brambox dataframes in the loss functions.
 
     Args:
         dimension (tuple, optional): Default size of the transformed images, expressed as a (width, height) tuple; Default **None**

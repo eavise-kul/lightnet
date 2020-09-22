@@ -15,7 +15,7 @@ class LinePlotter:
     """ Wrapper to easily plot curves and lines.
 
     .. deprecated:: 1.1.0
-        This class is deprectated in favor of the new TensorBoard integration in PyTorch
+        |br| This class is deprectated in favor of the new TensorBoard integration in PyTorch
 
     Args:
         visdom (object): Visdom plotting object

@@ -15,6 +15,16 @@ log = logging.getLogger(__name__)
 
 class Engine(ABC):
     """ This class removes the boilerplate code needed for writing your training cycle. |br|
+
+    .. deprecated:: 2.0.0
+        |br| There are already a lot of PyTorch libraries that are created to ease the creation of a training pipeline.
+
+        In order to limit the burden on the Lightnet dev-team,
+        we will stop working on our own engine and instead be slowly transitioning towards `PyTorch Lightning <lightning_>`_. |br|
+        This transition will be slow and this engine will thus remain in the codebase for quite some time, but no further development will be made to this.
+        Besides, PyTorch Lightnig offers a ton of extra functionality and is being maintained by a much bigger group of people,
+        which allows it to stay up-to-date with recent Deep Learning trends much faster!
+
     Here is the code that runs when the engine is called:
 
     .. literalinclude:: /../lightnet/engine/_engine.py
