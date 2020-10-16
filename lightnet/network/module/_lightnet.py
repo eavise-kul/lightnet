@@ -104,7 +104,7 @@ class Lightnet(nn.Module):
 
         self.load_state_dict(state, strict=strict)
 
-    def load_pruned(self, weights, strict=True):
+    def load_pruned(self, weights_file, strict=True):
         """ This function will load pruned weights from a file.
         It also allows to load in weights file with only a part of the weights in.
 
@@ -117,8 +117,8 @@ class Lightnet(nn.Module):
             so you should use ``network.to(device)`` afterwards to send it to the device of your choice.
         """
         keys = set(self.state_dict().keys())
-        log.info(f'Loading weights from file [{weights}]')
-        state = torch.load(weights, 'cpu')
+        log.info(f'Loading pruned weights from file [{weights_file}]')
+        state = torch.load(weights_file, 'cpu')
 
         # Prune tensors
         for key, val in state.items():
