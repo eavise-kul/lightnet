@@ -16,6 +16,7 @@ log = logging.getLogger('lightnet.models')
 class YoloV2Upsample(lnn.module.Darknet):
     """ Yolo v2 implementation with an upsampling layer instead of a reorg layer.
         TODO : add more information
+        TODO : Default anchors *2
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**

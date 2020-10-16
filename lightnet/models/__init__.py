@@ -31,6 +31,7 @@ from ._network_mobilenet_v2 import *
 from ._network_mobile_darknet19 import *
 from ._network_mobilenet_yolo import *
 from ._network_mobile_yolo_v2 import *
+from ._network_mobile_yolo_v2_upsample import *
 from ._network_yolo_fusion import *
 from ._network_yolo_v2_upsample import *
 

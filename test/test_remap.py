@@ -9,16 +9,17 @@ import torch
 import lightnet as ln
 
 remaps = [
-    # source,                   target,                     remap
-    (ln.models.Darknet,         ln.models.TinyYoloV2,       ln.models.TinyYoloV2.remap_darknet),
-    (ln.models.Darknet,         ln.models.TinyYoloV3,       ln.models.TinyYoloV3.remap_darknet),
-    (ln.models.Darknet19,       ln.models.DYolo,            ln.models.DYolo.remap_darknet19),
-    (ln.models.Darknet19,       ln.models.Yolt,             ln.models.Yolt.remap_darknet19),
-    (ln.models.Darknet19,       ln.models.YoloV2,           ln.models.YoloV2.remap_darknet19),
-    (ln.models.Darknet19,       ln.models.YoloV2Upsample,   ln.models.YoloV2Upsample.remap_darknet19),
-    (ln.models.Darknet53,       ln.models.YoloV3,           ln.models.YoloV3.remap_darknet53),
-    (ln.models.MobileDarknet19, ln.models.MobileYoloV2,     ln.models.MobileYoloV2.remap_mobile_darknet19),
-    (ln.models.MobilenetV1,     ln.models.MobilenetYolo,    ln.models.MobilenetYolo.remap_mobilenet_v1),
+    # source,                   target,                             remap
+    (ln.models.Darknet,         ln.models.TinyYoloV2,               ln.models.TinyYoloV2.remap_darknet),
+    (ln.models.Darknet,         ln.models.TinyYoloV3,               ln.models.TinyYoloV3.remap_darknet),
+    (ln.models.Darknet19,       ln.models.DYolo,                    ln.models.DYolo.remap_darknet19),
+    (ln.models.Darknet19,       ln.models.Yolt,                     ln.models.Yolt.remap_darknet19),
+    (ln.models.Darknet19,       ln.models.YoloV2,                   ln.models.YoloV2.remap_darknet19),
+    (ln.models.Darknet19,       ln.models.YoloV2Upsample,           ln.models.YoloV2Upsample.remap_darknet19),
+    (ln.models.Darknet53,       ln.models.YoloV3,                   ln.models.YoloV3.remap_darknet53),
+    (ln.models.MobileDarknet19, ln.models.MobileYoloV2,             ln.models.MobileYoloV2.remap_mobile_darknet19),
+    (ln.models.MobileDarknet19, ln.models.MobileYoloV2Upsample,     ln.models.MobileYoloV2.remap_mobile_darknet19),
+    (ln.models.MobilenetV1,     ln.models.MobilenetYolo,            ln.models.MobilenetYolo.remap_mobilenet_v1),
 ]
 
 # Difficult to test (usually remaps from other repos)

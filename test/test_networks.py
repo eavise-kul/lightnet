@@ -9,7 +9,7 @@ import torch
 import lightnet as ln
 
 classification_networks = ['Darknet', 'Darknet19', 'Darknet53', 'MobileDarknet19', 'MobilenetV1', 'MobilenetV2']
-anchor_detection_networks = ['DYolo', 'MobilenetYolo', 'MobileYoloV2', 'TinyYoloV2', 'TinyYoloV3', 'YoloV2', 'YoloV2Upsample', 'YoloV3', 'Yolt']
+anchor_detection_networks = ['DYolo', 'MobilenetYolo', 'MobileYoloV2', 'MobileYoloV2Upsample', 'TinyYoloV2', 'TinyYoloV3', 'YoloV2', 'YoloV2Upsample', 'YoloV3', 'Yolt']
 corner_detection_networks = ['Cornernet', 'CornernetSqueeze']
 special_networks = ['YoloFusion']
 
