@@ -32,6 +32,7 @@ class Crop(BaseMultiTransform):
         Check out :class:`~lightnet.data.transform.FitAnno` for a transformation that does this.
     """
     def __init__(self, dimension=None, dataset=None, center=True):
+        super().__init__()
         self.dimension = dimension
         self.dataset = dataset
         self.center = center
@@ -144,6 +145,7 @@ class Letterbox(BaseMultiTransform):
         This object will save data from the image transform and use that on the annotation transform.
     """
     def __init__(self, dimension=None, dataset=None, fill_color=0.5):
+        super().__init__()
         self.dimension = dimension
         self.dataset = dataset
         self.fill_color = fill_color if isinstance(fill_color, float) else fill_color / 255
@@ -260,6 +262,7 @@ class Pad(BaseMultiTransform):
         This object will save data from the image transform and use that on the annotation transform.
     """
     def __init__(self, dimension=None, dataset=None, multiple_dim=True, fill_color=127):
+        super().__init__()
         self.dimension = dimension
         self.dataset = dataset
         self.multiple_dim = multiple_dim
@@ -358,6 +361,7 @@ class FitAnno(BaseMultiTransform):
         Ohterwise the threshold is to be considered as an area threshold.
     """
     def __init__(self, crop=True, filter=True, filter_type='remove', filter_threshold=0.001, remove_empty=True):
+        super().__init__()
         self.crop = crop
         self.filter = filter
         self.filter_type = filter_type.lower()

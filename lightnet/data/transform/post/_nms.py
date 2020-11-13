@@ -46,12 +46,13 @@ class NMS(BaseTransform):
         By passing false to `force_cpu`, you can disable this behavior and perform all the computations on the original device of the input tensor.
     """
     def __init__(self, nms_thresh, class_nms=True, force_cpu=True, reset_index=True):
+        super().__init__()
         self.nms_thresh = nms_thresh
         self.class_nms = class_nms
         self.force_cpu = force_cpu
         self.reset_index = reset_index
 
-    def __call__(self, boxes):
+    def forward(self, boxes):
         if isinstance(boxes, torch.Tensor):
             return self._torch(boxes)
         else:
@@ -110,6 +111,7 @@ class NMS(BaseTransform):
         keep = keep.to(boxes.device)
         return keep.scatter(0, order, keep)
 
+    @torch.jit.ignore
     def _pandas(self, boxes):
         if len(boxes.index) == 0:
             return boxes
@@ -181,6 +183,7 @@ class NMSFast(NMS):
         as it needs the x_top_left, y_top_left, width, height, confidence and class_label columns.
     """
     def __init__(self, nms_thresh, class_nms=True, reset_index=True):
+        super().__init__()
         self.nms_thresh = nms_thresh
         self.class_nms = class_nms
         self.reset_index = reset_index
@@ -217,6 +220,7 @@ class NMSFast(NMS):
         keep = conflicting.sum(0) == 0
         return keep.scatter(0, order, keep)
 
+    @torch.jit.ignore
     def _pandas_nms(self, boxes):
         boxes = boxes.sort_values('confidence', ascending=False)
         ious = bb.stat.coordinates.iou(boxes, boxes, bias=0)
@@ -260,13 +264,14 @@ class NMSSoft(BaseTransform):
         as it needs the x_top_left, y_top_left, width, height, confidence and class_label columns.
     """
     def __init__(self, sigma, conf_thresh=0, class_nms=True, force_cpu=True, reset_index=True):
+        super().__init__()
         self.sigma = sigma
         self.conf_thresh = conf_thresh
         self.class_nms = class_nms
         self.force_cpu = force_cpu
         self.reset_index = reset_index
 
-    def __call__(self, boxes):
+    def forward(self, boxes):
         if isinstance(boxes, torch.Tensor):
             return self._torch(boxes)
         else:
@@ -338,6 +343,7 @@ class NMSSoft(BaseTransform):
         order = order.to(boxes.device)
         return scores.scatter(0, order, scores)
 
+    @torch.jit.ignore
     def _pandas(self, boxes):
         if len(boxes.index) == 0:
             return boxes
@@ -410,12 +416,13 @@ class NMSSoftFast(BaseTransform):
         as it needs the x_top_left, y_top_left, width, height, confidence and class_label columns.
     """
     def __init__(self, sigma, conf_thresh=0, class_nms=True, reset_index=True):
+        super().__init__()
         self.sigma = sigma
         self.conf_thresh = conf_thresh
         self.class_nms = class_nms
         self.reset_index = reset_index
 
-    def __call__(self, boxes):
+    def forward(self, boxes):
         if isinstance(boxes, torch.Tensor):
             return self._torch(boxes)
         else:
@@ -470,6 +477,7 @@ class NMSSoftFast(BaseTransform):
         scores *= decay
         return scores.scatter(0, order, scores)
 
+    @torch.jit.ignore
     def _pandas(self, boxes):
         if len(boxes.index) == 0:
             return boxes

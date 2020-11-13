@@ -24,6 +24,7 @@ class AnnoTransform(BaseMultiTransform):
             fn (callable): Function that is called with the annotation dataframe
     """
     def __init__(self, fn):
+        super().__init__()
         self.fn = fn
 
     def _tf_pil(self, img):
@@ -62,6 +63,7 @@ class BramboxToTensor(BaseTransform):
         If that fails, it is simply given the number 0.
     """
     def __init__(self, dimension=None, dataset=None, max_anno=50, class_label_map=None):
+        super().__init__()
         log.deprecated('This class is deprecated and will be removed in a future version of lightnet. Please use brambox dataframes instead of tensors in the various loss functions.')
         self.dimension = dimension
         self.dataset = dataset
@@ -73,7 +75,7 @@ class BramboxToTensor(BaseTransform):
         if self.class_label_map is None:
             log.warning('No class_label_map given. If there is no class_index column or if the class_labels are not integers, they will be set to zero.')
 
-    def __call__(self, data):
+    def forward(self, data):
         if self.dataset is not None:
             dim = self.dataset.input_dim
         else:

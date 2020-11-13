@@ -25,6 +25,7 @@ class RandomFlip(BaseMultiTransform):
         This object will save data from the image transform and use that on the annotation transform.
     """
     def __init__(self, horizontal, vertical=0):
+        super().__init__()
         self.horizontal = horizontal
         self.vertical = vertical
         self.flip_h = False
@@ -100,6 +101,7 @@ class RandomHSV(BaseTransform):
     .. _cvtColor: https://docs.opencv.org/3.4/d8/d01/group__imgproc__color__conversions.html#ga397ae87e1288a81d2363b61574eb8cab
     """
     def __init__(self, hue, saturation, value):
+        super().__init__()
         self.hue = hue
         self.saturation = saturation
         self.value = value
@@ -228,6 +230,7 @@ class RandomJitter(BaseMultiTransform):
         Check out :class:`~lightnet.data.transform.FitAnno` for a transformation that does this.
     """
     def __init__(self, jitter, fill_color=0.5):
+        super().__init__()
         self.jitter = jitter
         self.fill_color = fill_color if isinstance(fill_color, float) else fill_color / 255
         self.crop = None
@@ -316,6 +319,7 @@ class RandomRotate(BaseMultiTransform):
         This object will save data from the image transform and use that on the annotation transform.
     """
     def __init__(self, jitter):
+        super().__init__()
         self.jitter = jitter
         self.angle = None
         self.im_w = None

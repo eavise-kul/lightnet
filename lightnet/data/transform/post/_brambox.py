@@ -29,11 +29,12 @@ class TensorToBrambox(BaseTransform):
         If no `class_label_map` is given, this transform will simply convert the class id's to a string.
     """
     def __init__(self, class_label_map=None):
+        super().__init__()
         self.class_label_map = class_label_map
         if self.class_label_map is None:
             log.warning('No class_label_map given. The indexes will be used as class_labels.')
 
-    def __call__(self, boxes):
+    def forward(self, boxes):
         if boxes.numel() == 0:
             df = pd.DataFrame(columns=['image', 'class_label', 'id', 'x_top_left', 'y_top_left', 'width', 'height', 'confidence'])
             df.image = df.image.astype(int)

@@ -23,13 +23,14 @@ class GetDarknetBoxes(BaseTransform):
         (Tensor [Boxes x 7]]): **[batch_num, x_tl, y_tl, x_br, y_br, confidence, class_id]** for every bounding box
     """
     def __init__(self, conf_thresh, network_stride, anchors):
-        self.conf_thresh = conf_thresh
-        self.network_stride = network_stride
+        super().__init__()
+        self.conf_thresh = torch.tensor(conf_thresh)
+        self.network_stride = torch.tensor(network_stride)
         self.anchors = torch.tensor(anchors)
-        self.num_anchors = self.anchors.shape[0]
-        self.anchors_step = self.anchors.shape[1]
+        self.num_anchors = torch.tensor(self.anchors.shape[0])
+        self.anchors_step = torch.tensor(self.anchors.shape[1])
 
-    def __call__(self, network_output):
+    def forward(self, network_output):
         device = network_output.device
         batch, channels, h, w = network_output.shape
         num_classes = (channels // self.num_anchors) - 5
@@ -60,21 +61,21 @@ class GetDarknetBoxes(BaseTransform):
 
         score_thresh = cls_max > self.conf_thresh
         if score_thresh.sum() == 0:
-            return torch.tensor([]).to(device)
+            return torch.empty(0, 7, device=device)
+        else:
+            # Mask select boxes > conf_thresh
+            coords = network_output.transpose(2, 3)[..., 0:4]
+            coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
+            coords = torch.cat([coords[:, 0:2]-coords[:, 2:4]/2, coords[:, 0:2]+coords[:, 2:4]/2], 1)
+            scores = cls_max[score_thresh]
+            idx = cls_max_idx[score_thresh]
 
-        # Mask select boxes > conf_thresh
-        coords = network_output.transpose(2, 3)[..., 0:4]
-        coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
-        coords = torch.cat([coords[:, 0:2]-coords[:, 2:4]/2, coords[:, 0:2]+coords[:, 2:4]/2], 1)
-        scores = cls_max[score_thresh]
-        idx = cls_max_idx[score_thresh]
+            # Get batch numbers of the detections
+            batch_num = score_thresh.view(batch, -1)
+            nums = torch.arange(1, batch+1, dtype=torch.uint8, device=batch_num.device)
+            batch_num = (batch_num * nums[:, None])[batch_num] - 1
 
-        # Get batch numbers of the detections
-        batch_num = score_thresh.view(batch, -1)
-        nums = torch.arange(1, batch+1, dtype=torch.uint8, device=batch_num.device)
-        batch_num = (batch_num * nums[:, None])[batch_num] - 1
-
-        return torch.cat([batch_num[:, None].float(), coords, scores[:, None], idx[:, None]], dim=1)
+            return torch.cat([batch_num[:, None].float(), coords, scores[:, None], idx[:, None]], dim=1)
 
 
 def GetBoundingBoxes(*args, **kwargs):
@@ -109,7 +110,7 @@ class GetMultiScaleDarknetBoxes(GetDarknetBoxes):
         self.root_strides = network_strides
         self.root_anchors = torch.tensor(anchors, requires_grad=False)
 
-    def __call__(self, network_output):
+    def forward(self, network_output):
         boxes = []
         for i, output in enumerate(network_output):
             self.network_stride = self.root_strides[i]

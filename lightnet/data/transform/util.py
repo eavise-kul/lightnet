@@ -14,16 +14,16 @@ __all__ = ['Compose']
 log = logging.getLogger(__name__)
 
 
-class BaseTransform(ABC):
+class BaseTransform(ABC, torch.nn.Module):
     """ Base transform class for the pre- and post-processing functions.
     This class allows to create an object with some case specific settings, and then call it with the data to perform the transformation.
     It also allows to call the static method ``apply()`` with the data and settings. This is usefull if you want to transform a single data object.
 
     There are 2 ways to use this base class.
         - You provide implementations for ``_tf_pil()``, ``_tf_cv()`` and ``_tf_torch()`` to transform the different image types.
-        - You override the ``__call__()`` method and provide your own data transformation pipeline.
+        - You override the ``forward()`` method and provide your own data transformation pipeline.
     """
-    def __call__(self, data):
+    def forward(self, data):
         if data is None:
             return None
         elif isinstance(data, torch.Tensor):
@@ -76,7 +76,7 @@ class BaseTransform(ABC):
         return string + ')'
 
 
-class BaseMultiTransform(ABC):
+class BaseMultiTransform(ABC, torch.nn.Module):
     """ Base multiple transform class that is mainly used in pre-processing functions.
     This class exists for transforms that affect both images and annotations.
     It provides a classmethod ``apply``, that will perform the transormation on one (data, target) pair.
@@ -84,7 +84,7 @@ class BaseMultiTransform(ABC):
     In order to use this base class, you need to provide implementations for ``_tf_pil()``, ``_tf_cv()`` and ``_tf_torch()`` to transform the different image types
     and ``_tf_anno()`` to transform the annotations.
     """
-    def __call__(self, data):
+    def forward(self, data):
         if data is None:
             return None
         elif isinstance(data, torch.Tensor):

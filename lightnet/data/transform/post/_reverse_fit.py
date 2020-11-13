@@ -33,10 +33,11 @@ class ReverseCrop(BaseTransform):
         Make sure to set the `center` argument to **True** in your :class:`~lightnet.data.transform.Crop` pre-processing.
     """
     def __init__(self, network_size, image_size):
+        super().__init__()
         self.network_size = network_size
         self.image_size = image_size
 
-    def __call__(self, boxes):
+    def forward(self, boxes):
         if isinstance(self.image_size, (list, tuple)):
             net_w, net_h = self.network_size
             im_w, im_h = self.image_size
@@ -102,10 +103,11 @@ class ReverseLetterbox(BaseTransform):
         as the transformation will be applied to the entire dataframe at once as opposed to grouping it per image and applying the tranform to each group individually.
     """
     def __init__(self, network_size, image_size):
+        super().__init__()
         self.network_size = network_size
         self.image_size = image_size
 
-    def __call__(self, boxes):
+    def forward(self, boxes):
         if isinstance(self.image_size, (list, tuple)):
             net_w, net_h = self.network_size
             im_w, im_h = self.image_size
@@ -170,10 +172,11 @@ class ReversePad(BaseTransform):
         as the transformation will be applied to the entire dataframe at once as opposed to grouping it per image and applying the tranform to each group individually.
     """
     def __init__(self, network_factor, image_size):
+        super().__init__()
         self.network_factor = network_factor
         self.image_size = image_size
 
-    def __call__(self, boxes):
+    def forward(self, boxes):
         if isinstance(self.image_size, (list, tuple)):
             im_w, im_h = self.image_size
             self._get_params(im_w, im_h)

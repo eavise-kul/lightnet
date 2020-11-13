@@ -35,7 +35,7 @@ class GetCornerBoxes(BaseTransform):
         self.topk = topk
         self.subsample_kernel = subsample_kernel
 
-    def __call__(self, network_output):
+    def forward(self, network_output):
         device = network_output.device
         batch, channels, h, w = network_output.shape
 
