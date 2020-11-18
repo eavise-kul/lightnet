@@ -35,8 +35,8 @@ def get_version():
 
 requirements = [
     'numpy',
+    'torch',
     'torchvision',
-    'onnx',
     'brambox>=2',
 ]
 pillow_req = 'pillow-simd' if get_dist('pillow-simd') is not None else 'pillow'

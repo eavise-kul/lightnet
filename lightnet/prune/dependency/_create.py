@@ -3,8 +3,7 @@
 #   Copyright EAVISE
 #
 import functools
-import onnx
-from onnx import numpy_helper as onnx_numpy_helper
+from .._imports import *
 from ._tree import *
 from ._tree import traverse_parents_breadth_first
 from ._type import *

@@ -3,7 +3,7 @@
 #   Copyright EAVISE
 #
 import enum
-import onnx
+from .._imports import onnx
 
 __all__ = ['NodeType', 'get_node_type', 'add_nodetype_operation']
 

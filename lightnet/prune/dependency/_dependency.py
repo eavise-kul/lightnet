@@ -4,8 +4,8 @@
 #
 import logging
 import tempfile
-import onnx
 import torch
+from .._imports import onnx
 from ._create import *
 from ._tree import *
 from ._type import *
