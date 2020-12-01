@@ -4,6 +4,7 @@
 #
 
 import logging
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -174,9 +175,12 @@ class Reorg(nn.Module):
         B, C, H, W = x.size()
         assert H % self.stride == 0, f'Dimension height mismatch: {H} is not divisible by {self.stride}'
         assert W % self.stride == 0, f'Dimension width mismatch: {W} is not divisible by {self.stride}'
-
-        x = x.view(B, C//(self.stride**2), H, self.stride, W, self.stride).contiguous()
-        x = x.permute(0, 3, 5, 1, 2, 4).contiguous()
-        x = x.view(B, -1, H//self.stride, W//self.stride)
+        mem_fmt = x.is_contiguous(memory_format=torch.channels_last)
+        
+        x = x.reshape(B, C//(self.stride**2), H, self.stride, W, self.stride)
+        x = x.permute(0, 3, 5, 1, 2, 4)
+        x = x.reshape(B, -1, H//self.stride, W//self.stride)
+        if mem_fmt:
+            x = x.contiguous(memory_format=torch.channels_last)
 
         return x
