@@ -176,7 +176,7 @@ class Reorg(nn.Module):
         assert H % self.stride == 0, f'Dimension height mismatch: {H} is not divisible by {self.stride}'
         assert W % self.stride == 0, f'Dimension width mismatch: {W} is not divisible by {self.stride}'
         mem_fmt = x.is_contiguous(memory_format=torch.channels_last)
-        
+
         x = x.reshape(B, C//(self.stride**2), H, self.stride, W, self.stride)
         x = x.permute(0, 3, 5, 1, 2, 4)
         x = x.reshape(B, -1, H//self.stride, W//self.stride)
