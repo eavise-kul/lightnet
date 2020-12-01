@@ -183,10 +183,7 @@ class NMSFast(NMS):
         as it needs the x_top_left, y_top_left, width, height, confidence and class_label columns.
     """
     def __init__(self, nms_thresh, class_nms=True, reset_index=True):
-        super().__init__()
-        self.nms_thresh = nms_thresh
-        self.class_nms = class_nms
-        self.reset_index = reset_index
+        super().__init__(nms_thresh, class_nms, False, reset_index)
 
     def _torch_nms(self, boxes):
         if boxes.numel() == 0:
