@@ -116,7 +116,7 @@ class GetMultiScaleDarknetBoxes(GetDarknetBoxes):
             self.network_stride = self.root_strides[i]
             self.anchors = self.root_anchors[i]
             self.num_anchors = self.anchors.shape[0]
-            boxes.append(super().__call__(output))
+            boxes.append(super().forward(output))
         return torch.cat(boxes)
 
 
