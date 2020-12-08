@@ -236,12 +236,12 @@ class Compose(list):
         Args:
             data: The data to modify. If it is a tuple, only the first item will be transformed, unless the transform is an instance of self.multi_tf.
         """
-        if isinstance(data, tuple):
+        if isinstance(data, tuple) and any(isinstance(d, pd.DataFrame) for d in data):
             for tf in self:
                 if isinstance(tf, self.multi_tf):
                     data = tuple(tf(d) for d in data)
                 else:
-                    data = tuple(tf(d) if i == 0 else d for i, d in enumerate(data))
+                    data = tuple(d if isinstance(d, pd.DataFrame) else tf(d) for d in data)
         else:
             for tf in self:
                 data = tf(data)
