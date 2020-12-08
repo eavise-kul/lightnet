@@ -158,7 +158,7 @@ class Compose(list):
 
     One of its main features is that you can create a single pipeline for both your images and annotations.
     When you want to run your pipeline, you simply call this compose list with a tuple,
-    containing your image and your annotations (in that specific order).
+    containing your image and your annotations (annotation has to be :class:`pandas.DataFrame`).
     This class will then run through the transformations and apply each of them.
     If a transformation is of a type :class:`~lightnet.data.transform.util.BaseMultiTransform`,
     all elements from the data tuple will be run through this transformation sequentially,
