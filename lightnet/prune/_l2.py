@@ -15,9 +15,21 @@ log = logging.getLogger(__name__)
 
 
 class L2Pruner(Pruner):
-    """ TODO
+    """ Normalized L2 based pruning. |br|
+    This pruner computes the normalized L2 norm per channel
+    and prunes the channels with the lowest values.
 
-    Normalized L2 : https://arxiv.org/pdf/1611.06440.pdf -> 2.3 Normalization
+    The importance of a channel :math:`c_i` of convolution :math:`C` is computed as:
+
+    .. math::
+       Importance(c_i) = \\frac{||c_i||_2}{\\sqrt{\\sum_{c_j \\in C} ||c_j||_2^2}}
+
+    Args:
+        model (torch.nn.Module): model to prune
+        optimizer (torch.optim.Optimizer or None): Optimizer that is used when retraining the network (pass None if not retraining)
+        input_dimensions (tuple): Input dimensions to the network
+        manner ("soft" or "hard", optional): Whether to perform soft-pruning (replacing channel values with zero) or hard-pruning (deleting channels); Default **"hard"**
+        get_parameters (function, optional): function that takes a model and returns the parameters for the optimizer; Default **model.parameters()**
 
     Note:
         The percentage is approximative. |br|

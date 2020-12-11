@@ -8,6 +8,7 @@
 
 .. autoclass:: {{ name }}
    :members:
+   :special-members: __call__
 
 
 .. include:: /links.rst

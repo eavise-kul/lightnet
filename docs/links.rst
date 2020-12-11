@@ -7,6 +7,7 @@
 .. _visdom: https://github.com/facebookresearch/visdom/
 .. _brambox: https://eavise.gitlab.io/brambox
 .. _lightning: https://pytorch-lightning.readthedocs.io
+.. _onnx: https://github.com/onnx/onnx
 
 
 .. DIRECTIVES

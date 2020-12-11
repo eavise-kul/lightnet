@@ -59,6 +59,7 @@ Table of Contents
    lightnet.data <api/data>
    lightnet.network <api/network>
    lightnet.engine <api/engine>
+   lightnet.prune <api/prune>
    lightnet.models <api/models>
    lightnet.log <api/log>
 

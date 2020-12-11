@@ -3,18 +3,30 @@ import math
 import torch
 from ._base import *
 
-__all__ = ['GeometricMedianPruner']
+__all__ = ['GMPruner']
 log = logging.getLogger(__name__)
 
 
-class GeometricMedianPruner(Pruner):
-    """ TODO
+class GMPruner(Pruner):
+    """ Geometric Median Pruning :cite:`gm_prune`.
+    This pruner prunes channels which are closest to the geometric median of the channels in a convolution.
 
-    FPGM : https://arxiv.org/pdf/1811.00250.pdf
+    The importance of a channel :math:`c_i` of convolution :math:`C` is computed as:
+
+    .. math::
+       Importance(c_i) = \\sum_{c_j \\in C} ||c_i - c_j||_p
+
+    Args:
+        model (torch.nn.Module): model to prune
+        optimizer (torch.optim.Optimizer or None): Optimizer that is used when retraining the network (pass None if not retraining)
+        input_dimensions (tuple): Input dimensions to the network
+        p_norm (int, optional): Which norm to use when computing the importance; Default **2**
+        manner ("soft" or "hard", optional): Whether to perform soft-pruning (replacing channel values with zero) or hard-pruning (deleting channels); Default **"hard"**
+        get_parameters (function, optional): function that takes a model and returns the parameters for the optimizer; Default **model.parameters()**
 
     Warning:
         The percentage given is used on a per-layer basis for this pruning method.
-        This means that if you give a percentage of 10%, we prune 10% of each prunable layer.
+        This means that if you give a percentage of 10%, we prune approximatively 10% of each prunable layer individually.
 
     Note:
         The percentage is approximative. |br|

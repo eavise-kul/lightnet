@@ -2,7 +2,6 @@
 #   Combine multiple pruners
 #   Copyright EAVISE
 #
-
 import collections
 import logging
 
@@ -19,18 +18,29 @@ def flatten(x):
 
 
 class MultiPruner:
-    """ TODO : docstring
+    """ Combines different pruner methods together. |br|
+    This class takes a list of pruners and applies each of them in order.
+    It can be used to simultaneously prune different networks or different parts of a network,
+    or even run different pruners on a single network.
+
+    Args:
+        *pruners (list <lightnet.prune.Pruner>): List of pruners to run
 
     Note:
-        Runs pruners in the order they were declared upon initialisation.
-
-    Note:
-        Skips a pruner if percentage is 0 (or less).
+        The MultiPruner runs pruners in the order they were declared upon initialisation.
     """
     def __init__(self, *pruners):
         self.pruners = flatten(pruners)
 
     def __call__(self, *percentages):
+        """ Actually perform the pruning.
+
+        Args:
+            *percentages (list <float>): percentage for each pruner
+
+        Note:
+            If the percentage for a certain pruner is zero, that pruner gets skipped.
+        """
         percentages = flatten(percentages)
         if len(percentages) < len(self.pruners):
             raise ValueError(f'Received {len(percentages)} percentages, but we have {len(self.pruners)} pruners.')
@@ -48,8 +58,11 @@ class MultiPruner:
     @property
     def prunable_channels(self):
         """ Returns the number of prunable channels left on the module. |br|
-            Since the number of prunable channels is independent of the pruning technique,
-            we just return the property from the first pruner in the list.
+        This property is added, so that you can use a :class:`~lightnet.prune.MultiPruner`
+        anywhere you would use a regular :class:`~lightnet.prune.Pruner`,
+        but it does not make a whole lot of sense for this pruner, as each individual pruner could have a different model.
+
+        We thuse simply return the ``prunable_channels`` property from the first pruner.
 
         Returns:
             int: Number of prunable channels of the entire model

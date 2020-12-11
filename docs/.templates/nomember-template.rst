@@ -4,7 +4,7 @@
 .. currentmodule:: {{ module }}
 
 
-{{ name | underline}}
+{{ name | escape | underline}}
 
 .. autoclass:: {{ name }}
 

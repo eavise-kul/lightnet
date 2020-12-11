@@ -15,7 +15,15 @@ log = logging.getLogger(__name__)
 
 
 def get_dependency_map(model, input_dim):
-    """ TODO : add proper docstring. """
+    """ Computes the dependency map of a model.
+
+    Args:
+        model (torch.nn.Module): Network model
+        input_dim (tuple <int>): Input dimension for the model
+
+    Returns:
+        dict: dependency map for each prunable convolution
+    """
     # Get ONNX graph
     path = tempfile.TemporaryFile(prefix='lightnet-prune', suffix='.onnx')
     get_onnx_model(model, input_dim, path)
@@ -68,7 +76,19 @@ def get_dependency_map(model, input_dim):
 
 
 def get_onnx_model(model, input_dim, path):
-    """ TODO : add proper docstring. """
+    """ Compute and save the ONNX version of a model. |br|
+    This function computes the ONNX version of a model, which is used to compute the dependency map for pruning.
+
+    Args:
+        model (torch.nn.Module): Network model
+        input_dim (tuple <int>): Input dimension for the model
+        path (string): Path to save the ONNX model
+
+    Note:
+        This function is used internally by lightnet whilst computing the dependency map
+        and should generally not be used by users.
+        It is only made publicly available in order to help debug pruning issues.
+    """
     # Get device
     try:
         device = next(model.parameters()).device
@@ -84,12 +104,20 @@ def get_onnx_model(model, input_dim, path):
         model, input_tensor, path,
         keep_initializers_as_inputs=False,
         operator_export_type=torch.onnx.OperatorExportTypes.ONNX_ATEN,
+        # Necessary because OperatorExportTypes.ONNX_ATEN
+        do_constant_folding=False
     )
 
 
-def print_dependency_map(dependencies, separator=' '):
+def print_dependency_map(dependencies, indentation=' '):
+    """ Pretty print a dependency map for easier inspection.
+
+    Args:
+        dependencies (dict): The computed dependecy map (see :func:`~lightnet.prune.dependency.get_dependency_map`)
+        indentation (string, optional): Indentation to add for each level of dependency; Default **' '**
+    """
     for name, d in dependencies.items():
         print(name)
         for i, n in traverse_depth_first(d, True):
-            print(f' {2 * i * separator}{n}')
+            print(f' {2 * i * indentation}{n}')
         print()

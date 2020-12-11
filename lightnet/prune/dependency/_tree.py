@@ -45,15 +45,18 @@ class Node:
 
 
 def traverse_depth_first(node, yield_root=True, level=0):
-    """ Generator that traverses the tree in kind of a depth first manner and returns (level, node) tuples.
+    """ Generator that traverses the dependency tree in a depth first manner and returns (level, node) tuples. |br|
     The general gist of this traversal is the following:
+
+    .. code::
+
         1. Yield node N
         2. Foreach parent P of N (except previous node)
             3. Yield P
             4. Foreach parent PP of P
                 5. Recurse to step 3 with P=PP
-        5. Foreach child C of N
-            6. Recurse to step 1 with C=N (and N=previous)
+        6. Foreach child C of N
+            7. Recurse to step 1 with C=N (and N=previous)
 
     Args:
         node (Node): Base node to start from
@@ -64,11 +67,8 @@ def traverse_depth_first(node, yield_root=True, level=0):
         Generator : generator which returns `(leve, node)` tuples when iterated over
 
     Note:
-        I don't think this is strictly speaking depht first, as we yield the children whilst going down the path,
-        but this is what I needed.
-
-    Warning:
-        I am NOT sure at all how this would behave with circular trees/graphs
+        Strictly speaking, this is not depht first, as we yield the children whilst going down the path,
+        but this is what we needed for lightnet.
     """
     def _traverse_depth_first(node, yield_root, prev, level):
         if yield_root:
@@ -93,8 +93,11 @@ def traverse_depth_first_parents(node, skip=None, level=0):
 
 
 def traverse_breadth_first(node, yield_root=True, level=0):
-    """ Generator that traverses the tree in a breadth first manner and returns (level, node) tuples.
+    """ Generator that traverses the dependency tree in a breadth first manner and returns (level, node) tuples. |br|
     The general gist of this traversal is the following:
+
+    .. code:: 
+
         1. Foreach child C of node N
             2. Foreach parent P of C (except N)
                 3. Recurse to step 2 with C=P and N=None
@@ -111,9 +114,6 @@ def traverse_breadth_first(node, yield_root=True, level=0):
 
     Returns:
         Generator : generator which returns `(level, node)` tuples when iterated over
-
-    Warning:
-        I am NOT sure at all how this would behave with circular trees/graphs
     """
     def _traverse_breadth_first(node, yield_root, level):
         if yield_root:

@@ -6,7 +6,7 @@
 from abc import ABC, abstractmethod
 import logging
 import torch
-from ..dependency import get_dependency_map, NodeType
+from .dependency import get_dependency_map, NodeType
 
 __all__ = ['Pruner']
 log = logging.getLogger(__name__)
@@ -17,12 +17,41 @@ def default_get_parameters(model):
 
 
 class Pruner(ABC):
-    """ TODO """
-    def __init__(self, model, optimizer, input_dimensions, manner="hard", get_parameters=None):
+    """ Abstract pruning class, which should be inheritted by each different method. |br|
+    This class takes care of actually performing the soft- or hard-pruning
+    and also updates the optimizer after it deleted channels.
+
+    Args:
+        model (torch.nn.Module): model to prune
+        input_dimensions (tuple): Input dimensions to the network
+        optimizer (torch.optim.Optimizer or None, optional): Optimizer that is used when retraining the network (see Note); default **None**
+        manner ("soft" or "hard", optional): Whether to perform soft-pruning (replacing channel values with zero) or hard-pruning (deleting channels); Default **"hard"**
+        get_parameters (function, optional): function that takes a model and returns the parameters for the optimizer; Default **model.parameters()**
+
+    Note:
+        When performing hard-pruning, the number of parameters of the network changes. |br|
+        This means that you need to redefine any object that holds a reference to these parameters.
+
+        When (re-)training a network, this means that you need to recreate a new optimizer, or adapt the existing one.
+        By passing an ``optimizer`` to this Pruner class,
+        this modification is done for you each time you run the pruner.
+        You can also modify which parameters are passed to the optimizer, by passing a ``get_parameters`` function.
+
+        The modifications made to the networks whilst hard-pruning also affect weight loading.
+        Lightnet modules thus provide the :func:`~lightnet.network.module.Lightnet.load_pruned` function,
+        which allows to correctly adapt a network, according to saved pruned weights.  
+
+        These modifications are not necessary for soft-pruning,
+        as this technique merely changes the values of the weights.
+    """
+    def __init__(self, model, input_dimensions, optimizer=None, manner="hard", get_parameters=None):
         self.model = model
         self.optimizer = optimizer
         self.manner = manner
         self.dependencies = get_dependency_map(model, input_dimensions)
+
+        if self.optimizer is None:
+            log.warn('Pruner did not get an optimizer, make sure to create a new optimizer each time you train after pruning.')
 
         if get_parameters is not None:
             self.get_parameters = get_parameters
@@ -30,7 +59,11 @@ class Pruner(ABC):
             self.get_parameters = default_get_parameters
 
     def __call__(self, percentage):
-        """ TODO """
+        """ Perform pruning.
+
+        Args:
+            percentage (float): Percentage of the prunable channels to prune (approximative)
+        """
         with torch.no_grad():
             # Delete gradients
             for param in self.model.parameters():
@@ -57,14 +90,37 @@ class Pruner(ABC):
 
     @abstractmethod
     def prune(self, percentage, prune_manner):
-        """ TODO
-        Note : Should return number of pruned filters
+        """ Pruning implementation. |br|
+        This method should be implemented by the different methods, and will be called automatically.
+
+        Args:
+            percentage (float): Percentage of the prunable channels to prune (approximative)
+            prune_manner (function): Function that is used to actually prune (see Note)
+
+        Return:
+            int: Number of actually pruned channels
+
+        Note:
+            The prune_manner function takes 2 arguments:
+            
+            - dependency : item from the dependency-map ``self.dependencies``
+            - filter_list : indexes from the channels to prune
+
+            It will then prune the given indexes from the given dependency convolution.
         """
         pass
 
     @property
     def prunable_channels(self):
-        """ TODO """
+        """ Returns the total number of prunable channels left in the network.
+
+        Return:
+            int: total number of prunable channels
+
+        Note:
+            This property returns the total amount of channels in the prunable convolutions.
+            Note that we never prune the last channel of a convolution and thus cannot prune all channels.
+        """
         prunable = 0
         for dependency in self.dependencies.values():
             prunable += dependency.module.out_channels
@@ -72,7 +128,7 @@ class Pruner(ABC):
         return prunable
 
     def soft_prune(self, conv_node, filter_list, chain=False):
-        """ TODO """
+        """ Soft pruning implementation, passed to the prune() function as ``prune_manner`` """
         # Set output tensors to zero; filter_list does not get modified
         if conv_node.module.groups != 1:
             raise NotImplementedError('Grouped Convolution')
@@ -90,7 +146,7 @@ class Pruner(ABC):
                 self._soft_chain(c, filter_list, conv_node)
 
     def hard_prune(self, conv_node, filter_list, chain=True):
-        """ TODO """
+        """ Hard pruning implementation, passed to the prune() function as ``prune_manner`` """
         # Remove filter_list from output tensor; filter_list does not get modified
         if conv_node.module.groups != 1:
             raise NotImplementedError('Grouped Convolution')
