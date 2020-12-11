@@ -77,7 +77,7 @@ def test_crop(image, boxes, mode):
     img = image(200, 200, mode)
     df = boxes(200, 200)
 
-    # Width
+    # Downscale, crop width
     img_tf, df_tf = tf.Crop.apply(img, df, dimension=(50, 100), center=True)
     assert_img_size(img_tf, 50, 100)
     assert list(df_tf.x_top_left) == [-25, 25]
@@ -85,13 +85,13 @@ def test_crop(image, boxes, mode):
     assert list(df_tf.width) == [50, 25]
     assert list(df_tf.height) == [50, 25]
 
-    # Height
-    img_tf, df_tf = tf.Crop.apply(img, df, dimension=(100, 50), center=True)
-    assert_img_size(img_tf, 100, 50)
-    assert list(df_tf.x_top_left) == [0, 50]
-    assert list(df_tf.y_top_left) == [-25, 25]
-    assert list(df_tf.width) == [50, 25]
-    assert list(df_tf.height) == [50, 25]
+    # Upscale, crop height
+    img_tf, df_tf = tf.Crop.apply(img, df, dimension=(250, 200), center=True)
+    assert_img_size(img_tf, 250, 200)
+    assert list(df_tf.x_top_left) == [0, 125]
+    assert list(df_tf.y_top_left) == [-25, 100]
+    assert list(df_tf.width) == [125, 62.5]
+    assert list(df_tf.height) == [125, 62.5]
 
 
 def test_reverse_crop(image, boxes):
@@ -114,21 +114,21 @@ def test_letterbox(image, boxes, mode):
     img = image(200, 200, mode)
     df = boxes(200, 200)
 
-    # Width
-    img_tf, df_tf = tf.Letterbox.apply(img, df, dimension=(50, 100))
-    assert_img_size(img_tf, 50, 100)
+    # Downscale, pad width
+    img_tf, df_tf = tf.Letterbox.apply(img, df, dimension=(50, 101))
+    assert_img_size(img_tf, 50, 101)
     assert list(df_tf.x_top_left) == [0, 25]
     assert list(df_tf.y_top_left) == [25, 50]
     assert list(df_tf.width) == [25, 12.5]
     assert list(df_tf.height) == [25, 12.5]
 
-    # Height
-    img_tf, df_tf = tf.Letterbox.apply(img, df, dimension=(100, 50))
-    assert_img_size(img_tf, 100, 50)
-    assert list(df_tf.x_top_left) == [25, 50]
-    assert list(df_tf.y_top_left) == [0, 25]
-    assert list(df_tf.width) == [25, 12.5]
-    assert list(df_tf.height) == [25, 12.5]
+    # Upscale, pad height
+    img_tf, df_tf = tf.Letterbox.apply(img, df, dimension=(451, 400))
+    assert_img_size(img_tf, 451, 400)
+    assert list(df_tf.x_top_left) == [25, 225]
+    assert list(df_tf.y_top_left) == [0, 200]
+    assert list(df_tf.width) == [200, 100]
+    assert list(df_tf.height) == [200, 100]
 
 
 def test_reverse_letterbox(image, boxes):

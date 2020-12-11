@@ -88,7 +88,7 @@ class Crop(BaseMultiTransform):
 
         # Rescale
         if self.scale != 1:
-            img = cv2.resize(img, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_LINEAR)
+            img = cv2.resize(img, (int(im_w * self.scale), int(im_h * self.scale)), interpolation=cv2.INTER_LINEAR)
 
         # Crop
         if self.crop is not None:
@@ -106,7 +106,13 @@ class Crop(BaseMultiTransform):
                 img = img[None, ...]
             elif img.ndim == 2:
                 img = img[None, None, ...]
-            img = torch.nn.functional.interpolate(img, scale_factor=self.scale, mode='bilinear').squeeze().clamp(min=0, max=255)
+            img = torch.nn.functional.interpolate(
+                img,
+                scale_factor=self.scale,
+                mode='bilinear',
+                align_corners=False,
+                recompute_scale_factor=True
+            ).squeeze().clamp(min=0, max=255)
 
         # Crop
         if self.crop is not None:
@@ -199,7 +205,7 @@ class Letterbox(BaseMultiTransform):
 
         # Rescale
         if self.scale != 1:
-            img = cv2.resize(img, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_LINEAR)
+            img = cv2.resize(img, (int(im_w * self.scale), int(im_h * self.scale)), interpolation=cv2.INTER_LINEAR)
 
         # Pad
         if self.pad is not None:
@@ -218,7 +224,13 @@ class Letterbox(BaseMultiTransform):
                 img = img[None, ...]
             elif img.ndim == 2:
                 img = img[None, None, ...]
-            img = torch.nn.functional.interpolate(img, scale_factor=self.scale, mode='bilinear').squeeze().clamp(min=0, max=255)
+            img = torch.nn.functional.interpolate(
+                img,
+                scale_factor=self.scale,
+                mode='bilinear',
+                align_corners=False,
+                recompute_scale_factor=True
+            ).squeeze().clamp(min=0, max=255)
 
         # Pad
         if self.pad is not None:
