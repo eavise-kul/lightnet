@@ -32,6 +32,7 @@ Detection
    lightnet.models.DYolo
    lightnet.models.MobilenetYolo
    lightnet.models.MobileYoloV2
+   lightnet.models.MobileYoloV2Upsample
    lightnet.models.TinyYoloV2
    lightnet.models.TinyYoloV3
    lightnet.models.YoloV2

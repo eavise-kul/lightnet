@@ -14,9 +14,16 @@ log = logging.getLogger('lightnet.models')
 
 
 class YoloV2Upsample(lnn.module.Darknet):
-    """ Yolo v2 implementation with an upsampling layer instead of a reorg layer.
-        TODO : add more information
-        TODO : Default anchors *2
+    """ Yolo v2 implementation with an upsampling layer instead of a reorg layer. |br|
+    TODO : add citation
+
+    This is a variant of :class:`~lightnet.models.YoloV2` where we removed the reorg layer
+    and instead upsample the other branch before concatenation.
+    This results in a two times bigger output feature map, but only has a limited number of extra computations,
+    as there are only two convolutions after the concat operation.
+
+    Note:
+        Because the output feature map is two times bigger, we made the anchors two times bigger as well.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
@@ -36,7 +43,7 @@ class YoloV2Upsample(lnn.module.Darknet):
         (r'^layers.0.(\d{2}_)',     r'layers.1.\1'),    # remaining layers (18-23)
     ]
 
-    def __init__(self, num_classes=20, input_channels=3, anchors=[(2.6442, 3.4629), (6.3855, 8.01888), (10.11174, 16.19784), (18.94224, 9.68106), (22.4728, 20.0142)]):
+    def __init__(self, num_classes, input_channels=3, anchors=[(2.6442, 3.4629), (6.3855, 8.01888), (10.11174, 16.19784), (18.94224, 9.68106), (22.4728, 20.0142)]):
         super().__init__()
         if not isinstance(anchors, Iterable) and not isinstance(anchors[0], Iterable):
             raise TypeError('Anchors need to be a 2D list of numbers')

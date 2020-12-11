@@ -13,9 +13,16 @@ __all__ = ['MobileYoloV2Upsample']
 
 
 class MobileYoloV2Upsample(lnn.module.Darknet):
-    """ Yolo v2 implementation with an upsampling layer instead of a reorg layer.
-        TODO : add more information
-        TODO : Default anchors *2
+    """ MobileYolo v2 implementation with an upsampling layer instead of a reorg layer. |br|
+    TODO : add citation
+
+    This is a variant of :class:`~lightnet.models.MobileYoloV2` where we removed the reorg layer
+    and instead upsample the other branch before concatenation.
+    This results in a two times bigger output feature map, but only has a limited number of extra computations,
+    as there are only two convolutions after the concat operation.
+
+    Note:
+        Because the output feature map is two times bigger, we made the anchors two times bigger as well.
 
     Args:
         num_classes (Number, optional): Number of classes; Default **20**
