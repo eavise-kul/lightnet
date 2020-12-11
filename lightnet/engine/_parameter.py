@@ -48,6 +48,8 @@ class HyperParameters:
     __init_done = False
 
     def __init__(self, **kwargs):
+        log.deprecated(f'The lightnet engine functionality is getting deprecated in favor for other libraries like PyTorch Lightning.')
+
         self.batch = 0
         self.epoch = 0
 

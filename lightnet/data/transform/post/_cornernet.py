@@ -2,16 +2,23 @@
 #   Lightnet postprocessing for Anchor based detectors (Darknet)
 #   Copyright EAVISE
 #
-
+import logging
 import torch
 import torch.nn as nn
 from ..util import BaseTransform
 
 __all__ = ['GetCornerBoxes']
+log = logging.getLogger(__name__)
 
 
 class GetCornerBoxes(BaseTransform):
     """ Convert output from cornernet networks to bounding box tensor.
+
+    .. admonition:: Experimental
+
+       This post-processing implementation is still in development
+       and might not be yielding the same results as the official implementation.
+       Use at your own risk!
 
     Args:
         embedding_thresh (Number): Embedding distance threshold to filter matching corners
@@ -29,6 +36,8 @@ class GetCornerBoxes(BaseTransform):
     """
     def __init__(self, embedding_thresh, conf_thresh, network_stride, topk=100, subsample_kernel=0):
         super().__init__()
+        log.experimental(f'"{self.__class__.__name__}" is still in development. Use at your own risk!')
+
         self.embedding_thresh = embedding_thresh
         self.conf_thresh = conf_thresh
         self.network_stride = network_stride

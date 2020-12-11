@@ -4,22 +4,24 @@ This package use the standard python logging module to provide some insightfull 
 This page gives a basic introduction on how to use it.
 For more information on loggers, you can take a look at the `official documentation`_.
 
-Lightnet has 8 different logging levels:
+Lightnet adds a few different logging levels:
 
-- DEBUG
-- INFO
-- WARN
-- DEPRECATED
-- TEST
-- TRAIN
-- ERROR
-- CRITICAL
+* [01] METADATA
+* [10] DEBUG
+* [20] INFO
+* [28] DEPRECATED
+* [29] EXPERIMENTAL
+* [30] WARN
+* [40] ERROR
+* [48] TEST
+* [49] TRAIN
+* [50] CRITICAL
 
 ``TEST`` and ``TRAIN`` are special levels that are used by the :any:`lightnet engine <lightnet.engine.Engine.log>` to differentiate when the network is in training or testing mode.
 
 There are 2 ways to set the logging level with this package. |br|
 The first is by using the ``LN_LOGLVL`` environment variable.
-Setting this environment variable before running a lightnet script will force lightnet to filter out messages up to that specified level. When setting this variable to ``DEBUG``, the logging messages will print more information about the module they come from. |br|
+Setting this environment variable before running a lightnet script will force lightnet to filter out messages up to that specified level. When setting this variable to ``DEBUG`` or lower, the logging messages will print more information about the module they come from. |br|
 The second method is by using the :func:`lightnet.logger.setConsoleLevel` function. This has the benefit that it is programmable, but you wont get the extra information by setting the level to ``DEBUG``.
 
 .. rubric:: Example
@@ -45,22 +47,26 @@ The second method is by using the :func:`lightnet.logger.setConsoleLevel` functi
 >>> 
 >>> # If you want to use the logging module yourself, and have the same styling as the lightnet logger, use this
 >>> log = logging.getLogger('lightnet.choose-a-name-here')
+>>> log.metadata('This is a metadata message, which is usually not printed but useful for storing data in the logfile')  # doctest: +NORMALIZE_WHITESPACE
+METADATA     This is a metadata message, which is usually not printed but useful for storing data in the logfile
 >>> log.debug('This is a debug message')  # doctest: +NORMALIZE_WHITESPACE
-DEBUG      This is a debug message
+DEBUG        This is a debug message
 >>> log.info('This is an info message')   #doctest: +NORMALIZE_WHITESPACE
-INFO       This is an info message
->>> log.warning('This is a warning')   # doctest: +NORMALIZE_WHITESPACE
-WARNING    This is a warning
+INFO         This is an info message
 >>> log.deprecated('This is a deprecation warning')   # doctest: +NORMALIZE_WHITESPACE
-DEPRECATED This is a deprecation warning
+DEPRECATED   This is a deprecation warning
+>>> log.experimental('This is a experimental warning')   # doctest: +NORMALIZE_WHITESPACE
+EXPERIMENTAL This is a experimental warning
+>>> log.warning('This is a warning')   # doctest: +NORMALIZE_WHITESPACE
+WARNING      This is a warning
 >>> log.error('This is an error')   # doctest: +NORMALIZE_WHITESPACE
-ERROR      This is an error
->>> log.critical('This is a critical error') # doctest: +NORMALIZE_WHITESPACE
-CRITICAL   This is a critical error
->>> log.train('This is a special logging level that prefixes the message with `TRAIN`')   # doctest: +NORMALIZE_WHITESPACE
-TRAIN      This is a special logging level that prefixes the message with `TRAIN`
+ERROR        This is an error
 >>> log.test('This is a special logging level that prefixes the message with `TEST`')  # doctest: +NORMALIZE_WHITESPACE
-TEST       This is a special logging level that prefixes the message with `TEST`
+TEST         This is a special logging level that prefixes the message with `TEST`
+>>> log.train('This is a special logging level that prefixes the message with `TRAIN`')   # doctest: +NORMALIZE_WHITESPACE
+TRAIN        This is a special logging level that prefixes the message with `TRAIN`
+>>> log.critical('This is a critical error') # doctest: +NORMALIZE_WHITESPACE
+CRITICAL     This is a critical error
 
 .. Note:: 
    On systems that do not support ANSI color codes *(mainly Windows < 10)*, the logger wil not use colors by default. |br|

@@ -2,7 +2,6 @@
 #   Lightnet logger: Logging functionality used within the lightnet package
 #   Copyright EAVISE
 #
-
 import os
 import sys
 import types
@@ -37,9 +36,11 @@ class ColoredFormatter(logging.Formatter):
             'TRAIN': ColorCode.BLUE,
             'TEST': ColorCode.BLUE,
             'DEPRECATED': ColorCode.YELLOW,
+            'EXPERIMENTAL': ColorCode.YELLOW,
             'WARNING': ColorCode.YELLOW,
             'INFO': ColorCode.WHITE,
             'DEBUG': ColorCode.GRAY,
+            'METADATA': ColorCode.GRAY,
         }
 
     def format(self, record):
@@ -48,9 +49,9 @@ class ColoredFormatter(logging.Formatter):
         name = record.name
         if self.color:
             color = self.color_codes[levelname] if levelname in self.color_codes else ''
-            record.levelname = f'{ColorCode.BOLD.value}{color.value}{levelname:10}{ColorCode.RESET.value}'
+            record.levelname = f'{ColorCode.BOLD.value}{color.value}{levelname:12}{ColorCode.RESET.value}'
         else:
-            record.levelname = f'{levelname:10}'
+            record.levelname = f'{levelname:12}'
         return logging.Formatter.format(self, record)
 
     def setColor(self, value):
@@ -72,13 +73,17 @@ class LevelFilter(logging.Filter):
 
 
 # Logging levels
-def deprecated(self, message, *args, **kwargs):
-    if not hasattr(self, 'deprecated_msgs'):
-        self.deprecated_msgs = set()
+def log_once_function(lvl, msg_set):
+    def log_once(self, message, *args, **kwargs):
+        if not hasattr(self, msg_set):
+            setattr(self, msg_set, set())
 
-    if self.isEnabledFor(35) and message not in self.deprecated_msgs:
-        self.deprecated_msgs.add(message)
-        self._log(35, message, args, **kwargs)
+        msgs = getattr(self, msg_set)
+        if self.isEnabledFor(lvl) and message not in msgs:
+            msgs.add(message)
+            self._log(lvl, message, args, **kwargs)
+
+    return log_once
 
 
 def log_function(lvl):
@@ -99,14 +104,28 @@ def train(self, message, *args, **kwargs):
         self._log(39, message, args, **kwargs)
 
 
-logging.addLevelName(15, 'METADATA')
-logging.Logger.metadata = log_function(15)
-logging.addLevelName(35, 'DEPRECATED')
-logging.Logger.deprecated = deprecated
-logging.addLevelName(38, 'TEST')
-logging.Logger.test = log_function(38)
-logging.addLevelName(39, 'TRAIN')
-logging.Logger.train = log_function(39)
+# Metadata should usually not be printed to the console and is mainly used for logfiles
+logging.addLevelName(1, 'METADATA')
+logging.Logger.metadata = log_function(1)
+
+# Experimental is a special warning mode, and thus it should be filtered the same (lower) as warning
+logging.addLevelName(28, 'EXPERIMENTAL')
+logging.Logger.experimental = log_once_function(28, 'experimental_msgs')
+
+# Deprecated is a special warning mode, and thus it should be filtered the same (lower) as warning
+logging.addLevelName(29, 'DEPRECATED')
+logging.Logger.deprecated = log_once_function(29, 'deprecated_msgs')
+
+# error_once function logs an error, but only once (useful in loops, but slows down code!)
+logging.Logger.error_once = log_once_function(40, 'error_msgs')
+
+# Test is a special info log, but with a much higher level. We only filter it with the highest log setting
+logging.addLevelName(48, 'TEST')
+logging.Logger.test = log_function(48)
+
+# Train is a special info log, but with a much higher level. We only filter it with the highest log setting
+logging.addLevelName(49, 'TRAIN')
+logging.Logger.train = log_function(49)
 
 
 # Console Handler
@@ -114,8 +133,12 @@ ch = logging.StreamHandler()
 ch.setFormatter(ColoredFormatter('{levelname} {message}', style='{'))
 if 'LN_LOGLVL' in os.environ:
     lvl = os.environ['LN_LOGLVL'].upper()
-    ch.setLevel(lvl)
-    if lvl == 'DEBUG':
+    try:
+        ch.setLevel(int(lvl))
+    except ValueError:
+        ch.setLevel(lvl)
+
+    if ch.level <= 10:
         ch.setFormatter(ColoredFormatter('{levelname} [{name}] {message}', style='{'))
 else:
     ch.setLevel(logging.INFO)
@@ -134,7 +157,7 @@ def createFileHandler(self, filename, levels=None, filemode='a'):
 
 # Logger
 logger = logging.getLogger('lightnet')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(1)
 logger.addHandler(ch)
 logger.setConsoleLevel = ch.setLevel
 logger.setConsoleColor = ch.formatter.setColor

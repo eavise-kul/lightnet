@@ -18,6 +18,12 @@ log = logging.getLogger('lightnet.models')
 class Cornernet(lnn.module.Lightnet):
     """ Cornernet implementation :cite:`cornernet`.
 
+    .. admonition:: Experimental
+
+       This network implementation is still in development
+       and might not be yielding the same results as the official implementation.
+       Use at your own risk!
+
     Args:
         num_classes (Number): Number of classes
         input_channels (Number, optional): Number of input channels; Default **3**
@@ -35,6 +41,7 @@ class Cornernet(lnn.module.Lightnet):
 
     def __init__(self, num_classes, input_channels=3, inference_only=False):
         super().__init__()
+        log.experimental(f'"{self.__class__.__name__}" is still in development. Use at your own risk!')
 
         # Parameters
         self.num_classes = num_classes

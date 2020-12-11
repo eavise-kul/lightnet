@@ -92,6 +92,8 @@ class Engine(ABC):
     _batch_end = {}
 
     def __init__(self, params, dataloader=None, **kwargs):
+        log.deprecated(f'The lightnet engine functionality is getting deprecated in favor for other libraries like PyTorch Lightning.')
+
         self.params = params
         if dataloader is not None:
             self.dataloader = dataloader

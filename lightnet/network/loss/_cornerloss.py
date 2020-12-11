@@ -2,7 +2,7 @@
 #   Darknet RegionLoss
 #   Copyright EAVISE
 #
-
+import logging
 import math
 import numpy as np
 import torch
@@ -14,13 +14,31 @@ except ModuleNotFoundError:
     pd = None
 
 __all__ = ['CornerLoss']
+log = logging.getLogger(__name__)
 
 
 class CornerLoss(nn.modules.loss._Loss):
-    """ TODO
+    """ Computes cornerloss loss from the cornernet network output and target annotation.
+
+    .. admonition:: Experimental
+
+       This loss implementation is still in development
+       and might not be yielding the same results as the official implementation.
+       Use at your own risk!
+
+    Args:
+        stride (int, optional): The downsampling factor of the network (input_dimension / output_dimension); Default **4**
+        gaussian_iou (float, optional): Minimal box IoU for corner penalty reduction (set to zero to disable gaussian penalty reduction); Default **0.3**
+        heatmap_scale (float, optional): Scale factor for the heatmap corner loss; Default **1**
+        pull_scale (float, optional): Scale factor for the pull part of the embedding loss (pull similar classes towards each other); Default **1**
+        push_scale (float, optional): Scale factor for the push part of the embedding loss (push different classes from each other); Default **1**
+        offset_scale (float, optional): Scale factor for the corner offset loss; Default **1**
+        inter_scale (float, optional): Scale factor for the loss computed on the intermediate feature map; Default **1**
     """
     def __init__(self, stride=4, gaussian_iou=0.3, heatmap_scale=1, pull_scale=1, push_scale=1, offset_scale=1, inter_scale=1):
         super().__init__()
+        log.experimental(f'"{self.__class__.__name__}" is still in development. Use at your own risk!')
+
         self.stride = stride
         self.gaussian_iou = gaussian_iou
         self.heatmap_scale = heatmap_scale
@@ -47,6 +65,7 @@ class CornerLoss(nn.modules.loss._Loss):
         if isinstance(output, (list, tuple)):
             output, intermediate = output
         else:
+            log.error_once(f'Output does not contain intermediate feature map, which is neccesary for training!')
             intermediate = None
 
         # Parameters
