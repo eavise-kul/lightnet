@@ -48,6 +48,11 @@ Table of Contents
    biblio.rst
 
 .. toctree::
+   :caption: C++
+
+   Photonnet <https://eavise.gitlab.io/photonnet>
+
+.. toctree::
    :maxdepth: 2
    :caption: API
 

@@ -32,10 +32,14 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
     }
 }
 
+.wy-menu-vertical header, .wy-menu-vertical p.caption {
+  color: #9B59B6;
+}
+
 /* Fixes for mobile */
 .wy-nav-top {
     background-color: #fff;
-    background-image: url('./lightnet-mobile.png');
+    background-image: url('./photonnet-mobile.png');
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
@@ -59,11 +63,6 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
     display: block;
 }
 
-/* This ensures that multiple constructors will remain in separate lines. */
-.rst-content dl:not(.docutils) dt {
-    display: table;
-}
-
 /* Use our red for literals (it's very similar to the original color) */
 .rst-content tt.literal, .rst-content tt.literal, .rst-content code.literal {
     color: #00BFD8;
@@ -75,7 +74,6 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
 }
 
 /* Change link colors (except for the menu) */
-
 a {
     color: #00BFD8;
 }
@@ -83,7 +81,6 @@ a {
 a:hover {
     color: #00E1FF;
 }
-
 
 .wy-menu a {
     color: #b3b3b3;
@@ -130,9 +127,47 @@ nav .hidden-section {
 }
 
 /* Definition lists */
+html.writer-html5 .rst-content dl.field-list {
+  grid-template-columns: auto;
+}
+
 .rst-content dl:not(.docutils) dt {
   border-top: 3px solid #00BFD8;
   color: #00BFD8;
+  margin: 6px 0;
+  font-size: 90%;
+  line-height: normal;
+  background: #E7F2FA;
+  padding: 6px;
+  position: relative;
+}
+
+html.writer-html5 .rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple)>dt {
+  border-top: 3px solid #00BFD8;
+  color: #00BFD8;
+}
+
+.rst-content dl:not(.docutils) .reference,
+.rst-content dl:not(.docutils) .property {
+  display: inline-block;
+  padding-right: 4px;
+}
+
+/* Parameter, Return */
+.rst-content dl:not(.docutils) dl.field-list.simple > dt {
+  font-weight: bold;
+  border: none;
+  background: none;
+  color: #404040;
+  padding-left: 0;
+}
+
+.rst-content dl:not(.docutils) dl.field-list.simple {
+  margin-bottom: 12px !important;
+}
+
+.rst-content dl:not(.docutils) dl.field-list.simple + ul.simple {
+  margin: 0 0 12px 24px;
 }
 
 /* override table width restrictions */
@@ -156,7 +191,7 @@ div.deprecated {
   background: #FFCCCC;
 }
 
-div.deprecated::before {
+div.deprecated:before {
   content: ' Deprecated';
   font: normal normal normal 16px/1 Lato,FontAwesome;
   display: block;
@@ -165,5 +200,14 @@ div.deprecated::before {
   padding: 6px 12px;
   color: #FFF;
   font-weight: bold;
+  background: #ED6666;
+}
+
+/* experimental */
+.rst-content .admonition-experimental {
+  background: #FFCCCC;
+}
+
+.rst-content .admonition-experimental .admonition-title {
   background: #ED6666;
 }
