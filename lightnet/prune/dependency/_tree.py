@@ -96,7 +96,7 @@ def traverse_breadth_first(node, yield_root=True, level=0):
     """ Generator that traverses the dependency tree in a breadth first manner and returns (level, node) tuples. |br|
     The general gist of this traversal is the following:
 
-    .. code:: 
+    .. code::
 
         1. Foreach child C of node N
             2. Foreach parent P of C (except N)

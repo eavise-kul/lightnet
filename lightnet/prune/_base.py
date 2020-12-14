@@ -102,7 +102,7 @@ class Pruner(ABC):
 
         Note:
             The prune_manner function takes 2 arguments:
-            
+
             - dependency : item from the dependency-map ``self.dependencies``
             - filter_list : indexes from the channels to prune
 
