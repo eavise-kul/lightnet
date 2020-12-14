@@ -39,7 +39,7 @@ class Pruner(ABC):
 
         The modifications made to the networks whilst hard-pruning also affect weight loading.
         Lightnet modules thus provide the :func:`~lightnet.network.module.Lightnet.load_pruned` function,
-        which allows to correctly adapt a network, according to saved pruned weights.  
+        which allows to correctly adapt a network, according to saved pruned weights.
 
         These modifications are not necessary for soft-pruning,
         as this technique merely changes the values of the weights.
