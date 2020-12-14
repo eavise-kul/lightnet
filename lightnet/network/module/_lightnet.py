@@ -83,7 +83,7 @@ class Lightnet(nn.Module):
         Args:
             weights_file (str): path to file
             remap (callable or list, optional): Remapping of the weights, see :func:`~lightnet.network.module.Lightnet.weight_remapping`; Default **None**
-            strict (Boolean, optional): Whether the weight file should contain all layers of the model; Default **False**
+            strict (Boolean, optional): Whether the weight file should contain all layers of the model; Default **True**
 
         Note:
             This function will load the weights to CPU,
@@ -106,11 +106,12 @@ class Lightnet(nn.Module):
 
     def load_pruned(self, weights_file, strict=True):
         """ This function will load pruned weights from a file.
-        It also allows to load in weights file with only a part of the weights in.
+        It also allows to load a weights file,
+        which contains less channels in a convolution than orginally defined in the network.
 
         Args:
             weights_file (str): path to file
-            strict (Boolean, optional): Whether the weight file should contain all layers of the model; Default **False**
+            strict (Boolean, optional): Whether the weight file should contain all layers of the model; Default **True**
 
         Note:
             This function will load the weights to CPU,

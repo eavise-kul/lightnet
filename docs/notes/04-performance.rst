@@ -14,7 +14,7 @@ The lightnet trained weights of these networks can be downloaded via the followi
 - `darknet19 448x448 <https://mega.nz/#!fwUkRC5D!m-8cn5zfE_5-GxB_uzLNiWlfV72MMYN99WAso_dCQZo>`_
 - `darknet53 448x448 <https://mega.nz/#!mlcm1ajJ!Ets7W_fNWP3_-zgfFoaxAm_fXonzbF8NrUKkQ7-uUSw>`_
 
-.. image:: 03-imagenet.svg
+.. image:: 04-imagenet.svg
 
 
 Pascal VOC
@@ -35,7 +35,7 @@ Lightnet  75.6    `weights <lnw-voc_>`_ Transfer learned from Lightnet ImageNet 
 .. _dnw-voc: https://pjreddie.com/media/files/yolov2-voc.weights
 .. _lnw-voc: https://mega.nz/#!PoVCgCqQ!A0RGBpkLAOSXWkg-UZvCEayQSzllmdQlC7-H6uigyNE
 
-.. image:: 03-voc.svg
+.. image:: 04-voc.svg
 
 
 MS COCO

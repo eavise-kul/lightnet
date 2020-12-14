@@ -20,6 +20,10 @@ lightnet.engine
    It has an engine that reduces the boilerplate code needed for training,
    functions for visualisation with visdom_, etc.
 
+lightnet.prune
+   This submodule contains the necessary tools to perform hard and soft pruning on convolutions.
+   It has a few different pruning techniques and allows you to implement your own as well.
+
 lightnet.models
    This submodule has some network and dataset implementations that I felt like sharing.
    Feel free to use them or take a lookt at the implementations and learn how to use this library.
@@ -31,7 +35,7 @@ The following tutorials will help you to understand how to use these different p
 
    02-A-basics.ipynb
    02-B-engine.ipynb
-   02-C-pascal_voc.rst
+   02-C-pruning.ipynb
 
 
 *Happy Coding!* ♥ |br|

@@ -44,7 +44,8 @@ Table of Contents
 
    notes/01-installation.rst
    notes/02-getting_started.rst
-   notes/03-performance.rst
+   notes/03-examples.rst
+   notes/04-performance.rst
    biblio.rst
 
 .. toctree::
