@@ -50,6 +50,8 @@ todo_include_todos = True
 napoleon_use_ivar = True
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['torch', 'torchvision', 'visdom']
+bibtex_bibfiles = ['biblio.bib']
+bibtex_default_style = 'plain'
 intersphinx_mapping = {
     'pytorch': ('http://pytorch.org/docs/stable/', None),
     'python': ('https://docs.python.org/3.6', None),

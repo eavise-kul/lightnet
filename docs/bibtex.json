@@ -1,0 +1,108 @@
+{
+    "cited": {
+        "api/data": [
+            "soft_nms"
+        ],
+        "api/generated/lightnet.data.transform.NMSSoft": [
+            "soft_nms"
+        ],
+        "api/generated/lightnet.models.Cornernet": [
+            "cornernet"
+        ],
+        "api/generated/lightnet.models.CornernetSqueeze": [
+            "cornernet_lite"
+        ],
+        "api/generated/lightnet.models.DYolo": [
+            "dyolo"
+        ],
+        "api/generated/lightnet.models.Darknet": [
+            "yolo_v1"
+        ],
+        "api/generated/lightnet.models.Darknet19": [
+            "yolo_v2"
+        ],
+        "api/generated/lightnet.models.Darknet53": [
+            "yolo_v3"
+        ],
+        "api/generated/lightnet.models.MobilenetV1": [
+            "mobilenet_v1"
+        ],
+        "api/generated/lightnet.models.MobilenetV2": [
+            "mobilenet_v2"
+        ],
+        "api/generated/lightnet.models.MobilenetYolo": [
+            "mobilenet_v1"
+        ],
+        "api/generated/lightnet.models.TinyYoloV2": [
+            "yolo_v2"
+        ],
+        "api/generated/lightnet.models.TinyYoloV3": [
+            "yolo_v3"
+        ],
+        "api/generated/lightnet.models.YoloFusion": [
+            "rgbd_fusion_v2",
+            "rgbd_fusion_v1"
+        ],
+        "api/generated/lightnet.models.YoloV2": [
+            "yolo_v2"
+        ],
+        "api/generated/lightnet.models.YoloV3": [
+            "yolo_v3"
+        ],
+        "api/generated/lightnet.models.Yolt": [
+            "yolt"
+        ],
+        "api/generated/lightnet.network.layer.BottomPool": [
+            "cornernet"
+        ],
+        "api/generated/lightnet.network.layer.Conv2dDepthWise": [
+            "mobilenet_v1"
+        ],
+        "api/generated/lightnet.network.layer.CornerPool": [
+            "cornernet"
+        ],
+        "api/generated/lightnet.network.layer.Fusion": [
+            "rgbd_fusion_v2"
+        ],
+        "api/generated/lightnet.network.layer.HourGlass": [
+            "hourglass"
+        ],
+        "api/generated/lightnet.network.layer.InvertedBottleneck": [
+            "mobilenet_v2"
+        ],
+        "api/generated/lightnet.network.layer.LeftPool": [
+            "cornernet"
+        ],
+        "api/generated/lightnet.network.layer.RightPool": [
+            "cornernet"
+        ],
+        "api/generated/lightnet.network.layer.TopPool": [
+            "cornernet"
+        ],
+        "api/generated/lightnet.prune.GMPruner": [
+            "gm_prune"
+        ],
+        "api/models": [
+            "yolo_v1",
+            "yolo_v2",
+            "yolo_v3",
+            "mobilenet_v1",
+            "mobilenet_v2",
+            "cornernet",
+            "cornernet_lite",
+            "dyolo",
+            "rgbd_fusion_v2",
+            "yolt"
+        ],
+        "api/network": [
+            "rgbd_fusion_v2",
+            "hourglass",
+            "mobilenet_v1",
+            "cornernet",
+            "mobilenet_v2"
+        ],
+        "api/prune": [
+            "gm_prune"
+        ]
+    }
+}

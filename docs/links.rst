@@ -8,6 +8,7 @@
 .. _brambox: https://eavise.gitlab.io/brambox
 .. _lightning: https://pytorch-lightning.readthedocs.io
 .. _onnx: https://github.com/onnx/onnx
+.. _ln-voc: https://gitlab.com/eavise/top/voc
 
 
 .. DIRECTIVES
