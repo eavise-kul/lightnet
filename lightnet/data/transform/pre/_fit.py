@@ -52,12 +52,13 @@ class Crop(BaseMultiTransform):
 
         if net_w / im_w >= net_h / im_h:
             self.scale = net_w / im_w
+            xcrop = 0
+            ycrop = int(im_h * self.scale - net_h + 0.5)
         else:
             self.scale = net_h / im_h
-            dy = 0
+            xcrop = int(im_w * self.scale - net_w + 0.5)
+            ycrop = 0
 
-        xcrop = int(im_w * self.scale - net_w + 0.5)
-        ycrop = int(im_h * self.scale - net_h + 0.5)
         if xcrop == 0 and ycrop == 0:
             self.crop = None
         else:
@@ -72,7 +73,7 @@ class Crop(BaseMultiTransform):
         # Rescale
         if self.scale != 1:
             bands = img.split()
-            bands = [b.resize((int(self.scale * im_w + 0.5), int(self.scale * im_h + 0.5)), resample=Image.BILINEAR) for b in bands]
+            bands = [b.resize((int(self.scale*im_w+0.5), int(self.scale*im_h+0.5)), resample=Image.BILINEAR) for b in bands]
             img = Image.merge(img.mode, bands)
             im_w, im_h = img.size
 
@@ -88,7 +89,7 @@ class Crop(BaseMultiTransform):
 
         # Rescale
         if self.scale != 1:
-            img = cv2.resize(img, (int(im_w * self.scale), int(im_h * self.scale)), interpolation=cv2.INTER_LINEAR)
+            img = cv2.resize(img, (int(im_w*self.scale+0.5), int(im_h*self.scale+0.5)), interpolation=cv2.INTER_LINEAR)
 
         # Crop
         if self.crop is not None:
@@ -108,10 +109,9 @@ class Crop(BaseMultiTransform):
                 img = img[None, None, ...]
             img = torch.nn.functional.interpolate(
                 img,
-                scale_factor=self.scale,
+                size=(int(im_h*self.scale+0.5), int(im_w*self.scale+0.5)),
                 mode='bilinear',
                 align_corners=False,
-                recompute_scale_factor=True
             ).squeeze().clamp(min=0, max=255)
 
         # Crop
@@ -174,8 +174,8 @@ class Letterbox(BaseMultiTransform):
         else:
             self.scale = net_h / im_h
 
-        pad_w = (net_w - int(im_w * self.scale)) / 2
-        pad_h = (net_h - int(im_h * self.scale)) / 2
+        pad_w = (net_w - int(im_w*self.scale+0.5)) / 2
+        pad_h = (net_h - int(im_h*self.scale+0.5)) / 2
         if pad_w == 0 and pad_h == 0:
             self.pad = None
         else:
@@ -188,7 +188,7 @@ class Letterbox(BaseMultiTransform):
         # Rescale
         if self.scale != 1:
             bands = img.split()
-            bands = [b.resize((int(self.scale*im_w), int(self.scale*im_h)), resample=Image.BILINEAR) for b in bands]
+            bands = [b.resize((int(self.scale*im_w+0.5), int(self.scale*im_h+0.5)), resample=Image.BILINEAR) for b in bands]
             img = Image.merge(img.mode, bands)
 
         # Pad
@@ -205,7 +205,7 @@ class Letterbox(BaseMultiTransform):
 
         # Rescale
         if self.scale != 1:
-            img = cv2.resize(img, (int(im_w * self.scale), int(im_h * self.scale)), interpolation=cv2.INTER_LINEAR)
+            img = cv2.resize(img, (int(im_w*self.scale+0.5), int(im_h*self.scale+0.5)), interpolation=cv2.INTER_LINEAR)
 
         # Pad
         if self.pad is not None:
@@ -226,10 +226,9 @@ class Letterbox(BaseMultiTransform):
                 img = img[None, None, ...]
             img = torch.nn.functional.interpolate(
                 img,
-                scale_factor=self.scale,
+                size=(int(im_h*self.scale+0.5), int(im_w*self.scale+0.5)),
                 mode='bilinear',
                 align_corners=False,
-                recompute_scale_factor=True
             ).squeeze().clamp(min=0, max=255)
 
         # Pad
@@ -297,8 +296,8 @@ class Pad(BaseMultiTransform):
             if im_w % net_w == 0 and im_h % net_h == 0:
                 self.pad = None
             else:
-                pad_w = (net_w - (im_w % net_w)) / 2
-                pad_h = (net_h - (im_h % net_h)) / 2
+                pad_w = ((net_w - (im_w % net_w)) % net_w) / 2
+                pad_h = ((net_h - (im_h % net_h)) % net_h) / 2
                 self.pad = (int(pad_w), int(pad_h), int(pad_w+.5), int(pad_h+.5))
         else:
             if im_w == net_w and im_h == net_h:

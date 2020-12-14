@@ -190,7 +190,7 @@ class ReversePad(BaseTransform):
         else:
             net_w, net_h = self.network_factor
 
-        self.pad = (net_w - (im_w % net_w)) // 2, (net_h - (im_h % net_h)) // 2
+        self.pad = ((net_w - (im_w % net_w)) % net_w) // 2, ((net_h - (im_h % net_h)) % net_h) // 2
 
     def _apply_transform(self, boxes):
         if callable(self.image_size):

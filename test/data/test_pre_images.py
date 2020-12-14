@@ -75,7 +75,7 @@ def assert_image_equal(img_np, img_pil, img_torch, assertion=np.testing.assert_a
 
 @pytest.mark.parametrize('grayscale', [True, False])
 def test_crop(image, grayscale):
-    img_np, img_pil, img_torch = image(400, 400, grayscale)
+    img_np, img_pil, img_torch = image(400, 385, grayscale)
 
     # Crop height
     assert_image_equal(img_np, img_pil, img_torch)
@@ -83,14 +83,16 @@ def test_crop(image, grayscale):
     tf_np = crop(img_np)
     tf_pil = crop(img_pil)
     tf_torch = crop(img_torch)
+    assert list(tf_torch.shape[-2:]) == [350, 400]
     assert_image_equal(tf_np, tf_pil, tf_torch)
 
     # Crop width
     assert_image_equal(img_np, img_pil, img_torch)
-    crop = tf.Crop(dimension=(200, 400))
+    crop = tf.Crop(dimension=(200, 385))
     tf_np = crop(img_np)
     tf_pil = crop(img_pil)
     tf_torch = crop(img_torch)
+    assert list(tf_torch.shape[-2:]) == [385, 200]
     assert_image_equal(tf_np, tf_pil, tf_torch)
 
     # Shrink - Crop height
@@ -99,6 +101,7 @@ def test_crop(image, grayscale):
     tf_np = crop(img_np)
     tf_pil = crop(img_pil)
     tf_torch = crop(img_torch)
+    assert list(tf_torch.shape[-2:]) == [250, 300]
     assert_image_dim_equal(tf_np, tf_pil, tf_torch)
     assert_image_content_equal(tf_np, None, tf_torch, np.testing.assert_allclose, atol=2)
 
@@ -108,13 +111,14 @@ def test_crop(image, grayscale):
     tf_np = crop(img_np)
     tf_pil = crop(img_pil)
     tf_torch = crop(img_torch)
+    assert list(tf_torch.shape[-2:]) == [600, 500]
     assert_image_dim_equal(tf_np, tf_pil, tf_torch)
     assert_image_content_equal(tf_np, None, tf_torch, np.testing.assert_allclose, atol=2)
 
 
 @pytest.mark.parametrize('grayscale', [True, False])
 def test_letterbox(image, grayscale):
-    img_np, img_pil, img_torch = image(400, 400, grayscale)
+    img_np, img_pil, img_torch = image(400, 385, grayscale)
 
     # Letterbox height
     assert_image_equal(img_np, img_pil, img_torch)
@@ -122,14 +126,16 @@ def test_letterbox(image, grayscale):
     tf_np = lb(img_np)
     tf_pil = lb(img_pil)
     tf_torch = lb(img_torch)
+    assert list(tf_torch.shape[-2:]) == [450, 400]
     assert_image_equal(tf_np, tf_pil, tf_torch)
 
     # Letterbox width
     assert_image_equal(img_np, img_pil, img_torch)
-    lb = tf.Letterbox(dimension=(500, 400))
+    lb = tf.Letterbox(dimension=(500, 385))
     tf_np = lb(img_np)
     tf_pil = lb(img_pil)
     tf_torch = lb(img_torch)
+    assert list(tf_torch.shape[-2:]) == [385, 500]
     assert_image_equal(tf_np, tf_pil, tf_torch)
 
     # Shrink - Letterbox height
@@ -138,6 +144,7 @@ def test_letterbox(image, grayscale):
     tf_np = lb(img_np)
     tf_pil = lb(img_pil)
     tf_torch = lb(img_torch)
+    assert list(tf_torch.shape[-2:]) == [300, 250]
     assert_image_dim_equal(tf_np, tf_pil, tf_torch)
     assert_image_content_equal(tf_np, None, tf_torch, np.testing.assert_allclose, atol=2)
 
@@ -147,13 +154,14 @@ def test_letterbox(image, grayscale):
     tf_np = lb(img_np)
     tf_pil = lb(img_pil)
     tf_torch = lb(img_torch)
+    assert list(tf_torch.shape[-2:]) == [500, 600]
     assert_image_dim_equal(tf_np, tf_pil, tf_torch)
     assert_image_content_equal(tf_np, None, tf_torch, np.testing.assert_allclose, atol=2)
 
 
 @pytest.mark.parametrize('grayscale', [True, False])
 def test_pad(image, grayscale):
-    img_np, img_pil, img_torch = image(400, 400, grayscale)
+    img_np, img_pil, img_torch = image(400, 385, grayscale)
 
     # Pad height
     assert_image_equal(img_np, img_pil, img_torch)
@@ -161,14 +169,16 @@ def test_pad(image, grayscale):
     tf_np = pad(img_np)
     tf_pil = pad(img_pil)
     tf_torch = pad(img_torch)
+    assert list(tf_torch.shape[-2:]) == [416, 400]
     assert_image_equal(tf_np, tf_pil, tf_torch)
 
     # Pad width
     assert_image_equal(img_np, img_pil, img_torch)
-    pad = tf.Pad(dimension=(128, 50))
+    pad = tf.Pad(dimension=(128, 5))
     tf_np = pad(img_np)
     tf_pil = pad(img_pil)
     tf_torch = pad(img_torch)
+    assert list(tf_torch.shape[-2:]) == [385, 512]
     assert_image_equal(tf_np, tf_pil, tf_torch)
 
 
