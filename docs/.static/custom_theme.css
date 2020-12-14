@@ -153,6 +153,10 @@ html.writer-html5 .rst-content dl[class]:not(.option-list):not(.field-list):not(
   padding-right: 4px;
 }
 
+html.writer-html5 .rst-content dl.citation dt.bibtex {
+  display: block !important;
+}
+
 /* Parameter, Return */
 .rst-content dl:not(.docutils) dl.field-list.simple > dt {
   font-weight: bold;
