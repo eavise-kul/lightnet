@@ -47,4 +47,4 @@ and allow you to add operations which might not be supported by our software for
    lightnet.prune.dependency.add_nodetype_operation
 
 
-.. include:: ../links.rst
+.. include:: /links.rst

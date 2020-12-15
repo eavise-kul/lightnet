@@ -12,4 +12,4 @@ Engine
    lightnet.engine.SchedulerCompositor
 
 
-.. include:: ../links.rst
+.. include:: /links.rst

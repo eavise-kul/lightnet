@@ -69,8 +69,10 @@ TRAIN        This is a special logging level that prefixes the message with `TRA
 CRITICAL     This is a critical error
 
 .. Note:: 
-   On systems that do not support ANSI color codes *(mainly Windows < 10)*, the logger wil not use colors by default. |br|
-   If you want colored log output on these systems, you can install the colorama_ package and use the following code:
+   On systems that do not support ANSI color codes *(mainly Windows < 10)*,
+   the logger wil not use colors by default. |br|
+   If you want colored log output on these systems,
+   you can install the colorama_ package and use the following code:
 
    .. doctest:: 
       :options: +SKIP
@@ -88,6 +90,6 @@ CRITICAL     This is a critical error
 .. automethod:: lightnet.logger.setLogFile
 
 
-.. include:: ../links.rst
+.. include:: /links.rst
 .. _official documentation: https://docs.python.org/3/library/logging.html
 .. _colorama: https://pypi.org/project/colorama/

@@ -42,4 +42,4 @@ The following tutorials will help you to understand how to use these different p
 **~0phoff**
 
 
-.. include:: ../links.rst
+.. include:: /links.rst

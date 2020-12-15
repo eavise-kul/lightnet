@@ -70,4 +70,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`search`
 
-.. include:: links.rst
+.. include:: /links.rst
