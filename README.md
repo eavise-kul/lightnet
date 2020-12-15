@@ -5,16 +5,25 @@ Building blocks to recreate Darknet networks in Pytorch
 [![Documentation][doc-badge]][documentation-url]
 [![PyTorch][pytorch-badge]][pytorch-url]
 [![Pipeline][pipeline-badge]][pipeline-url]
+<a href="https://ko-fi.com/D1D31LPHE"><img alt="Ko-Fi" src="https://www.ko-fi.com/img/githubbutton_sm.svg" height="20"></a>  
+[![VOC][voc-badge]][voc-url]
+[![COCO][coco-badge]][coco-url]
 
 
 
 ## Why another framework
-[pytorch-yolo2](https://github.com/marvis/pytorch-yolo2) is working perfectly fine, but does not easily allow a user to modify an existing network.
-This is why I decided to create a library, that gives the user all the necessary building blocks, to recreate any darknet network.  
-This library has everything you need to control your network, weight loading & saving, datasets, dataloaders and data augmentation.
+[pytorch-yolo2](https://github.com/marvis/pytorch-yolo2) is working perfectly fine,
+but does not easily allow a user to modify an existing network.  
+This is why I decided to create a library,
+that gives the user all the necessary building blocks, to recreate any darknet network.
+This library has everything you need to control your network,
+weight loading & saving, datasets, dataloaders and data augmentation.
+
+Where it started as library to recreate the darknet networks in PyTorch,
+it has since grown into a more general purpose single-shot object detection library.
 
 ## Installing
-First install [PyTorch and Torchvision](http://pytorch.org/).  
+First install [PyTorch and Torchvision](https://pytorch.org/get-started/locally).  
 Then clone this repository and run one of the following commands:
 ```bash
 # If you just want to use Lightnet
@@ -47,9 +56,10 @@ If you use Lightnet in your research, please cite it.
 
 ## Main Contributors
 Here is a list of people that made noteworthy contributions and helped to get this project where it stands today!
-  - [Tanguy Ophoff](https://gitlab.com/0phoff) [![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D31LPHE)
-  - [Jon Crall](https://gitlab.com/Erotemic)
-  - [Cedric Gullentops](https://github.com/CedricGullentops)
+
+- [Tanguy Ophoff](https://gitlab.com/0phoff)
+- [Jon Crall](https://gitlab.com/Erotemic)
+- [Cedric Gullentops](https://github.com/CedricGullentops)
 
 
 [version-badge]: https://img.shields.io/pypi/v/lightnet.svg?label=version
@@ -60,3 +70,7 @@ Here is a list of people that made noteworthy contributions and helped to get th
 [documentation-url]: https://eavise.gitlab.io/lightnet
 [pytorch-url]: https://pytorch.org
 [pipeline-url]: https://pypi.org/project/lightnet
+[voc-badge]: https://img.shields.io/badge/repository-Pascal%20VOC-%2300BFD8
+[voc-url]: https://gitlab.com/eavise/top/voc
+[coco-badge]: https://img.shields.io/badge/repository-MS%20COCO-%2300BFD8
+[coco-url]: https://gitlab.com/eavise/top/coco

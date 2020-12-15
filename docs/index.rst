@@ -8,7 +8,8 @@
 Lightnet documentation
 ======================
 Lightnet is a library for pytorch_, that makes it easier to create CNN's.
-It was mainly created to implement darknet_ networks in python.
+It was mainly created to implement darknet_ networks in python,
+but has since grown into a more general purpose single-shot object detection network.
 
 Credits
 -------
