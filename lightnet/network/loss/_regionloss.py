@@ -191,6 +191,14 @@ class RegionLoss(nn.modules.loss._Loss):
                 tcoord[:, :, 0].fill_(0.5)
                 tcoord[:, :, 1].fill_(0.5)
 
+        # Anchors
+        if self.anchor_step == 4:
+            anchors = self.anchors.clone()
+            anchors[:, :2] = 0
+        else:
+            anchors = torch.cat([torch.zeros_like(self.anchors), self.anchors], 1)
+
+        # Loop over GT
         for b in range(nB):
             gt = ground_truth[b][(ground_truth[b, :, 0] >= 0)[:, None].expand_as(ground_truth[b])].view(-1, 5)
             if gt.numel() == 0:     # No gt for this image
@@ -198,12 +206,6 @@ class RegionLoss(nn.modules.loss._Loss):
 
             # Build up tensors
             cur_pred_boxes = pred_boxes[b*nAnchors:(b+1)*nAnchors]
-            if self.anchor_step == 4:
-                anchors = self.anchors.clone()
-                anchors[:, :2] = 0
-            else:
-                anchors = torch.cat([torch.zeros_like(self.anchors), self.anchors], 1)
-
             gt = gt[:, 1:]
             gt[:, ::2] *= nW
             gt[:, 1::2] *= nH
@@ -268,13 +270,16 @@ class RegionLoss(nn.modules.loss._Loss):
                 tcoord[:, :, 0].fill_(0.5)
                 tcoord[:, :, 1].fill_(0.5)
 
+        # Anchors
+        if self.anchor_step == 4:
+            anchors = self.anchors.clone()
+            anchors[:, :2] = 0
+        else:
+            anchors = torch.cat([torch.zeros_like(self.anchors), self.anchors], 1)
+
+        # Loop over GT
         for b, gt_filtered in ground_truth.groupby('batch_number', sort=False):
             cur_pred_boxes = pred_boxes[b*nAnchors:(b+1)*nAnchors]
-            if self.anchor_step == 4:
-                anchors = self.anchors.clone()
-                anchors[:, :2] = 0
-            else:
-                anchors = torch.cat([torch.zeros_like(self.anchors), self.anchors], 1)
 
             # Create ground_truth tensor
             gt = torch.empty((gt_filtered.shape[0], 4), requires_grad=False)
