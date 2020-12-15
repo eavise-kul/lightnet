@@ -10,7 +10,7 @@ We perform the same training and testing as explained on the `darknet website`_.
 Setting up your environment
 ---------------------------
 In order to run the scripts in this repository, you need to download and install certain packages. |br|
-First, make sure to use ``python3.6`` and above.
+First, make sure to use **python3.6** and above.
 Then install `pytorch and torchvision <https://pytorch.org/get-started/locally>`_ according to your CUDA specs.
 Finally, install the necessary packages by running the following command:
 
@@ -45,7 +45,7 @@ train.py
 
 test.py
    This file creates an object which is similar to the training engine to perform validation of a model.
-   It loads a weight-file, runs the model through the testset and computes a PR and mAP metric.
+   It loads a weight-file, runs the model through the testset and computes an mAP metric.
 
 prune.py
    This file sets up a pruning and re-training pipeline, in order to reduce the number of channels in the convolutions of your network, whilst maintaining the same accuracy.
@@ -95,9 +95,9 @@ we still need to group the data in a training and testing set.
 Because we are converting this anyway, we take the opportunity to convert the annotations to a pandas format,
 which will be faster to parse whilst training/testing.
 In the example code below, we save the data as HDF5 files, which requires the pytables_ package.
-If you do not wish to install it, you can specify to save it as pandas pickle files instead *(-x .pkl)*,
+If you do not wish to install it, you can specify to save it as pandas pickle files instead (``-x .pkl``),
 but this means you will have to change to file names in the config files as well! |br|
-Use ``./bin/labels.py --help`` for more explanation about the various arguments.
+Use ``labels.py --help`` for more explanation about the various arguments.
 
 .. code:: bash
 
@@ -123,7 +123,8 @@ Lightnet  https://mega.nz/#!X9EC3IDb!_17cm1b0sNHIi9lnOcOrWxzYgfNwHkrJkxhPg3vtI3o
 
 .. rubric:: Train model
 
-Use the **train.py** script to train the model. You can use *train.py --help* for an explanation of the arguments and flags.
+Use the **train.py** script to train the model.
+You can use ``train.py --help`` for an explanation of the arguments and flags.
 
 .. code:: bash
 
@@ -131,7 +132,8 @@ Use the **train.py** script to train the model. You can use *train.py --help* fo
 
 .. rubric:: Prune model
 
-Optionally, you can also prune a model. Use the **prune.py** script for this. You can again use *prune.py --help* for an explanation of the arguments and flags.
+Optionally, you can also prune a model with the **prune.py** script.
+You can again use ``prune.py --help`` for an explanation of the arguments and flags.
 
 .. code:: bash
 
@@ -139,7 +141,8 @@ Optionally, you can also prune a model. Use the **prune.py** script for this. Yo
 
 .. rubric:: Test model
 
-Use the **test.py** script to test the model. You can again use *test.py --help* for an explanation of the arguments and flags.
+Use the **test.py** script to test the model.
+As always, you can use ``test.py --help`` for an explanation of the arguments and flags.
 
 .. code:: bash
 
@@ -150,6 +153,9 @@ Use the **test.py** script to test the model. You can again use *test.py --help*
    ./bin/test.py -c -p -n cfg/train/yolov2.py backup/prune/pruned-XX.pt
 
 
-.. include:: ../links.rst
+You can find our results in the :ref:`Performance <acc-voc>` page.
+
+
+.. include:: /links.rst
 .. _pytables: https://www.pytables.org/
 .. _darknet website: https://pjreddie.com/darknet/yolov2/#train-voc

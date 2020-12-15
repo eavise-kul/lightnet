@@ -17,12 +17,20 @@ The lightnet trained weights of these networks can be downloaded via the followi
 .. image:: 04-imagenet.svg
 
 
+.. _acc-voc:
+
 Pascal VOC
 ----------
 
-We compared the Yolo V2 network on the Pascal VOC imageset.
-For more information on how to recreate these results, take a look at the :ref:`Pascal VOC <pascalvoc>` page.
-*(Note that we ignore difficult annotations for these evaluations)*
+We compared the Yolo V2 network on the Pascal VOC imageset (train/test split). |br|
+For more information on how to recreate these results, take a look at the :ref:`Pascal VOC <pascalvoc>` page. |br|
+
+.. note::
+   In order to generate these results, we mimicked the darknet training routine in Lightnet. |br|
+   This means that we used the "traintest" split and not "trainvaltest",
+   as explained in the Pascal VOC tutorial.
+
+   We also ignore difficult annotations when computing mAP for these models.
 
 ========= ======= ===================== ===============================================
 Framework mAP (%) Weight File           Note
@@ -35,8 +43,14 @@ Lightnet  75.6    `weights <lnw-voc_>`_ Transfer learned from Lightnet ImageNet 
 .. _dnw-voc: https://pjreddie.com/media/files/yolov2-voc.weights
 .. _lnw-voc: https://mega.nz/#!PoVCgCqQ!A0RGBpkLAOSXWkg-UZvCEayQSzllmdQlC7-H6uigyNE
 
-.. image:: 04-voc.svg
+.. figure:: 04-voc.svg
+   :width: 100%
+   :alt: PR-curve for each of the 20 classes in Pascal VOC
 
+   PR curve for each of the 20 classes in Pascal VOC. Click on the image for a more detailed look.
+
+
+.. _acc-coco:
 
 MS COCO
 -------
@@ -60,10 +74,10 @@ The darknet metrics come from the YoloV3 paper.
 |              |Lightnet |32.7%   |56.4% |34.1% |`weights <lnw-v3-coco_>`_    |
 +--------------+---------+--------+------+------+-----------------------------+
 
-
 .. _lnw-v2-coco: https://mega.nz/#!ntVmhaxL!yVjLPPaphAY2sMnf8VbZqiLK_7RgSjmf9lSNlo7anbY
 .. _lnw-v3-coco: https://mega.nz/#!r0dSgCTY!laOU6R8xinS9exhoOaUfg0hym3MmfShClm5ZRkb-jAM
 .. _dnw-v2-coco: https://pjreddie.com/media/files/yolov2.weights
 .. _dnw-v3-coco: https://pjreddie.com/media/files/yolov3.weights
 
-.. include:: ../links.rst
+
+.. include:: /links.rst
