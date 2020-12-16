@@ -56,10 +56,10 @@ class MultiScaleRegionLoss(RegionLoss):
 
     def forward(self, output, target, seen=None):
         device = output[0].device
-        loss = torch.tensor(0.0).to(device)
-        loss_coord = torch.tensor(0.0).to(device)
-        loss_conf = torch.tensor(0.0).to(device)
-        loss_cls = torch.tensor(0.0).to(device)
+        loss_total = torch.tensor(0.0, device=device)
+        loss_conf = torch.tensor(0.0, device=device)
+        loss_coord = torch.tensor(0.0, device=device)
+        loss_class = torch.tensor(0.0, device=device)
         if seen is not None:
             self.seen = torch.tensor(seen)
 
@@ -70,14 +70,15 @@ class MultiScaleRegionLoss(RegionLoss):
             self.anchor_step = self.anchors.shape[1]
             self.stride = self._stride[i]
 
-            loss += super().forward(out, target)
-            loss_coord += self.loss_coord
+            super().forward(out, target)
+            loss_total += self.loss_total
             loss_conf += self.loss_conf
-            loss_cls += self.loss_cls
+            loss_coord += self.loss_coord
+            loss_class += self.loss_class
 
         # Overwrite loss values with avg
-        self.loss_coord = loss_coord / len(output)
+        self.loss_total = loss_total / len(output)
         self.loss_conf = loss_conf / len(output)
-        self.loss_cls = loss_cls / len(output)
-        self.loss = loss / len(output)
-        return self.loss
+        self.loss_coord = loss_coord / len(output)
+        self.loss_class = loss_class / len(output)
+        return self.loss_total

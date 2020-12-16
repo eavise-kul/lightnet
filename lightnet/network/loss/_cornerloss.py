@@ -50,6 +50,31 @@ class CornerLoss(nn.modules.loss._Loss):
         self.eps = 1e-4
         self.l1 = nn.SmoothL1Loss()
 
+        self.loss_total = torch.tensor(0.0)
+        self.loss_heatmap = torch.tensor(0.0)
+        self.loss_embedding = torch.tensor(0.0)
+        self.loss_offset = torch.tensor(0.0)
+
+    @property
+    def values(self):
+        """ Return various sub-losses values as a dictionary.
+
+        Note:
+            You can access the individual loss values directly as ``object.loss_<name>`` as well. |br|
+            This will return the actual loss tensor with its attached computational graph and gives you full freedom for modifying this loss prior to the backward pass.
+        """
+        return {
+            'total': self.loss_total.item(),
+            'heatmap': self.loss_heatmap.item(),
+            'embedding': self.loss_embedding.item(),
+            'offset': self.loss_offset.item(),
+        }
+
+    @property
+    def loss(self):
+        log.deprecated('The "loss" attribute is deprecated in favor for "loss_total"')
+        return self.loss_total
+
     def extra_repr(self):
         repr_str = f'stride={self.stride}, gaussian_iou={self.gaussian_iou}\n'
         repr_str += f'heatmap_scale={self.heatmap_scale}, pull_scale={self.pull_scale}, push_scale={self.push_scale}, offset_scale={self.offset_scale}, inter_scale={self.inter_scale}'
@@ -115,7 +140,7 @@ class CornerLoss(nn.modules.loss._Loss):
                 self.loss_embedding = torch.tensor(0.0)
                 self.loss_offset = torch.tensor(0.0)
 
-            self.loss = (self.loss_heatmap + self.loss_embedding + self.loss_offset) / (1 + self.inter_scale)
+            self.loss_total = (self.loss_heatmap + self.loss_embedding + self.loss_offset) / (1 + self.inter_scale)
         else:
             self.loss_heatmap = self.heatmap_scale * self.focal_loss(out_heatmaps, gt_heatmaps)
             if nGT > 0:
@@ -125,10 +150,10 @@ class CornerLoss(nn.modules.loss._Loss):
                 self.loss_embedding = torch.tensor(0.0)
                 self.loss_offset = torch.tensor(0.0)
 
-            self.loss = self.loss_heatmap + self.loss_embedding + self.loss_offset
+            self.loss_total = self.loss_heatmap + self.loss_embedding + self.loss_offset
 
         # Loss
-        return self.loss
+        return self.loss_total
 
     def build_targets(self, ground_truth, nB, nC, nH, nW):
         """ Convert ground truths to network output tensors """

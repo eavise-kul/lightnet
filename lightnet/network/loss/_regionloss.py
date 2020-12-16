@@ -3,6 +3,7 @@
 #   Copyright EAVISE
 #
 
+import logging
 import math
 import numpy as np
 import torch
@@ -14,8 +15,9 @@ try:
 except ModuleNotFoundError:
     pd = None
 
-__all__ = ['RegionLoss']
 
+__all__ = ['RegionLoss']
+log = logging.getLogger(__name__)
 torchversion = LooseVersion(torch.__version__)
 version120 = LooseVersion("1.2.0")
 
@@ -38,10 +40,10 @@ class RegionLoss(nn.modules.loss._Loss):
     def __init__(self, num_classes, anchors, stride=32, seen=0, coord_scale=1.0, noobject_scale=1.0, object_scale=5.0, class_scale=1.0, thresh=0.6, coord_prefill=12800):
         super().__init__()
         self.num_classes = num_classes
+        self.stride = stride
         self.num_anchors = len(anchors)
         self.anchor_step = len(anchors[0])
         self.anchors = torch.tensor(anchors, dtype=torch.float, requires_grad=False)
-        self.stride = stride
         self.register_buffer('seen', torch.tensor(seen))
 
         self.coord_scale = coord_scale
@@ -53,6 +55,31 @@ class RegionLoss(nn.modules.loss._Loss):
 
         self.mse = nn.MSELoss(reduction='sum')
         self.cel = nn.CrossEntropyLoss(reduction='sum')
+
+        self.loss_total = torch.tensor(0.0)
+        self.loss_conf = torch.tensor(0.0)
+        self.loss_coord = torch.tensor(0.0)
+        self.loss_class = torch.tensor(0.0)
+
+    @property
+    def values(self):
+        """ Return detached sub-losses in a dictionary.
+
+        Note:
+            You can access the individual loss values directly as ``object.loss_<name>`` as well. |br|
+            This will return the actual loss tensor with its attached computational graph and gives you full freedom for modifying this loss prior to the backward pass.
+        """
+        return {
+            'total': self.loss_total.detach(),
+            'conf':  self.loss_conf.detach(),
+            'coord': self.loss_coord.detach(),
+            'class': self.loss_class.detach(),
+        }
+
+    @property
+    def loss(self):
+        log.deprecated('The "loss" attribute is deprecated in favor for "loss_total"')
+        return self.loss_total
 
     def extra_repr(self):
         repr_str = f'classes={self.num_classes}, stride={self.stride}, threshold={self.thresh}, seen={self.seen.item()}\n'
@@ -144,15 +171,14 @@ class RegionLoss(nn.modules.loss._Loss):
         self.loss_conf = self.mse(conf*conf_mask, tconf*conf_mask) / (2 * nB)
         if nC > 1:
             if tcls.numel() > 0:
-                self.loss_cls = self.class_scale * self.cel(cls, tcls) / nB
+                self.loss_class = self.class_scale * self.cel(cls, tcls) / nB
             else:
-                self.loss_cls = torch.tensor(0.0).to(device)
-            self.loss = self.loss_coord + self.loss_conf + self.loss_cls
+                self.loss_class = torch.tensor(0.0, device=device)
         else:
-            self.loss_cls = torch.tensor(0.0)
-            self.loss = self.loss_coord + self.loss_conf
+            self.loss_class = torch.tensor(0.0, device=device)
 
-        return self.loss
+        self.loss_total = self.loss_coord + self.loss_conf + self.loss_class
+        return self.loss_total
 
     def build_targets(self, pred_boxes, ground_truth, nB, nH, nW):
         """ Compare prediction boxes and targets, convert targets to network output tensors """
