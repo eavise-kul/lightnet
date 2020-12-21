@@ -37,36 +37,38 @@ class SchedulerCompositor:
         3 - Dummy Scheduler: end
         4 - Dummy Scheduler: end
     """
-    def __init__(self, *args):
+    def __init__(self, *args, last_epoch=-1):
         if len(args) == 0:
             raise ValueError('Compositor requires at least one scheduler')
 
-        self.counts, self.sched = zip(*args)
-        if not all(c1 < c2 for c1, c2 in zip(self.counts, self.counts[1:])):
+        self.epoch, self.sched = zip(*args)
+        if not all(c1 < c2 for c1, c2 in zip(self.epoch, self.epoch[1:])):
             raise ValueError('Count values need to be strictly increasing')
+
+        self.last_epoch = -1
 
     def __repr__(self):
         format_string = self.__class__.__name__ + ' ['
-        clen = max(len(str(c)) for c in self.counts)
-        for i in range(len(self.counts)):
+        clen = max(len(str(c)) for c in self.epoch)
+        for i in range(len(self.epoch)):
             if hasattr(self.sched[i], '__name__'):
                 name = self.sched[i].__name__
             else:
                 name = self.sched[i].__class__.__name__
 
-            format_string += f'\n  {self.counts[i]:>{clen}}:  {name}'
+            format_string += f'\n  {self.epoch[i]:>{clen}}:  {name}'
         format_string += '\n]'
         return format_string
 
-    def step(self, count, **kwargs):
+    def step(self, **kwargs):
         """ Stepping function that will select a scheduler and run it.
 
         Args:
-            count (int): Count value that will determine which scheduler to run
             **kwargs (dict, optional): Extra arguments that will be passed on to the step function of the scheduler itself.
         """
-        for i, c in enumerate(self.counts):
-            if count < c:
+        self.last_epoch += 1
+        for i, e in enumerate(self.epoch):
+            if self.last_epoch < e:
                 i -= 1
                 break
 
@@ -74,6 +76,7 @@ class SchedulerCompositor:
             log.error(f'No Scheduler defined for count value of {count}')
             return
 
+        self.sched[i].last_epoch = self.last_epoch
         return self.sched[i].step(**kwargs)
 
     def state_dict(self):
