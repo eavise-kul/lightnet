@@ -298,10 +298,10 @@ class Compose(list):
         return Compose(super().__add__(other))
 
     def __radd__(self, other):
-        return self + other
+        return Compose(other.__add__(self))
 
     def __mul__(self, other):
         return Compose(super().__mul__(other))
 
     def __rmul__(self, other):
-        return self * other
+        return Compose(other.__mul__(self))
