@@ -37,7 +37,7 @@ class DarknetDataset(BramboxDataset):
     Returns:
         tuple: image_tensor, list of brambox boxes
     """
-    def __init__(self, data_file, class_label_map, augment=True, input_dimension=(416, 416), jitter=.2, flip=.5, hue=.1, saturation=1.5, value=1.5):
+    def __init__(self, data_file, class_label_map, augment=True, input_dimension=(416, 416), jitter=.3, flip=.5, hue=.1, saturation=1.5, value=1.5):
         if bb is None:
             raise ImportError('Brambox needs to be installed to use this dataset')
 

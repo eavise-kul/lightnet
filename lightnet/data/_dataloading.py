@@ -24,11 +24,11 @@ class Dataset(torchDataset):
     that enables on the fly resizing of the ``input_dim`` with a :class:`lightnet.data.DataLoader`.
 
     Args:
-        input_dimension (tuple): (width,height) tuple with default dimensions of the network
+        input_dimension (tuple, optional): (width,height) tuple with default dimensions of the network; Default **[None, None]**
     """
-    def __init__(self, input_dimension):
+    def __init__(self, input_dimension=None):
         super().__init__()
-        self.__input_dim = input_dimension[:2]
+        self.__input_dim = input_dimension[:2] if input_dimension is not None else [None, None]
 
     @property
     def input_dim(self):

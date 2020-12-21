@@ -24,7 +24,7 @@ class BramboxDataset(lnd.Dataset):
 
     Args:
         annotations (dataframe): Dataframe containing brambox annotations
-        input_dimension (tuple): (width,height) tuple with default dimensions of the network
+        input_dimension (tuple, optional): (width,height) tuple with default dimensions of the network; Default **None**
         class_label_map (list): List of class_labels
         identify (function, optional): Lambda/function to get image based of annotation filename or image id; Default **replace/add .png extension to filename/id**
         transform (torchvision.transforms.Compose): Transformation pipeline
@@ -38,7 +38,7 @@ class BramboxDataset(lnd.Dataset):
     Note:
         This dataset opens images with the Pillow library
     """
-    def __init__(self, annotations, input_dimension, class_label_map=None, identify=None, transform=None, anno_transform=None):
+    def __init__(self, annotations, input_dimension=None, class_label_map=None, identify=None, transform=None, anno_transform=None):
         if bb is None:
             raise ImportError('Brambox needs to be installed to use this dataset')
         super().__init__(input_dimension)
