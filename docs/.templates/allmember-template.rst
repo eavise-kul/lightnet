@@ -10,7 +10,7 @@
    :members:
    :special-members:
    :no-undoc-members:
-   :exclude-members: __str__, __repr__
+   :exclude-members: __init__, __str__, __repr__, __weakref__
 
 
 .. include:: /links.rst

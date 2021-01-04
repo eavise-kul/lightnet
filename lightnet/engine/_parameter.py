@@ -2,7 +2,7 @@
 #   HyperParemeters container class
 #   Copyright EAVISE
 #
-
+import copy
 import logging
 import importlib.util
 from collections import Iterable
@@ -37,10 +37,11 @@ class HyperParameters:
         666
     """
     __init_done = False
+    __automatic = {'batch', 'epoch'}
 
     def __init__(self, **kwargs):
-        self.batch = 0
-        self.epoch = 0
+        for key in self.__automatic:
+            setattr(self, key, 0)
 
         self.__no_serialize = []
         for key in kwargs:
@@ -115,6 +116,48 @@ class HyperParameters:
             s += f'\n  {k} = {valrepr}'
 
         return s + '\n)'
+
+    def __add__(self, other):
+        """ Add 2 HyperParameters together. |br|
+        This function first creates a deep copy of the first `self` argument
+        and then loops through the items in the `other` argument and adds those parameters
+        if they are not already available in the new HyperParameters object.
+
+        Note:
+            When adding HyperParameters objects together,
+            we keep the automatic variables (epoch, batch) from the first object. |br|
+            Optionally, you can reset these variables by calling the :func:`~lightnet.engine.HyperParameters.reset()` method.
+        """
+        if isinstance(other, HyperParameters):
+            new = copy.deepcopy(self)
+            for key in other:
+                if not hasattr(new, key):
+                    nkey = f'_{key}' if key in other.__no_serialize else key
+                    setattr(new, nkey, getattr(other, key))
+                elif key not in HyperParameters.__automatic:
+                    log.warn(f'"{key}" is available in both HyperParameters, keeping first')
+
+            return new
+        else:
+            raise NotImplementedError('Can only add 2 Hyperparameters objects together')
+
+    def keys(self):
+        """ Returns the attributes of your HyperParameters object, similar to a python dictionary. """
+        return sorted(k for k in self.__dict__ if not k.startswith('_HyperParameters_'))
+
+    def values(self):
+        """ Returns the attribute values of your HyperParameters object, similar to a python dictionary. """
+        return (getattr(self, k) for k in self.keys())
+
+    def items(self):
+        """ Returns the attribute keys and values of your HyperParameters object, similar to a python dictionary. """
+        return ((k, getattr(self, k)) for k in self.keys())
+
+    def __iter__(self):
+        """ Return an iterator of :func:`~lightnet.engine.HyperParameters.keys()`,
+        so we can loop over this object like a python dictionary.
+        """
+        return iter(self.keys())
 
     @classmethod
     def from_file(cls, path, variable='params', **kwargs):
@@ -239,5 +282,5 @@ class HyperParameters:
 
     def reset(self):
         """ Resets automatic variables epoch and batch """
-        self.batch = 0
-        self.epoch = 0
+        for key in self.__automatic:
+            setattr(self, key, 0)

@@ -5,7 +5,7 @@ Engine
 .. autosummary::
    :toctree: generated
    :nosignatures:
-   :template: member-template.rst
+   :template: allmember-template.rst
 
    lightnet.engine.Engine
    lightnet.engine.HyperParameters
