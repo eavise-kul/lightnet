@@ -412,34 +412,39 @@ class FitAnno(BaseMultiTransform):
         crop_width = crop_coords[1] - crop_coords[0]
         crop_height = crop_coords[3] - crop_coords[2]
 
-        # Filter
-        if self.filter:
-            if isinstance(self.filter_threshold, collections.Sequence):
-                mask = (
-                    ((crop_width / anno.width.values) >= self.filter_threshold[0])
-                    & ((crop_height / anno.height.values) >= self.filter_threshold[1])
-                )
-            else:
-                mask = ((crop_width * crop_height) / (anno.width.values * anno.height.values)) >= self.filter_threshold
+        # UserWarnings occur when box width or height is zero (divide by zero)
+        # Disable theses annoying warnings as we manually handle the nan cases:
+        #   - Masks: `nan >= X = False`
+        #   - Computes: `np.nan_to_num(nan) = 0`
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # Filter
+            if self.filter:
+                if isinstance(self.filter_threshold, collections.Sequence):
+                    mask = (
+                        ((crop_width / anno.width.values) >= self.filter_threshold[0])
+                        & ((crop_height / anno.height.values) >= self.filter_threshold[1])
+                    )
+                else:
+                    mask = ((crop_width * crop_height) / (anno.width.values * anno.height.values)) >= self.filter_threshold
 
-            if self.filter_type == 'ignore':
-                anno.loc[~mask, 'ignore'] = True
-            else:
-                anno = anno[mask].copy()
-                if len(anno.index) == 0:
-                    return anno
+                if self.filter_type == 'ignore':
+                    anno.loc[~mask, 'ignore'] = True
+                else:
+                    anno = anno[mask].copy()
+                    if len(anno.index) == 0:
+                        return anno
 
-                crop_coords = crop_coords[:, mask]
-                crop_width = crop_width[mask]
-                crop_height = crop_height[mask]
+                    crop_coords = crop_coords[:, mask]
+                    crop_width = crop_width[mask]
+                    crop_height = crop_height[mask]
 
-        # Crop
-        if self.crop:
-            anno.truncated = (1 - ((crop_width * crop_height * (1 - anno.truncated.values)) / (anno.width.values * anno.height.values))).clip(0, 1)
-            anno.x_top_left = crop_coords[0]
-            anno.y_top_left = crop_coords[2]
-            anno.width = crop_width
-            anno.height = crop_height
+            # Crop
+            if self.crop:
+                anno.truncated = np.nan_to_num((1 - ((crop_width * crop_height * (1 - anno.truncated.values)) / (anno.width.values * anno.height.values))).clip(0, 1))
+                anno.x_top_left = crop_coords[0]
+                anno.y_top_left = crop_coords[2]
+                anno.width = crop_width
+                anno.height = crop_height
 
         # Remove empty
         if self.remove_empty:
