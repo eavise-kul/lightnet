@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 
 class HyperParameters:
-    """ This class is a container for training hyperparameters.
+    """ This class is a container for all your training hyperparameters.
     It allows to save the state of a training and reload it at a later stage.
 
     Args:
@@ -130,14 +130,21 @@ class HyperParameters:
         """
         if isinstance(other, HyperParameters):
             new = copy.deepcopy(self)
+            return new.__iadd__(other)
+        else:
+            raise NotImplementedError('Can only add 2 Hyperparameters objects together')
+
+    def __iadd__(self, other):
+        # Small performance boost by not deepcopying self.
+        if isinstance(other, HyperParameters):
             for key in other:
-                if not hasattr(new, key):
+                if not hasattr(self, key):
                     nkey = f'_{key}' if key in other.__no_serialize else key
-                    setattr(new, nkey, getattr(other, key))
+                    setattr(self, nkey, copy.deepcopy(getattr(other, key)))
                 elif key not in HyperParameters.__automatic:
                     log.warn(f'"{key}" is available in both HyperParameters, keeping first')
 
-            return new
+            return self
         else:
             raise NotImplementedError('Can only add 2 Hyperparameters objects together')
 
@@ -164,10 +171,93 @@ class HyperParameters:
         """ Create a HyperParameter object from a dictionary in an external configuration file.
         This function will import a file by its path and extract a variable to use as HyperParameters.
 
+        The main goal of this class is to enable *"python as a config"*. |br|
+        This means that you can pass in a path to a python file,
+        and the training code will automatically load the HyperParameters from this file.
+
         Args:
             path (str or path-like object): Path to the configuration python file
             variable (str, optional): Variable to extract from the configuration file; Default **'params'**
             **kwargs (dict, optional): Extra parameters that are passed to the extracted variable if it is a callable object
+
+        Examples:
+            .. doctest::
+               :options: +SKIP
+
+               >>> # config.py file
+               >>> params = ln.engine.HyperParameters(
+               ...     network = ln.models.YoloV2(20),
+               ...     # _ means batch_size will not be serialized
+               ...     _batch_size = 8,
+               ...     lr = 0.001,
+               ... )
+
+               >>> # Main training/testing file
+               >>> params = ln.engine.HyperParameters.from_file('config.py')
+               >>> print(params)
+               HyperParameters(
+                   network = YoloV2
+                   batch_size* = 8
+                   lr = 0.001
+               )
+
+            By default, this function will look for a 'params' variable in your file,
+            but you can change that by passing a different value to the ``variable`` argument.
+
+            .. doctest::
+               :options: +SKIP
+
+               >>> # config.py file
+               >>> my_custom_params = ln.engine.HyperParameters(...)
+
+               >>> # Main training/testing file
+               >>> params = ln.engine.HyperParameters.from_file('config.py', variable='my_custom_params')
+               >>> print(params)
+               HyperParameters(
+                   ...
+               )
+
+            If you don't feel like importing lightnet in your config file, you can also return a dictionary,
+            which will be used to construct a HyperParemeters object.
+
+            .. doctest::
+               :options: +SKIP
+
+               >>> # config.py file
+               >>> params = {
+               ...     'a': 1,
+               ...     'b': 2,
+               ... }
+
+               >>> # Main training/testing file
+               >>> params = ln.engine.HyperParameters.from_file('config.py')
+               >>> print(params)
+               HyperParameters(
+                   a = 1
+                   b = 2
+               )
+
+            Finally, power users may want to be able to pass arguments to the config file! |br|
+            Just make the 'params' argument callable in your config, and you can pass in keyword arguments.
+
+            .. doctest::
+               :options: +SKIP
+
+               >>> # config.py file
+               >>> def params(a, b):
+               ...     # Either return a dict or an HP object
+               ...     return {
+               ...         'a': a,
+               ...         'b': b,
+               ...     }
+
+               >>> # Main training/testing file
+               >>> params = ln.engine.HyperParameters.from_file('config.py', a=666, b='value_B')
+               >>> print(params)
+               HyperParameters(
+                   a = 666
+                   b = value_B
+               )
 
         Note:
             The extracted variable can be one of the following:
