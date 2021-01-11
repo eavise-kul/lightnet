@@ -29,15 +29,16 @@ class SchedulerCompositor:
         ...     (2, DummyScheduler('middle')),
         ...     (3, DummyScheduler('end')),
         ... )
+        >>> # Note that then "count_value" argument is just for this example
         >>> for i in range(5):
-        ...     s.step(i, count_value=i)
+        ...     s.step(count_value=i)
         0 - Dummy Scheduler: start
         1 - Dummy Scheduler: start
         2 - Dummy Scheduler: middle
         3 - Dummy Scheduler: end
         4 - Dummy Scheduler: end
     """
-    def __init__(self, *args, last_epoch=-1):
+    def __init__(self, *args, last_epoch=0):
         if len(args) == 0:
             raise ValueError('Compositor requires at least one scheduler')
 
@@ -45,7 +46,7 @@ class SchedulerCompositor:
         if not all(c1 < c2 for c1, c2 in zip(self.epoch, self.epoch[1:])):
             raise ValueError('Count values need to be strictly increasing')
 
-        self.last_epoch = -1
+        self.last_epoch = last_epoch
 
     def __repr__(self):
         format_string = self.__class__.__name__ + ' ['
@@ -60,6 +61,11 @@ class SchedulerCompositor:
         format_string += '\n]'
         return format_string
 
+    def get_last_lr(self):
+        sched = self._get_scheduler(self.last_epoch)
+        if sched is not None:
+            return sched.get_last_lr()
+
     def step(self, **kwargs):
         """ Stepping function that will select a scheduler and run it.
 
@@ -67,17 +73,23 @@ class SchedulerCompositor:
             **kwargs (dict, optional): Extra arguments that will be passed on to the step function of the scheduler itself.
         """
         self.last_epoch += 1
+        sched = self._get_scheduler(self.last_epoch)
+
+        if sched is not None:
+            sched.last_epoch = self.last_epoch
+            return sched.step(**kwargs)
+
+    def _get_scheduler(self, epoch):
         for i, e in enumerate(self.epoch):
-            if self.last_epoch < e:
+            if epoch < e:
                 i -= 1
                 break
 
         if i < 0:
-            log.error(f'No Scheduler defined for count value of {count}')
-            return
-
-        self.sched[i].last_epoch = self.last_epoch
-        return self.sched[i].step(**kwargs)
+            log.error(f'No Scheduler defined for count value of {epoch}')
+            return None
+        else:
+            return self.sched[i]
 
     def state_dict(self):
         state_dict = [s.state_dict() for s in self.sched]
