@@ -9,6 +9,7 @@
 .. _lightning: https://pytorch-lightning.readthedocs.io
 .. _onnx: https://github.com/onnx/onnx
 .. _ln-voc: https://gitlab.com/eavise/top/voc
+.. _ln-coco: https://gitlab.com/eavise/top/coco
 
 
 .. DIRECTIVES
