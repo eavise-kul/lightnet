@@ -23,7 +23,7 @@ class Pruner(ABC):
 
     Args:
         model (torch.nn.Module): model to prune
-        input_dimensions (tuple): Input dimensions to the network
+        input_dimensions (tuple): Input dimensions to the network (width, height, channels) where channels is optional and defaults to 3
         optimizer (torch.optim.Optimizer or None, optional): Optimizer that is used when retraining the network (see Note); default **None**
         manner ("soft" or "hard", optional): Whether to perform soft-pruning (replacing channel values with zero) or hard-pruning (deleting channels); Default **"hard"**
         get_parameters (function, optional): function that takes a model and returns the parameters for the optimizer; Default **model.parameters()**
@@ -48,6 +48,11 @@ class Pruner(ABC):
         self.model = model
         self.optimizer = optimizer
         self.manner = manner
+
+        if len(input_dimensions) == 2:
+            input_dimensions = (1, 3) + input_dimensions[::-1]
+        elif len(input_dimensions) == 3:
+            input_dimensions = (1,) + input_dimensions[::-1]
         self.dependencies = get_dependency_map(model, input_dimensions)
 
         if self.optimizer is None:

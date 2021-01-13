@@ -19,7 +19,7 @@ def get_dependency_map(model, input_dim):
 
     Args:
         model (torch.nn.Module): Network model
-        input_dim (tuple <int>): Input dimension for the model
+        input_dim (tuple <int>): Input dimension for the model, usually [batch, channels, height, width]
 
     Returns:
         dict: dependency map for each prunable convolution
@@ -81,7 +81,7 @@ def get_onnx_model(model, input_dim, path):
 
     Args:
         model (torch.nn.Module): Network model
-        input_dim (tuple <int>): Input dimension for the model
+        input_dim (tuple <int>): Input dimension for the model, usually [batch, channels, height, width]
         path (string): Path to save the ONNX model
 
     Note:
