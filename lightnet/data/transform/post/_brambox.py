@@ -41,6 +41,8 @@ class TensorToBrambox(BaseTransform):
             df.class_label = df.class_label.astype(str)
             return df
 
+        boxes = boxes.clone()
+
         # coords: width & height
         boxes[:, 3:5] -= boxes[:, 1:3]
 
