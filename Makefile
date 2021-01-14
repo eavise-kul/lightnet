@@ -2,7 +2,7 @@ SHELL := /bin/bash
 DEBUG := 
 all: test docs
 .PHONY: docs doctest unittest lint test build
-.SILENT: docs doctest test build
+.SILENT: docs doctest test build unittest
 .NOTPARALLEL: docs doctest unittest lint test build
 
 docs: notebook:= 0
@@ -13,9 +13,12 @@ doctest:
 	${DEBUG} cd docs; ${DEBUG} make doctest
 
 unittest: file := ./test/
-unittest: flag := 
+unittest: expr := 
+unittest: marker :=
+unittest: EXPR := $(if $(strip ${expr}), -k ${expr},)
+unittest: MARKER := $(if $(strip ${marker}), -m ${marker},)
 unittest:
-	BB_LOGLVL=warning python -m pytest ${flag} ${file}
+	BB_LOGLVL=warning python -m pytest ${EXPR} ${MARKER} ${file}
 
 lint:
 	${DEBUG} pycodestyle lightnet/
