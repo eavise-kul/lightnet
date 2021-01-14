@@ -48,6 +48,8 @@ class Pruner(ABC):
         self.model = model
         self.optimizer = optimizer
         self.manner = manner
+        self._soft_pruned = 0
+        self._hard_pruned = 0
 
         if len(input_dimensions) == 2:
             input_dimensions = (1, 3) + input_dimensions[::-1]
@@ -68,6 +70,9 @@ class Pruner(ABC):
 
         Args:
             percentage (float): Percentage of the prunable channels to prune (approximative)
+
+        Returns:
+            int: Number of pruned channels
         """
         with torch.no_grad():
             # Delete gradients
@@ -86,9 +91,11 @@ class Pruner(ABC):
                 percentage /= 100
 
             if self.manner == "soft":
-                prune_count = self.prune(percentage, self.soft_prune)
+                self._hard_pruned = 0
+                prune_count = self._soft_pruned = self.prune(percentage, self.soft_prune)
             else:
-                prune_count = self.prune(percentage, self.hard_prune)
+                self._soft_pruned = 0
+                prune_count = self._hard_pruned = self.prune(percentage, self.hard_prune)
                 self._update_optimizer()
 
             return prune_count
@@ -131,6 +138,21 @@ class Pruner(ABC):
             prunable += dependency.module.out_channels
 
         return prunable
+
+    @property
+    def pruned_channels(self):
+        """ Returns the number of pruned channels from the last pruning operation. """
+        return self._soft_pruned + self._hard_pruned
+
+    @property
+    def soft_pruned_channels(self):
+        """ Returns the number of soft pruned channels from the last pruning operation. """
+        return self._soft_pruned
+
+    @property
+    def hard_pruned_channels(self):
+        """ Returns the number of hard pruned channels from the last pruning operation. """
+        return self._hard_pruned
 
     def soft_prune(self, conv_node, filter_list, chain=False):
         """ Soft pruning implementation, passed to the prune() function as ``prune_manner`` """

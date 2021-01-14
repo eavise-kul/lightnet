@@ -69,6 +69,21 @@ class MultiPruner:
         """
         return self.pruners[0].prunable_channels
 
+    @property
+    def pruned_channels(self):
+        """ Returns the number of pruned channels from the last pruning operation. """
+        return sum(p.pruned_channels for p in self.pruners)
+
+    @property
+    def soft_pruned_channels(self):
+        """ Returns the number of soft pruned channels from the last pruning operation. """
+        return sum(p.soft_pruned_channels for p in self.pruners)
+
+    @property
+    def hard_pruned_channels(self):
+        """ Returns the number of hard pruned channels from the last pruning operation. """
+        return sum(p.hard_pruned_channels for p in self.pruners)
+
     def __str__(self):
         string = f'{self.__class__.__name__} ['
         for pruner in self.pruners:
