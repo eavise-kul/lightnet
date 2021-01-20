@@ -11,3 +11,6 @@ and as such are a nice example of some real code to learn from.
    The COCO repository is still a WIP, where we try to integrate Lightnet with PyTorch Lightning.
    Feel free to check it out for yourself, but beware that the results might not yet be entirely correct. |br|
    We will update this page once the code is completely in working order!
+
+
+.. include:: /links.rst
