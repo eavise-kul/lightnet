@@ -15,8 +15,8 @@ doctest:
 unittest: file := ./test/
 unittest: expr := 
 unittest: marker :=
-unittest: EXPR := $(if $(strip ${expr}), -k ${expr},)
-unittest: MARKER := $(if $(strip ${marker}), -m ${marker},)
+unittest: EXPR := $(if $(strip ${expr}), -k "${expr}",)
+unittest: MARKER := $(if $(strip ${marker}), -m "${marker}",)
 unittest:
 	BB_LOGLVL=warning python -m pytest ${EXPR} ${MARKER} ${file}
 
