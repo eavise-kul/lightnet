@@ -172,7 +172,7 @@ class SequentialSelect(nn.Sequential):
         k = list(self._modules.keys())
         for sel in self.selection:
             if sel not in k:
-                raise KeyError('Selection key not found in sequential [{sel}]')
+                raise KeyError(f'Selection key not found in sequential [{sel}]')
 
     def extra_repr(self):
         return f'selection={self.selection}, return={self.return_selection}, flatten={self.flatten}'
